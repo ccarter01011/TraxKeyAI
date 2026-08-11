@@ -1,0 +1,290 @@
+{
+  "name": "TraxKey - 07 Approve Request",
+  "nodes": [
+    {
+      "id": "ar-webhook",
+      "name": "Approve Request (Webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        -320,
+        32
+      ],
+      "webhookId": "traxkey-approve-request",
+      "parameters": {
+        "path": "traxkey-approve-request",
+        "options": {
+          "allowedOrigins": "*"
+        },
+        "httpMethod": "POST",
+        "responseMode": "responseNode"
+      },
+      "typeVersion": 2.1
+    },
+    {
+      "id": "vs-approve",
+      "name": "Validate Session (Approve)",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        -96,
+        32
+      ],
+      "parameters": {
+        "query": "SELECT u.id AS user_id, s.company_id FROM traxkey.sessions s JOIN traxkey.users u ON u.id = s.user_id WHERE s.token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\") }}' AND s.expires_at > now();",
+        "options": {},
+        "operation": "executeQuery"
+      },
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "typeVersion": 2.5,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "sv-approve",
+      "name": "Session Valid? (Approve)",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        128,
+        32
+      ],
+      "parameters": {
+        "options": {},
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "sv",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json.company_id }}",
+              "rightValue": ""
+            }
+          ]
+        }
+      },
+      "typeVersion": 2
+    },
+    {
+      "id": "unauth-approve",
+      "name": "Respond: Approve Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        352,
+        152
+      ],
+      "parameters": {
+        "options": {
+          "responseCode": 401
+        },
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"Unauthorized\" }"
+      },
+      "typeVersion": 1.1
+    },
+    {
+      "id": "ar-update",
+      "name": "Approve Request",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        352,
+        32
+      ],
+      "notes": "WHERE clause checks company_id AND status = 'awaiting_approval', so this can't approve another company's request, and can't double-approve or approve something that was never paused.",
+      "parameters": {
+        "query": "UPDATE traxkey.maintenance_requests\nSET approved_by = '{{ $json.user_id }}', approved_at = now(), status = 'assigned'\nWHERE id = '{{ $(\"Approve Request (Webhook)\").first().json.body.requestId }}'\nAND company_id = '{{ $json.company_id }}'\nAND status = 'awaiting_approval'\nRETURNING id;",
+        "options": {},
+        "operation": "executeQuery"
+      },
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "typeVersion": 2.5,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "ar-if",
+      "name": "Request Approved?",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        576,
+        32
+      ],
+      "parameters": {
+        "options": {},
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "ra",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json.id }}",
+              "rightValue": ""
+            }
+          ]
+        }
+      },
+      "typeVersion": 2
+    },
+    {
+      "id": "ar-log",
+      "name": "Log Approved Event",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        800,
+        -48
+      ],
+      "parameters": {
+        "query": "INSERT INTO traxkey.maintenance_events (request_id, event_type, content) VALUES ('{{ $json.id }}', 'approved', 'Approved by a team member. Dispatch happens on the AI Coordinator''s next pass.');",
+        "options": {},
+        "operation": "executeQuery"
+      },
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "typeVersion": 2.5
+    },
+    {
+      "id": "ar-respond-ok",
+      "name": "Respond: Approved",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        1024,
+        -48
+      ],
+      "parameters": {
+        "options": {
+          "responseCode": 200
+        },
+        "respondWith": "json",
+        "responseBody": "={ \"success\": true }"
+      },
+      "typeVersion": 1.1
+    },
+    {
+      "id": "ar-respond-fail",
+      "name": "Respond: Not Found Or Already Handled",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        800,
+        128
+      ],
+      "parameters": {
+        "options": {
+          "responseCode": 404
+        },
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"Request not found, or it isn't waiting on approval anymore.\" }"
+      },
+      "typeVersion": 1.1
+    }
+  ],
+  "connections": {
+    "Approve Request (Webhook)": {
+      "main": [
+        [
+          {
+            "node": "Validate Session (Approve)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Session (Approve)": {
+      "main": [
+        [
+          {
+            "node": "Session Valid? (Approve)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Session Valid? (Approve)": {
+      "main": [
+        [
+          {
+            "node": "Approve Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Approve Unauthorized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approve Request": {
+      "main": [
+        [
+          {
+            "node": "Request Approved?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Request Approved?": {
+      "main": [
+        [
+          {
+            "node": "Log Approved Event",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Not Found Or Already Handled",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Approved Event": {
+      "main": [
+        [
+          {
+            "node": "Respond: Approved",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {}
+}

@@ -195,10 +195,7 @@ def check_approval(state: RequestState) -> RequestState:
 
 
 def dispatch(state: RequestState) -> RequestState:
-    """Only runs when under the approval threshold, auto-dispatches. A
-    request paused at awaiting_approval resumes into this same node once a
-    human approves it (a separate, simpler check-and-dispatch pass, not
-    built yet, next increment)."""
+    """Only runs when under the approval threshold, auto-dispatches."""
     with db() as conn, conn.cursor() as cur:
         cur.execute(
             "UPDATE traxkey.maintenance_requests SET status = 'scheduled' WHERE id = %s",
@@ -209,6 +206,22 @@ def dispatch(state: RequestState) -> RequestState:
             (state["request_id"],),
         )
     return {**state, "final_status": "scheduled"}
+
+
+def dispatch_approved(request_id: str) -> None:
+    """A request a human just approved (n8n's approve-request endpoint set
+    it to 'assigned') resumes here, skipping diagnose/find_vendor/
+    check_approval entirely since those already ran, this just finishes
+    the job with the vendor and cost already on record."""
+    with db() as conn, conn.cursor() as cur:
+        cur.execute(
+            "UPDATE traxkey.maintenance_requests SET status = 'scheduled' WHERE id = %s",
+            (request_id,),
+        )
+        cur.execute(
+            "INSERT INTO traxkey.maintenance_events (request_id, event_type, content) VALUES (%s, 'dispatched', 'Dispatched after human approval.')",
+            (request_id,),
+        )
 
 
 def route_after_vendor(state: RequestState) -> str:
@@ -237,14 +250,23 @@ graph = builder.compile()
 
 
 def run_batch():
-    """Entry point for a scheduled run: process every request still sitting
-    at 'submitted'. This is what LangGraph Platform's cron config invokes."""
+    """Entry point for a scheduled run: process every new submission, and
+    separately, finish dispatching anything a human just approved."""
     with db() as conn, conn.cursor() as cur:
         cur.execute("SELECT id FROM traxkey.maintenance_requests WHERE status = 'submitted'")
         pending = cur.fetchall()
 
     for row in pending:
         graph.invoke({"request_id": str(row["id"])})
+
+    with db() as conn, conn.cursor() as cur:
+        cur.execute(
+            "SELECT id FROM traxkey.maintenance_requests WHERE status = 'assigned' AND approved_at IS NOT NULL"
+        )
+        approved = cur.fetchall()
+
+    for row in approved:
+        dispatch_approved(str(row["id"]))
 
 
 if __name__ == "__main__":

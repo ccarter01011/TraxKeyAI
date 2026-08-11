@@ -28,8 +28,25 @@ const EVENT_LABEL = {
   closed: 'Closed',
 };
 
-function RequestCard({ request }) {
+function RequestCard({ request, onApproved }) {
   const [expanded, setExpanded] = useState(false);
+  const [approving, setApproving] = useState(false);
+  const [approveError, setApproveError] = useState('');
+  const needsApproval = request.status === 'awaiting_approval';
+
+  async function approve(e) {
+    e.stopPropagation();
+    setApproving(true);
+    setApproveError('');
+    try {
+      await apiRequest('traxkey-approve-request', { method: 'POST', body: { requestId: request.id } });
+      onApproved();
+    } catch (err) {
+      setApproveError(err.message || 'Could not approve');
+      setApproving(false);
+    }
+  }
+
   return (
     <div className="bg-slate-900 border border-white/5 rounded-2xl p-5 mb-3">
       <button onClick={() => setExpanded(v => !v)} className="w-full text-left">
@@ -44,8 +61,20 @@ function RequestCard({ request }) {
           {request.category || 'not yet classified'}
           {request.urgency ? ` · ${request.urgency}` : ''}
           {request.vendor_name ? ` · assigned to ${request.vendor_name}` : ''}
+          {request.quoted_cost ? ` · est. $${Math.round(request.quoted_cost)}` : ''}
         </p>
       </button>
+
+      {needsApproval && (
+        <div className="mt-3 pt-3 border-t border-amber-400/20 flex items-center gap-2">
+          <button onClick={approve} disabled={approving}
+            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs px-3 py-1.5 rounded-lg transition disabled:opacity-50">
+            {approving ? 'Approving…' : 'Approve dispatch'}
+          </button>
+          <span className="text-xs text-amber-400">Waiting on you before this gets sent to a vendor.</span>
+          {approveError && <span className="text-xs text-red-400">{approveError}</span>}
+        </div>
+      )}
 
       {expanded && (
         <div className="mt-4 pt-4 border-t border-white/5 space-y-2.5">
@@ -69,11 +98,13 @@ export default function ActivityPage() {
   const [requests, setRequests] = useState(null);
   const [error, setError] = useState('');
 
-  useEffect(() => {
+  function load() {
     apiRequest('traxkey-get-activity')
       .then(json => setRequests(json.filter(r => r.id)))
       .catch(err => setError(err.message || 'Could not load activity'));
-  }, []);
+  }
+
+  useEffect(() => { load(); }, []);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 px-6 py-8">
@@ -92,7 +123,7 @@ export default function ActivityPage() {
             <p className="text-sm text-slate-400">No maintenance requests yet.</p>
           </div>
         )}
-        {requests && requests.map(r => <RequestCard key={r.id} request={r} />)}
+        {requests && requests.map(r => <RequestCard key={r.id} request={r} onApproved={load} />)}
       </div>
     </div>
   );
