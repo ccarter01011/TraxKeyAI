@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './lib/AuthContext.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import SignupPage from './pages/SignupPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
+import PropertiesPage from './pages/PropertiesPage.jsx';
 import './index.css';
 
 function RequireAuth({ children }) {
@@ -21,6 +22,7 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/" element={<RequireAuth><DashboardPage /></RequireAuth>} />
+          <Route path="/properties" element={<RequireAuth><PropertiesPage /></RequireAuth>} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
