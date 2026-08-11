@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Report a Maintenance Issue | TraxKey AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>* { font-family: 'Inter', sans-serif; }</style>
+</head>
+<body class="bg-slate-950 text-slate-100 antialiased min-h-screen">
+
+<div class="max-w-lg mx-auto px-4 py-10">
+  <div class="flex items-center gap-2 mb-8">
+    <div class="w-8 h-8 rounded-lg bg-teal-500/15 border border-teal-500/30 flex items-center justify-center">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3L4 9V21H20V9L12 3Z" stroke="#2dd4bf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <span class="font-extrabold text-lg tracking-tight">TraxKey <span class="text-teal-400">AI</span></span>
+  </div>
+
+  <!-- STEP 1: report form -->
+  <div id="report-form">
+    <h1 class="text-2xl font-bold mb-2">Report a maintenance issue</h1>
+    <p class="text-sm text-slate-400 mb-8">Describe what's wrong. We'll get someone on it, usually within hours.</p>
+
+    <form id="maint-form" class="space-y-5" onsubmit="return submitRequest(event)">
+
+      <div>
+        <label class="block text-sm font-medium text-slate-300 mb-1.5">Your address or unit</label>
+        <input id="mf-address" required type="text" placeholder="123 Main St, Unit 2B" class="w-full bg-slate-900 border border-white/10 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-teal-400" />
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-slate-300 mb-1.5">What's going on?</label>
+        <textarea id="mf-description" required rows="4" placeholder="e.g. Kitchen faucet has been dripping constantly for two days" class="w-full bg-slate-900 border border-white/10 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-teal-400"></textarea>
+        <p class="text-xs text-slate-500 mt-1.5">Be specific, what, where, and how long. It helps us get the right person out faster.</p>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-slate-300 mb-1.5">How urgent is this?</label>
+        <div class="grid grid-cols-3 gap-2" id="mf-urgency-group">
+          <button type="button" data-value="routine" onclick="selectUrgency(this)" class="urgency-btn border border-white/10 rounded-lg py-2.5 text-sm text-center hover:border-teal-400/50 transition">Routine</button>
+          <button type="button" data-value="urgent" onclick="selectUrgency(this)" class="urgency-btn border border-white/10 rounded-lg py-2.5 text-sm text-center hover:border-amber-400/50 transition">Urgent</button>
+          <button type="button" data-value="emergency" onclick="selectUrgency(this)" class="urgency-btn border border-white/10 rounded-lg py-2.5 text-sm text-center hover:border-red-400/50 transition">Emergency</button>
+        </div>
+        <p class="text-xs text-slate-500 mt-1.5">Emergency = active water leak, no heat/AC in extreme weather, no power, gas smell, or anything unsafe.</p>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-slate-300 mb-1.5">Photos (optional, but helps a lot)</label>
+        <input id="mf-photos" type="file" accept="image/*" multiple class="w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-teal-500/15 file:text-teal-300 file:text-sm file:font-medium hover:file:bg-teal-500/25" />
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-sm font-medium text-slate-300 mb-1.5">Your name</label>
+          <input id="mf-name" required type="text" class="w-full bg-slate-900 border border-white/10 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-teal-400" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-300 mb-1.5">Phone</label>
+          <input id="mf-phone" required type="tel" placeholder="(555) 555-5555" class="w-full bg-slate-900 border border-white/10 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-teal-400" />
+        </div>
+      </div>
+
+      <p id="mf-error" class="hidden text-sm text-red-400"></p>
+
+      <button id="mf-submit-btn" type="submit" class="w-full bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold py-3.5 rounded-xl transition active:scale-95 duration-150">
+        Submit request
+      </button>
+    </form>
+  </div>
+
+  <!-- STEP 2: confirmation -->
+  <div id="report-success" class="hidden text-center py-12">
+    <div class="w-14 h-14 bg-teal-500/15 rounded-full flex items-center justify-center mx-auto mb-4">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M8 12L11 15L16 9" stroke="#2dd4bf" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <h1 class="text-xl font-bold mb-2">Got it, we're on it</h1>
+    <p class="text-sm text-slate-400 mb-1">Your request is being reviewed right now.</p>
+    <p class="text-sm text-slate-400">We'll text you at the number you gave us with updates, including who's coming and when.</p>
+    <p id="success-ref" class="text-xs text-slate-600 mt-6"></p>
+  </div>
+</div>
+
+<script>
+let selectedUrgency = null;
+
+function selectUrgency(btn) {
+  document.querySelectorAll('.urgency-btn').forEach(b => {
+    b.classList.remove('bg-teal-500/15', 'border-teal-400', 'bg-amber-500/15', 'border-amber-400', 'bg-red-500/15', 'border-red-400');
+  });
+  const value = btn.dataset.value;
+  selectedUrgency = value;
+  const colorMap = {
+    routine: ['bg-teal-500/15', 'border-teal-400'],
+    urgent: ['bg-amber-500/15', 'border-amber-400'],
+    emergency: ['bg-red-500/15', 'border-red-400']
+  };
+  btn.classList.add(...colorMap[value]);
+}
+
+// Placeholder endpoint — swap for the real TraxKey intake webhook once the
+// backend (n8n or LangGraph service) exists. Mirrors TraxSail's
+// SIGNUP_ENDPOINT pattern: one constant, one fetch call.
+const INTAKE_ENDPOINT = 'REPLACE_WITH_TRAXKEY_INTAKE_WEBHOOK_URL';
+
+async function submitRequest(e) {
+  e.preventDefault();
+  const errorEl = document.getElementById('mf-error');
+  const submitBtn = document.getElementById('mf-submit-btn');
+  errorEl.classList.add('hidden');
+
+  if (!selectedUrgency) {
+    errorEl.textContent = 'Please select how urgent this is.';
+    errorEl.classList.remove('hidden');
+    return false;
+  }
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Submitting…';
+
+  const payload = {
+    address: document.getElementById('mf-address').value,
+    description: document.getElementById('mf-description').value,
+    urgency: selectedUrgency,
+    name: document.getElementById('mf-name').value,
+    phone: document.getElementById('mf-phone').value
+    // photo upload wired up once the backend has a file endpoint
+  };
+
+  try {
+    const res = await fetch(INTAKE_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok || json.success === false) {
+      throw new Error(json.error || 'Something went wrong submitting your request.');
+    }
+    document.getElementById('report-form').classList.add('hidden');
+    document.getElementById('report-success').classList.remove('hidden');
+    document.getElementById('success-ref').textContent = json.requestId ? `Reference: ${json.requestId}` : '';
+  } catch (err) {
+    errorEl.textContent = err.message || 'Something went wrong. Please try again.';
+    errorEl.classList.remove('hidden');
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Submit request';
+  }
+  return false;
+}
+</script>
+
+</body>
+</html>
