@@ -8,6 +8,7 @@ import DashboardPage from './pages/DashboardPage.jsx';
 import PropertiesPage from './pages/PropertiesPage.jsx';
 import ResidentsPage from './pages/ResidentsPage.jsx';
 import VendorsPage from './pages/VendorsPage.jsx';
+import ActivityPage from './pages/ActivityPage.jsx';
 import './index.css';
 
 function RequireAuth({ children }) {
@@ -27,6 +28,7 @@ function App() {
           <Route path="/properties" element={<RequireAuth><PropertiesPage /></RequireAuth>} />
           <Route path="/residents" element={<RequireAuth><ResidentsPage /></RequireAuth>} />
           <Route path="/vendors" element={<RequireAuth><VendorsPage /></RequireAuth>} />
+          <Route path="/activity" element={<RequireAuth><ActivityPage /></RequireAuth>} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

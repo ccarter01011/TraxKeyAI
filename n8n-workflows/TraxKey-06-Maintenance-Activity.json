@@ -1,0 +1,190 @@
+{
+  "name": "TraxKey - 06 Maintenance Activity",
+  "nodes": [
+    {
+      "id": "ga-webhook",
+      "name": "Get Activity (Webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        -320,
+        32
+      ],
+      "webhookId": "traxkey-get-activity",
+      "parameters": {
+        "path": "traxkey-get-activity",
+        "options": {
+          "allowedOrigins": "*"
+        },
+        "httpMethod": "GET",
+        "responseMode": "responseNode"
+      },
+      "typeVersion": 2.1
+    },
+    {
+      "id": "vs-activity",
+      "name": "Validate Session (Activity)",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        -96,
+        32
+      ],
+      "parameters": {
+        "query": "SELECT company_id FROM traxkey.sessions WHERE token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\") }}' AND expires_at > now();",
+        "options": {},
+        "operation": "executeQuery"
+      },
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "typeVersion": 2.5,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "sv-activity",
+      "name": "Session Valid? (Activity)",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        128,
+        32
+      ],
+      "parameters": {
+        "options": {},
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "sv",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json.company_id }}",
+              "rightValue": ""
+            }
+          ]
+        }
+      },
+      "typeVersion": 2
+    },
+    {
+      "id": "unauth-activity",
+      "name": "Respond: Activity Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        352,
+        152
+      ],
+      "parameters": {
+        "options": {
+          "responseCode": 401
+        },
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"Unauthorized\" }"
+      },
+      "typeVersion": 1.1
+    },
+    {
+      "id": "ga-get",
+      "name": "Get Requests + Events",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        352,
+        32
+      ],
+      "notes": "Nests each request's full event trail via json_agg, this is the closest thing to a LangGraph Studio-style trace view, every step the coordinator took, in order, per request.",
+      "parameters": {
+        "query": "SELECT mr.id, mr.description, mr.category, mr.urgency, mr.responsibility, mr.status,\n  mr.quoted_cost, mr.final_cost, mr.created_at,\n  u.unit_number, p.name AS property_name,\n  v.name AS vendor_name, v.trade AS vendor_trade,\n  COALESCE(\n    json_agg(json_build_object('event_type', ev.event_type, 'content', ev.content, 'created_at', ev.created_at) ORDER BY ev.created_at)\n    FILTER (WHERE ev.id IS NOT NULL), '[]'\n  ) AS events\nFROM traxkey.maintenance_requests mr\nLEFT JOIN traxkey.units u ON u.id = mr.unit_id\nLEFT JOIN traxkey.properties p ON p.id = u.property_id\nLEFT JOIN traxkey.vendors v ON v.id = mr.assigned_vendor_id\nLEFT JOIN traxkey.maintenance_events ev ON ev.request_id = mr.id\nWHERE mr.company_id = '{{ $json.company_id }}'\nGROUP BY mr.id, u.unit_number, p.name, v.name, v.trade\nORDER BY mr.created_at DESC;",
+        "options": {},
+        "operation": "executeQuery"
+      },
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "typeVersion": 2.5,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "ga-respond",
+      "name": "Respond: Activity",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        576,
+        32
+      ],
+      "parameters": {
+        "options": {
+          "responseCode": 200
+        },
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($input.all().map(i => i.json).filter(r => r.id)) }}"
+      },
+      "typeVersion": 1.1
+    }
+  ],
+  "connections": {
+    "Get Activity (Webhook)": {
+      "main": [
+        [
+          {
+            "node": "Validate Session (Activity)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Session (Activity)": {
+      "main": [
+        [
+          {
+            "node": "Session Valid? (Activity)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Session Valid? (Activity)": {
+      "main": [
+        [
+          {
+            "node": "Get Requests + Events",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Activity Unauthorized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Requests + Events": {
+      "main": [
+        [
+          {
+            "node": "Respond: Activity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {}
+}

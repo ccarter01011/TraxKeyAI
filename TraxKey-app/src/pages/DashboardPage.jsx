@@ -68,6 +68,11 @@ export default function DashboardPage() {
           <p className="text-sm text-slate-400">The vendor network the AI Maintenance Coordinator dispatches to.</p>
         </Link>
 
+        <Link to="/activity" className="block bg-slate-900 border border-white/5 rounded-2xl p-6 hover:border-teal-400/30 transition mb-4">
+          <p className="font-bold mb-1">AI Activity →</p>
+          <p className="text-sm text-slate-400">Every maintenance request and every step the AI Coordinator took on it.</p>
+        </Link>
+
         <div className="bg-slate-900 border border-white/5 rounded-2xl p-6">
           <p className="text-sm text-slate-400">
             The AI Maintenance Coordinator activity feed and vendor scorecard land here next.

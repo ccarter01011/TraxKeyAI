@@ -36,6 +36,7 @@ class RequestState(TypedDict, total=False):
     responsibility: Optional[str]
     vendor_id: Optional[str]
     quoted_cost: Optional[float]
+    known_cost: bool
     requires_approval: bool
     final_status: str
 
@@ -121,7 +122,7 @@ def find_vendor(state: RequestState) -> RequestState:
     with db() as conn, conn.cursor() as cur:
         cur.execute(
             """
-            SELECT v.id, COALESCE(vp.avg_cost, 0) AS avg_cost
+            SELECT v.id, vp.avg_cost, COALESCE(vp.jobs_completed, 0) AS jobs_completed
             FROM traxkey.vendors v
             LEFT JOIN traxkey.vendor_performance vp ON vp.vendor_id = v.id
             WHERE v.company_id = %s AND v.trade = %s
@@ -144,15 +145,23 @@ def find_vendor(state: RequestState) -> RequestState:
             )
         return {**state, "vendor_id": None, "final_status": "needs_vendor"}
 
-    return {**state, "vendor_id": str(row["id"]), "quoted_cost": float(row["avg_cost"])}
+    # A vendor with zero completed jobs has no real cost history, an
+    # unknown cost needs a human, not a $0 default that would slip past
+    # every threshold check for that vendor's very first job.
+    known_cost = row["jobs_completed"] > 0 and row["avg_cost"] is not None
+    quoted_cost = float(row["avg_cost"]) if known_cost else None
+
+    return {**state, "vendor_id": str(row["id"]), "quoted_cost": quoted_cost, "known_cost": known_cost}
 
 
 def check_approval(state: RequestState) -> RequestState:
     """Deterministic threshold check. This is the Level 4/5 split from the
     maturity model: under threshold proceeds on its own, over threshold
     pauses for a human. Estimate only, not a real bid, until a vendor
-    quote-request flow exists."""
-    requires_approval = state["quoted_cost"] > state["cost_approval_threshold"]
+    quote-request flow exists. An unknown cost (a vendor with no job
+    history yet) always requires approval, never auto-dispatches on a
+    guess."""
+    requires_approval = (not state["known_cost"]) or (state["quoted_cost"] > state["cost_approval_threshold"])
 
     with db() as conn, conn.cursor() as cur:
         if requires_approval:
@@ -164,9 +173,13 @@ def check_approval(state: RequestState) -> RequestState:
                 """,
                 (state["vendor_id"], state["quoted_cost"], state["request_id"]),
             )
+            if state["known_cost"]:
+                reason = f"Estimated cost ${state['quoted_cost']:.0f} is over the ${state['cost_approval_threshold']:.0f} approval threshold."
+            else:
+                reason = "This vendor has no completed jobs on file yet, no cost history to auto-approve against."
             cur.execute(
                 "INSERT INTO traxkey.maintenance_events (request_id, event_type, content) VALUES (%s, 'approval_needed', %s)",
-                (state["request_id"], f"Estimated cost ${state['quoted_cost']:.0f} is over the ${state['cost_approval_threshold']:.0f} approval threshold."),
+                (state["request_id"], reason),
             )
         else:
             cur.execute(
