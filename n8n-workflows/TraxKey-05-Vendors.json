@@ -1,0 +1,369 @@
+{
+  "name": "TraxKey - 05 Vendors",
+  "nodes": [
+    {
+      "id": "gv-webhook",
+      "name": "Get Vendors (Webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        -320,
+        32
+      ],
+      "webhookId": "traxkey-get-vendors",
+      "parameters": {
+        "path": "traxkey-get-vendors",
+        "options": {
+          "allowedOrigins": "*"
+        },
+        "httpMethod": "GET",
+        "responseMode": "responseNode"
+      },
+      "typeVersion": 2.1
+    },
+    {
+      "id": "vs-Vendors",
+      "name": "Validate Session (Vendors)",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        -96,
+        32
+      ],
+      "parameters": {
+        "query": "SELECT company_id FROM traxkey.sessions WHERE token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\") }}' AND expires_at > now();",
+        "options": {},
+        "operation": "executeQuery"
+      },
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "typeVersion": 2.5,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "sv-Vendors",
+      "name": "Session Valid? (Vendors)",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        128,
+        32
+      ],
+      "parameters": {
+        "options": {},
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "sv",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json.company_id }}",
+              "rightValue": ""
+            }
+          ]
+        }
+      },
+      "typeVersion": 2
+    },
+    {
+      "id": "unauth-Vendors",
+      "name": "Respond: Vendors Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        352,
+        152
+      ],
+      "parameters": {
+        "options": {
+          "responseCode": 401
+        },
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"Unauthorized\" }"
+      },
+      "typeVersion": 1.1
+    },
+    {
+      "id": "gv-get",
+      "name": "Get Vendors",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        352,
+        32
+      ],
+      "parameters": {
+        "query": "SELECT v.id, v.name, v.trade, v.contact_email, v.contact_phone, v.emergency_available,\n  vp.jobs_completed, vp.avg_response_hours, vp.avg_cost, vp.completion_rate, vp.avg_rating\nFROM traxkey.vendors v\nLEFT JOIN traxkey.vendor_performance vp ON vp.vendor_id = v.id\nWHERE v.company_id = '{{ $json.company_id }}'\nORDER BY v.trade, v.name;",
+        "options": {},
+        "operation": "executeQuery"
+      },
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "typeVersion": 2.5,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "gv-respond",
+      "name": "Respond: Vendors",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        576,
+        32
+      ],
+      "parameters": {
+        "options": {
+          "responseCode": 200
+        },
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($input.all().map(i => i.json).filter(v => v.id)) }}"
+      },
+      "typeVersion": 1.1
+    },
+    {
+      "id": "cv-webhook",
+      "name": "Create Vendor (Webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        -320,
+        288
+      ],
+      "webhookId": "traxkey-create-vendor",
+      "parameters": {
+        "path": "traxkey-create-vendor",
+        "options": {
+          "allowedOrigins": "*"
+        },
+        "httpMethod": "POST",
+        "responseMode": "responseNode"
+      },
+      "typeVersion": 2.1
+    },
+    {
+      "id": "vs-Create Vendor",
+      "name": "Validate Session (Create Vendor)",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        -96,
+        288
+      ],
+      "parameters": {
+        "query": "SELECT company_id FROM traxkey.sessions WHERE token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\") }}' AND expires_at > now();",
+        "options": {},
+        "operation": "executeQuery"
+      },
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "typeVersion": 2.5,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "sv-Create Vendor",
+      "name": "Session Valid? (Create Vendor)",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        128,
+        288
+      ],
+      "parameters": {
+        "options": {},
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "sv",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json.company_id }}",
+              "rightValue": ""
+            }
+          ]
+        }
+      },
+      "typeVersion": 2
+    },
+    {
+      "id": "unauth-Create Vendor",
+      "name": "Respond: Create Vendor Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        352,
+        408
+      ],
+      "parameters": {
+        "options": {
+          "responseCode": 401
+        },
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"Unauthorized\" }"
+      },
+      "typeVersion": 1.1
+    },
+    {
+      "id": "cv-insert",
+      "name": "Insert Vendor",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        352,
+        288
+      ],
+      "parameters": {
+        "query": "INSERT INTO traxkey.vendors (company_id, name, trade, contact_email, contact_phone, emergency_available)\nVALUES (\n  '{{ $json.company_id }}',\n  '{{ $(\"Create Vendor (Webhook)\").first().json.body.name.replace(/'/g, \"''\") }}',\n  '{{ $(\"Create Vendor (Webhook)\").first().json.body.trade.replace(/'/g, \"''\") }}',\n  {{ $(\"Create Vendor (Webhook)\").first().json.body.contactEmail ? \"'\" + $(\"Create Vendor (Webhook)\").first().json.body.contactEmail.replace(/'/g, \"''\") + \"'\" : 'NULL' }},\n  {{ $(\"Create Vendor (Webhook)\").first().json.body.contactPhone ? \"'\" + $(\"Create Vendor (Webhook)\").first().json.body.contactPhone.replace(/'/g, \"''\") + \"'\" : 'NULL' }},\n  {{ $(\"Create Vendor (Webhook)\").first().json.body.emergencyAvailable ? 'true' : 'false' }}\n)\nRETURNING id;",
+        "options": {},
+        "operation": "executeQuery"
+      },
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "typeVersion": 2.5
+    },
+    {
+      "id": "cv-respond",
+      "name": "Respond: Vendor Created",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        576,
+        288
+      ],
+      "parameters": {
+        "options": {
+          "responseCode": 200
+        },
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, id: $json.id }) }}"
+      },
+      "typeVersion": 1.1
+    }
+  ],
+  "connections": {
+    "Get Vendors (Webhook)": {
+      "main": [
+        [
+          {
+            "node": "Validate Session (Vendors)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Session (Vendors)": {
+      "main": [
+        [
+          {
+            "node": "Session Valid? (Vendors)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Session Valid? (Vendors)": {
+      "main": [
+        [
+          {
+            "node": "Get Vendors",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Vendors Unauthorized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Vendors": {
+      "main": [
+        [
+          {
+            "node": "Respond: Vendors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Vendor (Webhook)": {
+      "main": [
+        [
+          {
+            "node": "Validate Session (Create Vendor)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Session (Create Vendor)": {
+      "main": [
+        [
+          {
+            "node": "Session Valid? (Create Vendor)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Session Valid? (Create Vendor)": {
+      "main": [
+        [
+          {
+            "node": "Insert Vendor",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Create Vendor Unauthorized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Vendor": {
+      "main": [
+        [
+          {
+            "node": "Respond: Vendor Created",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {}
+}

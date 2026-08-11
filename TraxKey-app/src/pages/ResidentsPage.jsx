@@ -6,7 +6,8 @@ const TENANT_PORTAL_BASE = 'https://tenant.traxkey.ai';
 
 function AddResidentForm({ units, onCreated }) {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ unitId: '', name: '', email: '', phone: '' });
+  const [form, setForm] = useState({ unitId: '', name: '', email: '', phone: '', checkinDate: '', checkoutDate: '' });
+  const [isGuest, setIsGuest] = useState(false);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [newInvite, setNewInvite] = useState(null);
@@ -20,9 +21,11 @@ function AddResidentForm({ units, onCreated }) {
     setError('');
     setSaving(true);
     try {
-      const json = await apiRequest('traxkey-create-resident', { method: 'POST', body: form });
+      const body = isGuest ? form : { ...form, checkinDate: '', checkoutDate: '' };
+      const json = await apiRequest('traxkey-create-resident', { method: 'POST', body });
       setNewInvite(`${TENANT_PORTAL_BASE}/?token=${json.accessToken}`);
-      setForm({ unitId: '', name: '', email: '', phone: '' });
+      setForm({ unitId: '', name: '', email: '', phone: '', checkinDate: '', checkoutDate: '' });
+      setIsGuest(false);
       onCreated();
     } catch (err) {
       setError(err.message || 'Could not add resident');
@@ -68,6 +71,26 @@ function AddResidentForm({ units, onCreated }) {
         className="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-teal-400" />
       <input placeholder="Phone (optional)" type="tel" value={form.phone} onChange={update('phone')}
         className="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-teal-400" />
+
+      <label className="flex items-center gap-2 text-sm text-slate-300">
+        <input type="checkbox" checked={isGuest} onChange={e => setIsGuest(e.target.checked)} />
+        Short-term guest (has check-in/check-out dates)
+      </label>
+      {isGuest && (
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="block text-xs text-slate-500 mb-1">Check-in</label>
+            <input required type="date" value={form.checkinDate} onChange={update('checkinDate')}
+              className="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-teal-400" />
+          </div>
+          <div>
+            <label className="block text-xs text-slate-500 mb-1">Check-out</label>
+            <input required type="date" value={form.checkoutDate} onChange={update('checkoutDate')}
+              className="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-teal-400" />
+          </div>
+        </div>
+      )}
+
       {error && <p className="text-sm text-red-400">{error}</p>}
       <div className="flex gap-2">
         <button disabled={saving} type="submit" className="bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-sm px-4 py-2 rounded-lg transition disabled:opacity-50">
@@ -135,6 +158,11 @@ export default function ResidentsPage() {
             <div className="flex-1 min-w-0">
               <p className="font-medium">{r.name}</p>
               <p className="text-xs text-slate-500">{r.property_name}{r.unit_number ? ` — Unit ${r.unit_number}` : ''}{r.phone ? ` · ${r.phone}` : ''}</p>
+              {r.checkin_date && (
+                <span className="inline-block mt-1 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-400">
+                  Guest: {r.checkin_date} → {r.checkout_date}
+                </span>
+              )}
             </div>
             <button onClick={() => copyLink(r)} className="shrink-0 text-xs font-bold px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition">
               {copiedId === r.id ? 'Copied' : 'Copy link'}

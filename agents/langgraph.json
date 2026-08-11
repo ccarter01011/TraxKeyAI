@@ -1,7 +1,0 @@
-{
-  "dependencies": ["."],
-  "graphs": {
-    "maintenance_coordinator": "./graph.py:graph"
-  },
-  "env": ".env"
-}
