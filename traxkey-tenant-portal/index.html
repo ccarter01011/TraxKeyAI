@@ -19,16 +19,26 @@
     <span class="font-extrabold text-lg tracking-tight">TraxKey <span class="text-teal-400">AI</span></span>
   </div>
 
+  <!-- STEP 0: no link at all, ask for a code instead of a dead end -->
+  <div id="need-code" class="hidden">
+    <h1 class="text-xl font-bold mb-2">Enter your access code</h1>
+    <p class="text-sm text-slate-400 mb-6">Your property manager gave you a link or a code, if you have the code, enter it here.</p>
+    <form onsubmit="return submitCode(event)" class="space-y-3">
+      <input id="code-input" required type="text" placeholder="Access code" class="w-full bg-slate-900 border border-white/10 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-teal-400" />
+      <button type="submit" class="w-full bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold py-3 rounded-xl transition">Continue</button>
+    </form>
+  </div>
+
   <!-- STEP 1: report form -->
-  <div id="report-form">
+  <div id="report-form" class="hidden">
     <h1 class="text-2xl font-bold mb-2">Report a maintenance issue</h1>
     <p class="text-sm text-slate-400 mb-8">Describe what's wrong. We'll get someone on it, usually within hours.</p>
 
     <form id="maint-form" class="space-y-5" onsubmit="return submitRequest(event)">
 
-      <div>
+      <div id="mf-address-field">
         <label class="block text-sm font-medium text-slate-300 mb-1.5">Your address or unit</label>
-        <input id="mf-address" required type="text" placeholder="123 Main St, Unit 2B" class="w-full bg-slate-900 border border-white/10 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-teal-400" />
+        <input id="mf-address" type="text" placeholder="123 Main St, Unit 2B" class="w-full bg-slate-900 border border-white/10 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-teal-400" />
       </div>
 
       <div>
@@ -52,14 +62,14 @@
         <input id="mf-photos" type="file" accept="image/*" multiple class="w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-teal-500/15 file:text-teal-300 file:text-sm file:font-medium hover:file:bg-teal-500/25" />
       </div>
 
-      <div class="grid grid-cols-2 gap-3">
+      <div id="mf-contact-fields" class="grid grid-cols-2 gap-3">
         <div>
           <label class="block text-sm font-medium text-slate-300 mb-1.5">Your name</label>
-          <input id="mf-name" required type="text" class="w-full bg-slate-900 border border-white/10 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-teal-400" />
+          <input id="mf-name" type="text" class="w-full bg-slate-900 border border-white/10 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-teal-400" />
         </div>
         <div>
           <label class="block text-sm font-medium text-slate-300 mb-1.5">Phone</label>
-          <input id="mf-phone" required type="tel" placeholder="(555) 555-5555" class="w-full bg-slate-900 border border-white/10 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-teal-400" />
+          <input id="mf-phone" type="tel" placeholder="(555) 555-5555" class="w-full bg-slate-900 border border-white/10 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-teal-400" />
         </div>
       </div>
 
@@ -100,15 +110,46 @@ function selectUrgency(btn) {
   btn.classList.add(...colorMap[value]);
 }
 
-const INTAKE_ENDPOINT = 'https://main-production-b95e.up.railway.app/webhook/traxkey-maintenance-intake';
+const COMPANY_INTAKE_ENDPOINT = 'https://main-production-b95e.up.railway.app/webhook/traxkey-maintenance-intake';
+const RESIDENT_INTAKE_ENDPOINT = 'https://main-production-b95e.up.railway.app/webhook/traxkey-resident-intake';
 
-// Every property management company shares their own link with residents,
-// e.g. tenant.traxkey.ai/?co=SLUG, so a submission always knows which
-// company it belongs to. No link, no way to route the request, so this
-// fails loudly and early instead of silently submitting to nowhere.
-const portalSlug = new URLSearchParams(window.location.search).get('co');
-if (!portalSlug) {
-  document.getElementById('report-form').innerHTML = '<div class="text-center py-12"><h1 class="text-xl font-bold mb-2">Missing portal link</h1><p class="text-sm text-slate-400">This page needs a link from your property manager to know where to send your request. Please use the link they gave you.</p></div>';
+// Two ways in: a per-resident token (preferred, already knows the exact
+// unit and the resident's own name/phone, no typing required) or a
+// company-wide code (fallback, for before residents are individually
+// invited, needs the address typed manually since the company alone
+// doesn't know which unit). Neither present, ask for a code instead of a
+// dead end.
+const params = new URLSearchParams(window.location.search);
+const residentToken = params.get('token');
+const portalSlug = params.get('co');
+
+function showStep(id) {
+  ['need-code', 'report-form', 'report-success'].forEach(s => document.getElementById(s).classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+}
+
+if (residentToken) {
+  document.getElementById('mf-address-field').classList.add('hidden');
+  document.getElementById('mf-contact-fields').classList.add('hidden');
+  showStep('report-form');
+} else if (portalSlug) {
+  document.getElementById('mf-address').setAttribute('required', 'required');
+  document.getElementById('mf-name').setAttribute('required', 'required');
+  document.getElementById('mf-phone').setAttribute('required', 'required');
+  showStep('report-form');
+} else {
+  showStep('need-code');
+}
+
+function submitCode(e) {
+  e.preventDefault();
+  const value = document.getElementById('code-input').value.trim();
+  if (!value) return false;
+  // A resident token is a 16-char generated string, longer than the
+  // 8-char company code, best-effort guess at which kind was pasted in.
+  const param = value.length > 12 ? 'token' : 'co';
+  window.location.search = `?${param}=${encodeURIComponent(value)}`;
+  return false;
 }
 
 async function submitRequest(e) {
@@ -126,18 +167,25 @@ async function submitRequest(e) {
   submitBtn.disabled = true;
   submitBtn.textContent = 'Submitting…';
 
-  const payload = {
-    portalSlug,
-    address: document.getElementById('mf-address').value,
-    description: document.getElementById('mf-description').value,
-    urgency: selectedUrgency,
-    name: document.getElementById('mf-name').value,
-    phone: document.getElementById('mf-phone').value
-    // photo upload wired up once the backend has a file endpoint
-  };
+  const endpoint = residentToken ? RESIDENT_INTAKE_ENDPOINT : COMPANY_INTAKE_ENDPOINT;
+  const payload = residentToken
+    ? {
+        token: residentToken,
+        description: document.getElementById('mf-description').value,
+        urgency: selectedUrgency
+      }
+    : {
+        portalSlug,
+        address: document.getElementById('mf-address').value,
+        description: document.getElementById('mf-description').value,
+        urgency: selectedUrgency,
+        name: document.getElementById('mf-name').value,
+        phone: document.getElementById('mf-phone').value
+      };
+  // photo upload wired up once the backend has a file endpoint
 
   try {
-    const res = await fetch(INTAKE_ENDPOINT, {
+    const res = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)

@@ -1,0 +1,652 @@
+{
+  "name": "TraxKey - 04 Residents",
+  "nodes": [
+    {
+      "id": "gr-webhook",
+      "name": "Get Residents (Webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        -320,
+        32
+      ],
+      "webhookId": "traxkey-get-residents",
+      "parameters": {
+        "path": "traxkey-get-residents",
+        "options": {
+          "allowedOrigins": "*"
+        },
+        "httpMethod": "GET",
+        "responseMode": "responseNode"
+      },
+      "typeVersion": 2.1
+    },
+    {
+      "id": "vs-Residents",
+      "name": "Validate Session (Residents)",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        -96,
+        32
+      ],
+      "parameters": {
+        "query": "SELECT company_id FROM traxkey.sessions WHERE token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\") }}' AND expires_at > now();",
+        "options": {},
+        "operation": "executeQuery"
+      },
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "typeVersion": 2.5,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "sv-Residents",
+      "name": "Session Valid? (Residents)",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        128,
+        32
+      ],
+      "parameters": {
+        "options": {},
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "sv",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json.company_id }}",
+              "rightValue": ""
+            }
+          ]
+        }
+      },
+      "typeVersion": 2
+    },
+    {
+      "id": "unauth-Residents",
+      "name": "Respond: Residents Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        352,
+        152
+      ],
+      "parameters": {
+        "options": {
+          "responseCode": 401
+        },
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"Unauthorized\" }"
+      },
+      "typeVersion": 1.1
+    },
+    {
+      "id": "gr-get",
+      "name": "Get Residents",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        352,
+        32
+      ],
+      "parameters": {
+        "query": "SELECT r.id, r.name, r.email, r.phone, r.access_token, r.is_active, r.unit_id,\n  u.unit_number, p.name AS property_name\nFROM traxkey.residents r\nJOIN traxkey.units u ON u.id = r.unit_id\nJOIN traxkey.properties p ON p.id = u.property_id\nWHERE p.company_id = '{{ $json.company_id }}'\nORDER BY r.created_at DESC;",
+        "options": {},
+        "operation": "executeQuery"
+      },
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "typeVersion": 2.5,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "gr-respond",
+      "name": "Respond: Residents",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        576,
+        32
+      ],
+      "parameters": {
+        "options": {
+          "responseCode": 200
+        },
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($input.all().map(i => i.json).filter(r => r.id)) }}"
+      },
+      "typeVersion": 1.1
+    },
+    {
+      "id": "cr-webhook",
+      "name": "Create Resident (Webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        -320,
+        288
+      ],
+      "webhookId": "traxkey-create-resident",
+      "parameters": {
+        "path": "traxkey-create-resident",
+        "options": {
+          "allowedOrigins": "*"
+        },
+        "httpMethod": "POST",
+        "responseMode": "responseNode"
+      },
+      "typeVersion": 2.1
+    },
+    {
+      "id": "vs-Create Resident",
+      "name": "Validate Session (Create Resident)",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        -96,
+        288
+      ],
+      "parameters": {
+        "query": "SELECT company_id FROM traxkey.sessions WHERE token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\") }}' AND expires_at > now();",
+        "options": {},
+        "operation": "executeQuery"
+      },
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "typeVersion": 2.5,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "sv-Create Resident",
+      "name": "Session Valid? (Create Resident)",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        128,
+        288
+      ],
+      "parameters": {
+        "options": {},
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "sv",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json.company_id }}",
+              "rightValue": ""
+            }
+          ]
+        }
+      },
+      "typeVersion": 2
+    },
+    {
+      "id": "unauth-Create Resident",
+      "name": "Respond: Create Resident Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        352,
+        408
+      ],
+      "parameters": {
+        "options": {
+          "responseCode": 401
+        },
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"Unauthorized\" }"
+      },
+      "typeVersion": 1.1
+    },
+    {
+      "id": "cr-insert",
+      "name": "Insert Resident",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        352,
+        288
+      ],
+      "notes": "WHERE EXISTS checks the unit belongs (via its property) to the caller's own company, same tenant-isolation pattern as Insert Unit.",
+      "parameters": {
+        "query": "INSERT INTO traxkey.residents (unit_id, name, email, phone)\nSELECT\n  '{{ $(\"Create Resident (Webhook)\").first().json.body.unitId }}',\n  '{{ $(\"Create Resident (Webhook)\").first().json.body.name.replace(/'/g, \"''\") }}',\n  {{ $(\"Create Resident (Webhook)\").first().json.body.email ? \"'\" + $(\"Create Resident (Webhook)\").first().json.body.email.replace(/'/g, \"''\") + \"'\" : 'NULL' }},\n  {{ $(\"Create Resident (Webhook)\").first().json.body.phone ? \"'\" + $(\"Create Resident (Webhook)\").first().json.body.phone.replace(/'/g, \"''\") + \"'\" : 'NULL' }}\nWHERE EXISTS (\n  SELECT 1 FROM traxkey.units u\n  JOIN traxkey.properties p ON p.id = u.property_id\n  WHERE u.id = '{{ $(\"Create Resident (Webhook)\").first().json.body.unitId }}'\n  AND p.company_id = '{{ $json.company_id }}'\n)\nRETURNING id, access_token;",
+        "options": {},
+        "operation": "executeQuery"
+      },
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "typeVersion": 2.5,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "cr-if",
+      "name": "Resident Created?",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        576,
+        288
+      ],
+      "parameters": {
+        "options": {},
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "rc",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json.id }}",
+              "rightValue": ""
+            }
+          ]
+        }
+      },
+      "typeVersion": 2
+    },
+    {
+      "id": "cr-respond-ok",
+      "name": "Respond: Resident Created",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        800,
+        208
+      ],
+      "parameters": {
+        "options": {
+          "responseCode": 200
+        },
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, id: $json.id, accessToken: $json.access_token }) }}"
+      },
+      "typeVersion": 1.1
+    },
+    {
+      "id": "cr-respond-fail",
+      "name": "Respond: Resident Not Created",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        800,
+        368
+      ],
+      "parameters": {
+        "options": {
+          "responseCode": 404
+        },
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"Unit not found\" }"
+      },
+      "typeVersion": 1.1
+    },
+    {
+      "id": "ri-webhook",
+      "name": "Resident Intake (Webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        -320,
+        544
+      ],
+      "webhookId": "traxkey-resident-intake",
+      "parameters": {
+        "path": "traxkey-resident-intake",
+        "options": {
+          "allowedOrigins": "*"
+        },
+        "httpMethod": "POST",
+        "responseMode": "responseNode"
+      },
+      "typeVersion": 2.1
+    },
+    {
+      "id": "ri-find",
+      "name": "Find Resident By Token",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        -96,
+        544
+      ],
+      "parameters": {
+        "query": "SELECT r.id AS resident_id, r.unit_id, r.name, r.phone, p.company_id\nFROM traxkey.residents r\nJOIN traxkey.units u ON u.id = r.unit_id\nJOIN traxkey.properties p ON p.id = u.property_id\nWHERE r.access_token = '{{ $json.body.token.replace(/[^a-zA-Z0-9]/g, \"\") }}';",
+        "options": {},
+        "operation": "executeQuery"
+      },
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "typeVersion": 2.5,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "ri-if",
+      "name": "Resident Found?",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        128,
+        544
+      ],
+      "parameters": {
+        "options": {},
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "rf",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json.resident_id }}",
+              "rightValue": ""
+            }
+          ]
+        }
+      },
+      "typeVersion": 2
+    },
+    {
+      "id": "ri-insert",
+      "name": "Insert Maintenance Request",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        352,
+        464
+      ],
+      "notes": "unit_id and resident_id are both known here, unlike the company-code fallback path, no address-matching gap for these submissions.",
+      "parameters": {
+        "query": "INSERT INTO traxkey.maintenance_requests (company_id, unit_id, resident_id, description, urgency, submitter_name, submitter_phone, status)\nVALUES (\n  '{{ $json.company_id }}', '{{ $json.unit_id }}', '{{ $json.resident_id }}',\n  '{{ $(\"Resident Intake (Webhook)\").first().json.body.description.replace(/'/g, \"''\") }}',\n  '{{ $(\"Resident Intake (Webhook)\").first().json.body.urgency.replace(/'/g, \"''\") }}',\n  '{{ $json.name.replace(/'/g, \"''\") }}',\n  {{ $json.phone ? \"'\" + $json.phone.replace(/'/g, \"''\") + \"'\" : 'NULL' }},\n  'submitted'\n)\nRETURNING id;",
+        "options": {},
+        "operation": "executeQuery"
+      },
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "typeVersion": 2.5
+    },
+    {
+      "id": "ri-log",
+      "name": "Log Submitted Event",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        576,
+        464
+      ],
+      "parameters": {
+        "query": "INSERT INTO traxkey.maintenance_events (request_id, event_type, content)\nVALUES ('{{ $json.id }}', 'submitted', '{{ $(\"Resident Intake (Webhook)\").first().json.body.description.replace(/'/g, \"''\").slice(0, 500) }}');",
+        "options": {},
+        "operation": "executeQuery"
+      },
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "typeVersion": 2.5
+    },
+    {
+      "id": "ri-respond-ok",
+      "name": "Respond: Resident Intake OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        800,
+        464
+      ],
+      "parameters": {
+        "options": {
+          "responseCode": 200
+        },
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, requestId: $('Insert Maintenance Request').item.json.id }) }}"
+      },
+      "typeVersion": 1.1
+    },
+    {
+      "id": "ri-respond-invalid",
+      "name": "Respond: Invalid Resident Token",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        352,
+        624
+      ],
+      "parameters": {
+        "options": {
+          "responseCode": 404
+        },
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"This link isn't valid. Please check the link and try again.\" }"
+      },
+      "typeVersion": 1.1
+    }
+  ],
+  "connections": {
+    "Get Residents (Webhook)": {
+      "main": [
+        [
+          {
+            "node": "Validate Session (Residents)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Session (Residents)": {
+      "main": [
+        [
+          {
+            "node": "Session Valid? (Residents)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Session Valid? (Residents)": {
+      "main": [
+        [
+          {
+            "node": "Get Residents",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Residents Unauthorized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Residents": {
+      "main": [
+        [
+          {
+            "node": "Respond: Residents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Resident (Webhook)": {
+      "main": [
+        [
+          {
+            "node": "Validate Session (Create Resident)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Session (Create Resident)": {
+      "main": [
+        [
+          {
+            "node": "Session Valid? (Create Resident)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Session Valid? (Create Resident)": {
+      "main": [
+        [
+          {
+            "node": "Insert Resident",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Create Resident Unauthorized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Resident": {
+      "main": [
+        [
+          {
+            "node": "Resident Created?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resident Created?": {
+      "main": [
+        [
+          {
+            "node": "Respond: Resident Created",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Resident Not Created",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resident Intake (Webhook)": {
+      "main": [
+        [
+          {
+            "node": "Find Resident By Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Resident By Token": {
+      "main": [
+        [
+          {
+            "node": "Resident Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resident Found?": {
+      "main": [
+        [
+          {
+            "node": "Insert Maintenance Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Invalid Resident Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Maintenance Request": {
+      "main": [
+        [
+          {
+            "node": "Log Submitted Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Submitted Event": {
+      "main": [
+        [
+          {
+            "node": "Respond: Resident Intake OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {}
+}
