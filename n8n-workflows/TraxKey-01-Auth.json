@@ -1,0 +1,349 @@
+{
+  "name": "TraxKey - 01 Auth",
+  "nodes": [
+    {
+      "id": "tk-signup-webhook",
+      "name": "Signup (Webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        320,
+        32
+      ],
+      "webhookId": "traxkey-signup",
+      "parameters": {
+        "path": "traxkey-signup",
+        "options": {
+          "allowedOrigins": "*"
+        },
+        "httpMethod": "POST",
+        "responseMode": "responseNode"
+      },
+      "typeVersion": 2.1
+    },
+    {
+      "id": "tk-create-company-user",
+      "name": "Create Company + Owner User",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        560,
+        32
+      ],
+      "notes": "pgcrypto's crypt()+gen_salt('bf') hashes the password directly in Postgres, same proven pattern as TraxSail's auth workflow, no JS hashing library needed in n8n's sandboxed Code node.",
+      "parameters": {
+        "query": "WITH new_company AS (\n  INSERT INTO traxkey.companies (name, tracking_email)\n  VALUES ('{{ $json.body.companyName.replace(/'/g, \"''\") }}', '{{ $json.body.email.toLowerCase().replace(/'/g, \"''\") }}')\n  RETURNING id\n),\nnew_user AS (\n  INSERT INTO traxkey.users (company_id, email, password_hash, name, role)\n  SELECT new_company.id, '{{ $json.body.email.toLowerCase().replace(/'/g, \"''\") }}', crypt('{{ $json.body.password.replace(/'/g, \"''\") }}', gen_salt('bf')), '{{ $json.body.name.replace(/'/g, \"''\") }}', 'owner'\n  FROM new_company\n  RETURNING id, company_id\n)\nSELECT id AS user_id, company_id FROM new_user;",
+        "options": {},
+        "operation": "executeQuery"
+      },
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "typeVersion": 2.5
+    },
+    {
+      "id": "tk-gen-session-token",
+      "name": "Generate Session Token",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        800,
+        32
+      ],
+      "parameters": {
+        "jsCode": "const token = Array.from({ length: 48 }, () => Math.random().toString(36)[2] || '0').join('');\nconst expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();\nreturn [{ json: { ...$json, token, expiresAt } }];"
+      },
+      "typeVersion": 2
+    },
+    {
+      "id": "tk-create-session",
+      "name": "Create Session",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        1040,
+        32
+      ],
+      "parameters": {
+        "query": "INSERT INTO traxkey.sessions (token, user_id, company_id, expires_at)\nVALUES ('{{ $json.token }}', '{{ $json.user_id }}', '{{ $json.company_id }}', '{{ $json.expiresAt }}');",
+        "options": {},
+        "operation": "executeQuery"
+      },
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "typeVersion": 2.5
+    },
+    {
+      "id": "tk-respond-signup-ok",
+      "name": "Respond: Signup OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        1280,
+        32
+      ],
+      "parameters": {
+        "options": {
+          "responseCode": 200
+        },
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, token: $('Generate Session Token').item.json.token }) }}"
+      },
+      "typeVersion": 1.1
+    },
+    {
+      "id": "tk-login-webhook",
+      "name": "Login (Webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        320,
+        320
+      ],
+      "webhookId": "traxkey-login",
+      "parameters": {
+        "path": "traxkey-login",
+        "options": {
+          "allowedOrigins": "*"
+        },
+        "httpMethod": "POST",
+        "responseMode": "responseNode"
+      },
+      "typeVersion": 2.1
+    },
+    {
+      "id": "tk-verify-login",
+      "name": "Verify Login",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        560,
+        320
+      ],
+      "notes": "crypt(input, stored_hash) = stored_hash is the standard pgcrypto verification pattern, recomputes using the embedded salt and compares.",
+      "parameters": {
+        "query": "SELECT id AS user_id, company_id, name, role\nFROM traxkey.users\nWHERE email = '{{ $json.body.email.toLowerCase().replace(/'/g, \"''\") }}'\nAND password_hash = crypt('{{ $json.body.password.replace(/'/g, \"''\") }}', password_hash);",
+        "options": {},
+        "operation": "executeQuery"
+      },
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "typeVersion": 2.5,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "tk-login-valid-if",
+      "name": "Login Valid?",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        800,
+        320
+      ],
+      "parameters": {
+        "options": {},
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "login-valid",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json.user_id }}",
+              "rightValue": ""
+            }
+          ]
+        }
+      },
+      "typeVersion": 2
+    },
+    {
+      "id": "tk-gen-login-session-token",
+      "name": "Generate Login Session Token",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        1040,
+        224
+      ],
+      "parameters": {
+        "jsCode": "const token = Array.from({ length: 48 }, () => Math.random().toString(36)[2] || '0').join('');\nconst expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();\nreturn [{ json: { ...$json, token, expiresAt } }];"
+      },
+      "typeVersion": 2
+    },
+    {
+      "id": "tk-create-login-session",
+      "name": "Create Login Session",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        1280,
+        224
+      ],
+      "parameters": {
+        "query": "INSERT INTO traxkey.sessions (token, user_id, company_id, expires_at)\nVALUES ('{{ $json.token }}', '{{ $json.user_id }}', '{{ $json.company_id }}', '{{ $json.expiresAt }}');",
+        "options": {},
+        "operation": "executeQuery"
+      },
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "typeVersion": 2.5
+    },
+    {
+      "id": "tk-respond-login-ok",
+      "name": "Respond: Login OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        1520,
+        224
+      ],
+      "parameters": {
+        "options": {
+          "responseCode": 200
+        },
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, token: $('Generate Login Session Token').item.json.token, name: $('Verify Login').item.json.name, role: $('Verify Login').item.json.role }) }}"
+      },
+      "typeVersion": 1.1
+    },
+    {
+      "id": "tk-respond-login-failed",
+      "name": "Respond: Login Failed",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        1040,
+        416
+      ],
+      "parameters": {
+        "options": {
+          "responseCode": 401
+        },
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"Invalid email or password\" }"
+      },
+      "typeVersion": 1.1
+    }
+  ],
+  "connections": {
+    "Signup (Webhook)": {
+      "main": [
+        [
+          {
+            "node": "Create Company + Owner User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Company + Owner User": {
+      "main": [
+        [
+          {
+            "node": "Generate Session Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Session Token": {
+      "main": [
+        [
+          {
+            "node": "Create Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Session": {
+      "main": [
+        [
+          {
+            "node": "Respond: Signup OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Login (Webhook)": {
+      "main": [
+        [
+          {
+            "node": "Verify Login",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Login": {
+      "main": [
+        [
+          {
+            "node": "Login Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Login Valid?": {
+      "main": [
+        [
+          {
+            "node": "Generate Login Session Token",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Login Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Login Session Token": {
+      "main": [
+        [
+          {
+            "node": "Create Login Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Login Session": {
+      "main": [
+        [
+          {
+            "node": "Respond: Login OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {}
+}
