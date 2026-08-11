@@ -1,0 +1,221 @@
+{
+  "name": "TraxKey - 02 Maintenance Intake",
+  "nodes": [
+    {
+      "id": "tki-webhook",
+      "name": "Maintenance Intake (Webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        320,
+        32
+      ],
+      "webhookId": "traxkey-maintenance-intake",
+      "parameters": {
+        "path": "traxkey-maintenance-intake",
+        "options": {
+          "allowedOrigins": "*"
+        },
+        "httpMethod": "POST",
+        "responseMode": "responseNode"
+      },
+      "typeVersion": 2.1
+    },
+    {
+      "id": "tki-find-company",
+      "name": "Find Company By Portal Slug",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        560,
+        32
+      ],
+      "parameters": {
+        "query": "SELECT id AS company_id FROM traxkey.companies WHERE portal_slug = '{{ $json.body.portalSlug.replace(/[^a-zA-Z0-9]/g, \"\") }}';",
+        "options": {},
+        "operation": "executeQuery"
+      },
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "typeVersion": 2.5,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "tki-company-found-if",
+      "name": "Company Found?",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        800,
+        32
+      ],
+      "parameters": {
+        "options": {},
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "company-found",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json.company_id }}",
+              "rightValue": ""
+            }
+          ]
+        }
+      },
+      "typeVersion": 2
+    },
+    {
+      "id": "tki-insert-request",
+      "name": "Insert Maintenance Request",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        1040,
+        32
+      ],
+      "notes": "unit_id stays null here, deliberately, address-to-unit matching depends on Property/Unit data entry existing, which isn't built yet. Every submission still lands safely, just unmatched for now.",
+      "parameters": {
+        "query": "INSERT INTO traxkey.maintenance_requests (company_id, description, urgency, address_text, submitter_name, submitter_phone, status)\nVALUES (\n  '{{ $json.company_id }}',\n  '{{ $(\"Maintenance Intake (Webhook)\").first().json.body.description.replace(/'/g, \"''\") }}',\n  '{{ $(\"Maintenance Intake (Webhook)\").first().json.body.urgency.replace(/'/g, \"''\") }}',\n  '{{ $(\"Maintenance Intake (Webhook)\").first().json.body.address.replace(/'/g, \"''\") }}',\n  '{{ $(\"Maintenance Intake (Webhook)\").first().json.body.name.replace(/'/g, \"''\") }}',\n  '{{ $(\"Maintenance Intake (Webhook)\").first().json.body.phone.replace(/'/g, \"''\") }}',\n  'submitted'\n)\nRETURNING id;",
+        "options": {},
+        "operation": "executeQuery"
+      },
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "typeVersion": 2.5
+    },
+    {
+      "id": "tki-log-event",
+      "name": "Log Submitted Event",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        1280,
+        32
+      ],
+      "parameters": {
+        "query": "INSERT INTO traxkey.maintenance_events (request_id, event_type, content)\nVALUES ('{{ $json.id }}', 'submitted', '{{ $(\"Maintenance Intake (Webhook)\").first().json.body.description.replace(/'/g, \"''\").slice(0, 500) }}');",
+        "options": {},
+        "operation": "executeQuery"
+      },
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "typeVersion": 2.5
+    },
+    {
+      "id": "tki-respond-ok",
+      "name": "Respond: Intake OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        1520,
+        32
+      ],
+      "parameters": {
+        "options": {
+          "responseCode": 200
+        },
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, requestId: $('Insert Maintenance Request').item.json.id }) }}"
+      },
+      "typeVersion": 1.1
+    },
+    {
+      "id": "tki-respond-invalid",
+      "name": "Respond: Invalid Portal Link",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        1040,
+        224
+      ],
+      "parameters": {
+        "options": {
+          "responseCode": 404
+        },
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"This maintenance portal link isn't valid. Please check the link and try again.\" }"
+      },
+      "typeVersion": 1.1
+    }
+  ],
+  "connections": {
+    "Maintenance Intake (Webhook)": {
+      "main": [
+        [
+          {
+            "node": "Find Company By Portal Slug",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Company By Portal Slug": {
+      "main": [
+        [
+          {
+            "node": "Company Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Company Found?": {
+      "main": [
+        [
+          {
+            "node": "Insert Maintenance Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Invalid Portal Link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Maintenance Request": {
+      "main": [
+        [
+          {
+            "node": "Log Submitted Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Submitted Event": {
+      "main": [
+        [
+          {
+            "node": "Respond: Intake OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {}
+}

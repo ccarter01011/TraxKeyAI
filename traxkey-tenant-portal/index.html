@@ -100,10 +100,16 @@ function selectUrgency(btn) {
   btn.classList.add(...colorMap[value]);
 }
 
-// Placeholder endpoint — swap for the real TraxKey intake webhook once the
-// backend (n8n or LangGraph service) exists. Mirrors TraxSail's
-// SIGNUP_ENDPOINT pattern: one constant, one fetch call.
-const INTAKE_ENDPOINT = 'REPLACE_WITH_TRAXKEY_INTAKE_WEBHOOK_URL';
+const INTAKE_ENDPOINT = 'https://main-production-b95e.up.railway.app/webhook/traxkey-maintenance-intake';
+
+// Every property management company shares their own link with residents,
+// e.g. tenant.traxkey.ai/?co=SLUG, so a submission always knows which
+// company it belongs to. No link, no way to route the request, so this
+// fails loudly and early instead of silently submitting to nowhere.
+const portalSlug = new URLSearchParams(window.location.search).get('co');
+if (!portalSlug) {
+  document.getElementById('report-form').innerHTML = '<div class="text-center py-12"><h1 class="text-xl font-bold mb-2">Missing portal link</h1><p class="text-sm text-slate-400">This page needs a link from your property manager to know where to send your request. Please use the link they gave you.</p></div>';
+}
 
 async function submitRequest(e) {
   e.preventDefault();
@@ -121,6 +127,7 @@ async function submitRequest(e) {
   submitBtn.textContent = 'Submitting…';
 
   const payload = {
+    portalSlug,
     address: document.getElementById('mf-address').value,
     description: document.getElementById('mf-description').value,
     urgency: selectedUrgency,
