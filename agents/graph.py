@@ -12,15 +12,20 @@ be touched. Each run: pull every request still sitting at status
 
 import os
 import json
+import traceback
 from typing import TypedDict, Optional
 
 import psycopg
+import requests
 from psycopg.rows import dict_row
 from anthropic import Anthropic
 from langgraph.graph import StateGraph, END
 
 DATABASE_URL = os.environ["DATABASE_URL"]
 anthropic_client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY")  # optional: notification is best-effort, never blocks dispatch
+NOTIFY_FROM_ADDRESS = os.environ.get("NOTIFY_FROM_ADDRESS", "dispatch@notify.traxkey.ai")
 
 VALID_TRADES = ["hvac", "plumbing", "electrical", "appliance", "general", "pest", "locksmith", "roofing"]
 
@@ -194,6 +199,62 @@ def check_approval(state: RequestState) -> RequestState:
     return {**state, "requires_approval": requires_approval}
 
 
+def notify_vendor(request_id: str) -> None:
+    """Best-effort: a failed notification should never block a dispatch
+    that already happened in the database. Vendor has no login yet, this
+    is the whole "vendor knows a job exists" mechanism for now."""
+    if not RESEND_API_KEY:
+        return
+    try:
+        with db() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT mr.description, mr.category, mr.urgency, mr.quoted_cost,
+                  v.name AS vendor_name, v.contact_email,
+                  u.unit_number, p.name AS property_name, p.address_line1, p.city, p.state
+                FROM traxkey.maintenance_requests mr
+                JOIN traxkey.vendors v ON v.id = mr.assigned_vendor_id
+                LEFT JOIN traxkey.units u ON u.id = mr.unit_id
+                LEFT JOIN traxkey.properties p ON p.id = u.property_id
+                WHERE mr.id = %s
+                """,
+                (request_id,),
+            )
+            row = cur.fetchone()
+
+        if not row or not row["contact_email"]:
+            return
+
+        address = f"{row['address_line1']}, {row['city']}, {row['state']}" if row["address_line1"] else "address on file"
+        unit_part = f", Unit {row['unit_number']}" if row["unit_number"] else ""
+        cost_part = f"<p>Estimated cost: ${row['quoted_cost']:.0f}</p>" if row["quoted_cost"] else ""
+
+        html = f"""<div style="font-family: Arial, sans-serif; font-size:14px; color:#1e293b;">
+<p>Hi {row['vendor_name']},</p>
+<p>New {row['category']} job dispatched to you, urgency: <strong>{row['urgency']}</strong>.</p>
+<p><strong>Location:</strong> {row['property_name'] or ''}{unit_part} — {address}</p>
+<p><strong>Issue:</strong> {row['description']}</p>
+{cost_part}
+<p style="font-size:11px;color:#94a3b8;margin-top:24px;">Sent automatically by TraxKey AI.</p>
+</div>"""
+
+        requests.post(
+            "https://api.resend.com/emails",
+            headers={"Authorization": f"Bearer {RESEND_API_KEY}"},
+            json={
+                "from": f"TraxKey AI Dispatch <{NOTIFY_FROM_ADDRESS}>",
+                "to": row["contact_email"],
+                "subject": f"New {row['urgency']} {row['category']} job",
+                "html": html,
+            },
+            timeout=10,
+        )
+    except Exception:
+        # Never let a notification failure surface as a dispatch failure,
+        # the job is already scheduled in the database either way.
+        traceback.print_exc()
+
+
 def dispatch(state: RequestState) -> RequestState:
     """Only runs when under the approval threshold, auto-dispatches."""
     with db() as conn, conn.cursor() as cur:
@@ -205,6 +266,7 @@ def dispatch(state: RequestState) -> RequestState:
             "INSERT INTO traxkey.maintenance_events (request_id, event_type, content) VALUES (%s, 'dispatched', 'Auto-dispatched, within approval threshold.')",
             (state["request_id"],),
         )
+    notify_vendor(state["request_id"])
     return {**state, "final_status": "scheduled"}
 
 
@@ -222,6 +284,7 @@ def dispatch_approved(request_id: str) -> None:
             "INSERT INTO traxkey.maintenance_events (request_id, event_type, content) VALUES (%s, 'dispatched', 'Dispatched after human approval.')",
             (request_id,),
         )
+    notify_vendor(request_id)
 
 
 def route_after_vendor(state: RequestState) -> str:
