@@ -2,62 +2,54 @@
   "name": "TraxKey - 08 Complete Request",
   "nodes": [
     {
-      "id": "cr-webhook",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "traxkey-complete-request",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "62c26f68-d005-4c55-9ac2-38f05fb2fa0a",
       "name": "Complete Request (Webhook)",
       "type": "n8n-nodes-base.webhook",
       "position": [
-        -320,
-        32
+        -1120,
+        80
       ],
       "webhookId": "traxkey-complete-request",
-      "parameters": {
-        "path": "traxkey-complete-request",
-        "options": {
-          "allowedOrigins": "*"
-        },
-        "httpMethod": "POST",
-        "responseMode": "responseNode"
-      },
       "typeVersion": 2.1
     },
     {
-      "id": "vs-complete",
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT company_id FROM traxkey.sessions WHERE token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\") }}' AND expires_at > now();",
+        "options": {}
+      },
+      "id": "f6466341-25e4-45ab-a172-972b0d65ecbc",
       "name": "Validate Session (Complete)",
       "type": "n8n-nodes-base.postgres",
       "position": [
-        -96,
-        32
+        -896,
+        80
       ],
-      "parameters": {
-        "query": "SELECT company_id FROM traxkey.sessions WHERE token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\") }}' AND expires_at > now();",
-        "options": {},
-        "operation": "executeQuery"
-      },
+      "typeVersion": 2.5,
+      "alwaysOutputData": true,
       "credentials": {
         "postgres": {
           "id": "rkxeF9x9C0rWEeWV",
           "name": "Postgres account"
         }
-      },
-      "typeVersion": 2.5,
-      "alwaysOutputData": true
+      }
     },
     {
-      "id": "sv-complete",
-      "name": "Session Valid? (Complete)",
-      "type": "n8n-nodes-base.if",
-      "position": [
-        128,
-        32
-      ],
       "parameters": {
-        "options": {},
         "conditions": {
           "options": {
-            "version": 2,
-            "leftValue": "",
             "caseSensitive": true,
-            "typeValidation": "strict"
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
           },
           "combinator": "and",
           "conditions": [
@@ -71,66 +63,66 @@
               "rightValue": ""
             }
           ]
-        }
+        },
+        "options": {}
       },
+      "id": "e5273b50-d7dd-40fe-95f1-35a160f93ce2",
+      "name": "Session Valid? (Complete)",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        -672,
+        80
+      ],
       "typeVersion": 2
     },
     {
-      "id": "unauth-complete",
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"Unauthorized\" }",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "id": "6f2f33da-b186-4d1f-86ed-a31c1cab0d75",
       "name": "Respond: Complete Unauthorized",
       "type": "n8n-nodes-base.respondToWebhook",
       "position": [
-        352,
-        152
+        -448,
+        208
       ],
-      "parameters": {
-        "options": {
-          "responseCode": 401
-        },
-        "respondWith": "json",
-        "responseBody": "={ \"error\": \"Unauthorized\" }"
-      },
       "typeVersion": 1.1
     },
     {
-      "id": "cr-update",
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE traxkey.maintenance_requests\nSET status = 'completed', final_cost = {{ $(\"Complete Request (Webhook)\").first().json.body.finalCost || 'NULL' }},\n  resident_rating = {{ $(\"Complete Request (Webhook)\").first().json.body.rating || 'NULL' }}, closed_at = now()\nWHERE id = '{{ $(\"Complete Request (Webhook)\").first().json.body.requestId }}'\nAND company_id = '{{ $json.company_id }}'\nAND status IN ('scheduled', 'in_progress')\nRETURNING id, assigned_vendor_id, final_cost, resident_rating;",
+        "options": {}
+      },
+      "id": "ef5ff95a-82ba-464c-9c13-d8da311770c5",
       "name": "Mark Request Completed",
       "type": "n8n-nodes-base.postgres",
       "position": [
-        352,
-        32
+        -448,
+        80
       ],
-      "notes": "Only touches this company's own request, and only if it's actually in a dispatched state, can't complete something still awaiting approval or already closed.",
-      "parameters": {
-        "query": "UPDATE traxkey.maintenance_requests\nSET status = 'completed', final_cost = {{ $(\"Complete Request (Webhook)\").first().json.body.finalCost || 'NULL' }},\n  resident_rating = {{ $(\"Complete Request (Webhook)\").first().json.body.rating || 'NULL' }}, closed_at = now()\nWHERE id = '{{ $(\"Complete Request (Webhook)\").first().json.body.requestId }}'\nAND company_id = '{{ $json.company_id }}'\nAND status IN ('scheduled', 'in_progress')\nRETURNING id, assigned_vendor_id, final_cost, resident_rating;",
-        "options": {},
-        "operation": "executeQuery"
-      },
+      "typeVersion": 2.5,
+      "alwaysOutputData": true,
       "credentials": {
         "postgres": {
           "id": "rkxeF9x9C0rWEeWV",
           "name": "Postgres account"
         }
       },
-      "typeVersion": 2.5,
-      "alwaysOutputData": true
+      "notes": "Only touches this company's own request, and only if it's actually in a dispatched state, can't complete something still awaiting approval or already closed."
     },
     {
-      "id": "cr-if",
-      "name": "Request Completed?",
-      "type": "n8n-nodes-base.if",
-      "position": [
-        576,
-        32
-      ],
       "parameters": {
-        "options": {},
         "conditions": {
           "options": {
-            "version": 2,
-            "leftValue": "",
             "caseSensitive": true,
-            "typeValidation": "strict"
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
           },
           "combinator": "and",
           "conditions": [
@@ -144,85 +136,93 @@
               "rightValue": ""
             }
           ]
-        }
+        },
+        "options": {}
       },
+      "id": "3052388a-3db3-40dd-b4dc-5ef75cc4fab9",
+      "name": "Request Completed?",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        -224,
+        80
+      ],
       "typeVersion": 2
     },
     {
-      "id": "cr-upsert-perf",
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO traxkey.vendor_performance (vendor_id, jobs_completed, avg_cost, completion_rate, avg_rating, updated_at)\nVALUES (\n  '{{ $json.assigned_vendor_id }}', 1,\n  {{ $json.final_cost || 0 }}, 100,\n  {{ $json.resident_rating || 'NULL' }}, now()\n)\nON CONFLICT (vendor_id) DO UPDATE SET\n  jobs_completed = traxkey.vendor_performance.jobs_completed + 1,\n  avg_cost = ((COALESCE(traxkey.vendor_performance.avg_cost, 0) * traxkey.vendor_performance.jobs_completed) + {{ $json.final_cost || 0 }}) / (traxkey.vendor_performance.jobs_completed + 1),\n  avg_rating = CASE WHEN {{ $json.resident_rating || 'NULL' }} IS NOT NULL THEN\n    ((COALESCE(traxkey.vendor_performance.avg_rating, {{ $json.resident_rating || 0 }}) * traxkey.vendor_performance.jobs_completed) + {{ $json.resident_rating || 0 }}) / (traxkey.vendor_performance.jobs_completed + 1)\n  ELSE traxkey.vendor_performance.avg_rating END,\n  completion_rate = 100,\n  updated_at = now();",
+        "options": {}
+      },
+      "id": "0960bb9a-90e2-47ca-afad-8569d386ac37",
       "name": "Update Vendor Performance",
       "type": "n8n-nodes-base.postgres",
       "position": [
-        800,
-        -48
+        0,
+        0
       ],
-      "notes": "Rolling average over jobs_completed. completion_rate is simplified to 100 on every completion for v1, a true rate (completed vs. ever-dispatched) needs a dispatch counter this schema doesn't track yet.",
-      "parameters": {
-        "query": "INSERT INTO traxkey.vendor_performance (vendor_id, jobs_completed, avg_cost, completion_rate, avg_rating, updated_at)\nVALUES (\n  '{{ $json.assigned_vendor_id }}', 1,\n  {{ $json.final_cost || 0 }}, 100,\n  {{ $json.resident_rating || 'NULL' }}, now()\n)\nON CONFLICT (vendor_id) DO UPDATE SET\n  jobs_completed = traxkey.vendor_performance.jobs_completed + 1,\n  avg_cost = ((COALESCE(traxkey.vendor_performance.avg_cost, 0) * traxkey.vendor_performance.jobs_completed) + {{ $json.final_cost || 0 }}) / (traxkey.vendor_performance.jobs_completed + 1),\n  avg_rating = CASE WHEN {{ $json.resident_rating || 'NULL' }} IS NOT NULL THEN\n    ((COALESCE(traxkey.vendor_performance.avg_rating, {{ $json.resident_rating || 0 }}) * traxkey.vendor_performance.jobs_completed) + {{ $json.resident_rating || 0 }}) / (traxkey.vendor_performance.jobs_completed + 1)\n  ELSE traxkey.vendor_performance.avg_rating END,\n  completion_rate = 100,\n  updated_at = now();",
-        "options": {},
-        "operation": "executeQuery"
-      },
+      "typeVersion": 2.5,
       "credentials": {
         "postgres": {
           "id": "rkxeF9x9C0rWEeWV",
           "name": "Postgres account"
         }
       },
-      "typeVersion": 2.5
+      "notes": "Rolling average over jobs_completed. completion_rate is simplified to 100 on every completion for v1, a true rate (completed vs. ever-dispatched) needs a dispatch counter this schema doesn't track yet."
     },
     {
-      "id": "cr-log",
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO traxkey.maintenance_events (request_id, event_type, content) VALUES ('{{ $(\"Mark Request Completed\").first().json.id }}', 'closed', 'Marked complete by a team member.');",
+        "options": {}
+      },
+      "id": "5bd4862a-3aab-44aa-b067-458e900fd383",
       "name": "Log Completed Event",
       "type": "n8n-nodes-base.postgres",
       "position": [
-        1024,
-        -48
+        224,
+        0
       ],
-      "parameters": {
-        "query": "INSERT INTO traxkey.maintenance_events (request_id, event_type, content) VALUES ('{{ $json.id }}', 'closed', 'Marked complete by a team member.');",
-        "options": {},
-        "operation": "executeQuery"
-      },
+      "typeVersion": 2.5,
       "credentials": {
         "postgres": {
           "id": "rkxeF9x9C0rWEeWV",
           "name": "Postgres account"
         }
-      },
-      "typeVersion": 2.5
+      }
     },
     {
-      "id": "cr-respond-ok",
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"success\": true }",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "105a22c2-737a-4048-80e4-0ac87de23831",
       "name": "Respond: Completed",
       "type": "n8n-nodes-base.respondToWebhook",
       "position": [
-        1248,
-        -48
+        448,
+        0
       ],
-      "parameters": {
-        "options": {
-          "responseCode": 200
-        },
-        "respondWith": "json",
-        "responseBody": "={ \"success\": true }"
-      },
       "typeVersion": 1.1
     },
     {
-      "id": "cr-respond-fail",
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"Request not found, or it isn't dispatched yet.\" }",
+        "options": {
+          "responseCode": 404
+        }
+      },
+      "id": "2f023df3-d883-464c-b14e-b63b8608ac84",
       "name": "Respond: Not Found Or Not Dispatched",
       "type": "n8n-nodes-base.respondToWebhook",
       "position": [
-        800,
-        128
+        0,
+        176
       ],
-      "parameters": {
-        "options": {
-          "responseCode": 404
-        },
-        "respondWith": "json",
-        "responseBody": "={ \"error\": \"Request not found, or it isn't dispatched yet.\" }"
-      },
       "typeVersion": 1.1
     }
   ],
