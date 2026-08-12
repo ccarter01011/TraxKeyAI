@@ -32,7 +32,12 @@ function RequestCard({ request, onApproved }) {
   const [expanded, setExpanded] = useState(false);
   const [approving, setApproving] = useState(false);
   const [approveError, setApproveError] = useState('');
+  const [completing, setCompleting] = useState(false);
+  const [completeError, setCompleteError] = useState('');
+  const [finalCost, setFinalCost] = useState('');
+  const [rating, setRating] = useState('');
   const needsApproval = request.status === 'awaiting_approval';
+  const canComplete = request.status === 'scheduled' || request.status === 'in_progress';
 
   async function approve(e) {
     e.stopPropagation();
@@ -44,6 +49,22 @@ function RequestCard({ request, onApproved }) {
     } catch (err) {
       setApproveError(err.message || 'Could not approve');
       setApproving(false);
+    }
+  }
+
+  async function complete(e) {
+    e.stopPropagation();
+    setCompleting(true);
+    setCompleteError('');
+    try {
+      await apiRequest('traxkey-complete-request', {
+        method: 'POST',
+        body: { requestId: request.id, finalCost: finalCost || undefined, rating: rating || undefined },
+      });
+      onApproved();
+    } catch (err) {
+      setCompleteError(err.message || 'Could not mark complete');
+      setCompleting(false);
     }
   }
 
@@ -73,6 +94,23 @@ function RequestCard({ request, onApproved }) {
           </button>
           <span className="text-xs text-amber-400">Waiting on you before this gets sent to a vendor.</span>
           {approveError && <span className="text-xs text-red-400">{approveError}</span>}
+        </div>
+      )}
+
+      {canComplete && (
+        <div onClick={e => e.stopPropagation()} className="mt-3 pt-3 border-t border-teal-400/20 flex flex-wrap items-center gap-2">
+          <input type="number" placeholder="Final cost $" value={finalCost} onChange={e => setFinalCost(e.target.value)}
+            className="bg-slate-950 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs w-28 focus:outline-none focus:border-teal-400" />
+          <select value={rating} onChange={e => setRating(e.target.value)}
+            className="bg-slate-950 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-teal-400">
+            <option value="">Rating (optional)</option>
+            {[5, 4, 3, 2, 1].map(n => <option key={n} value={n}>{n}★</option>)}
+          </select>
+          <button onClick={complete} disabled={completing}
+            className="bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs px-3 py-1.5 rounded-lg transition disabled:opacity-50">
+            {completing ? 'Saving…' : 'Mark complete'}
+          </button>
+          {completeError && <span className="text-xs text-red-400">{completeError}</span>}
         </div>
       )}
 
