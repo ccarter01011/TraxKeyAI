@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Vendor Portal | TraxKey AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>* { font-family: 'Inter', sans-serif; }</style>
+</head>
+<body class="bg-slate-950 text-slate-100 antialiased min-h-screen">
+
+<div class="max-w-lg mx-auto px-4 py-10">
+  <div class="flex items-center gap-2 mb-8">
+    <div class="w-8 h-8 rounded-lg bg-teal-500/15 border border-teal-500/30 flex items-center justify-center">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3L4 9V21H20V9L12 3Z" stroke="#2dd4bf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <span class="font-extrabold text-lg tracking-tight">TraxKey <span class="text-teal-400">AI</span> <span class="text-slate-500 font-normal text-sm">Vendor</span></span>
+  </div>
+
+  <!-- LOGIN -->
+  <div id="login-view">
+    <h1 class="text-2xl font-bold mb-2">Vendor login</h1>
+    <p class="text-sm text-slate-400 mb-8">See the jobs dispatched to you.</p>
+    <form onsubmit="return login(event)" class="space-y-4">
+      <input id="lf-email" required type="email" placeholder="Email" class="w-full bg-slate-900 border border-white/10 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-teal-400" />
+      <input id="lf-password" required type="password" placeholder="Password" class="w-full bg-slate-900 border border-white/10 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-teal-400" />
+      <p id="lf-error" class="hidden text-sm text-red-400"></p>
+      <button id="lf-submit" type="submit" class="w-full bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold py-3 rounded-xl transition active:scale-95 duration-150">Log in</button>
+    </form>
+    <p class="text-xs text-slate-500 mt-6">No account yet? Ask the property manager who sent you a job to enable portal access.</p>
+  </div>
+
+  <!-- JOBS -->
+  <div id="jobs-view" class="hidden">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <p class="text-xs text-teal-400 font-semibold uppercase tracking-wide mb-1">Welcome</p>
+        <h1 id="vendor-name" class="text-xl font-bold"></h1>
+      </div>
+      <button onclick="logout()" class="text-sm text-slate-400 hover:text-white">Log out</button>
+    </div>
+    <div id="jobs-list" class="space-y-3"></div>
+    <p id="jobs-empty" class="hidden text-sm text-slate-500 text-center py-12">No jobs assigned yet.</p>
+  </div>
+</div>
+
+<script>
+const API_BASE = 'https://main-production-b95e.up.railway.app/webhook';
+
+function getToken() { return localStorage.getItem('tk_vendor_token'); }
+function setToken(t) { localStorage.setItem('tk_vendor_token', t); }
+function clearToken() { localStorage.removeItem('tk_vendor_token'); localStorage.removeItem('tk_vendor_name'); }
+
+async function apiRequest(path, { method = 'GET', body } = {}) {
+  const token = getToken();
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const res = await fetch(`${API_BASE}/${path}`, { method, headers, body: body ? JSON.stringify(body) : undefined });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.success === false) throw new Error(json.error || 'Request failed');
+  return json;
+}
+
+async function login(e) {
+  e.preventDefault();
+  const errorEl = document.getElementById('lf-error');
+  const submitBtn = document.getElementById('lf-submit');
+  errorEl.classList.add('hidden');
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Logging in…';
+  try {
+    const json = await apiRequest('traxkey-vendor-login', {
+      method: 'POST',
+      body: { email: document.getElementById('lf-email').value, password: document.getElementById('lf-password').value },
+    });
+    setToken(json.token);
+    localStorage.setItem('tk_vendor_name', json.name || '');
+    showJobs();
+  } catch (err) {
+    errorEl.textContent = err.message || 'Login failed';
+    errorEl.classList.remove('hidden');
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Log in';
+  }
+  return false;
+}
+
+function logout() {
+  clearToken();
+  document.getElementById('jobs-view').classList.add('hidden');
+  document.getElementById('login-view').classList.remove('hidden');
+}
+
+const STATUS_COLOR = { scheduled: 'bg-teal-500/15 text-teal-400', in_progress: 'bg-sky-500/15 text-sky-400', completed: 'bg-green-500/15 text-green-400' };
+const URGENCY_COLOR = { emergency: 'bg-red-500/15 text-red-400', urgent: 'bg-amber-500/15 text-amber-400', routine: 'bg-slate-500/15 text-slate-400' };
+
+async function markInProgress(requestId, btn) {
+  btn.disabled = true;
+  btn.textContent = 'Updating…';
+  try {
+    await apiRequest('traxkey-vendor-mark-in-progress', { method: 'POST', body: { requestId } });
+    loadJobs();
+  } catch (err) {
+    btn.textContent = 'Try again';
+    btn.disabled = false;
+  }
+}
+
+function jobCard(job) {
+  const address = job.address_line1 ? `${job.address_line1}, ${job.city}, ${job.state}` : 'address on file';
+  const unitPart = job.unit_number ? `, Unit ${job.unit_number}` : '';
+  const canStart = job.status === 'scheduled';
+  return `
+    <div class="bg-slate-900 border border-white/5 rounded-2xl p-4">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <p class="text-sm font-medium flex-1">${job.description}</p>
+        <span class="shrink-0 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${STATUS_COLOR[job.status] || 'bg-slate-500/15 text-slate-400'}">${job.status.replace('_', ' ')}</span>
+      </div>
+      <p class="text-xs text-slate-500 mb-3">${job.property_name || ''}${unitPart} — ${address}</p>
+      <div class="flex items-center gap-2">
+        <span class="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${URGENCY_COLOR[job.urgency] || 'bg-slate-500/15 text-slate-400'}">${job.urgency || ''}</span>
+        ${canStart ? `<button onclick="markInProgress('${job.id}', this)" class="ml-auto bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs px-3 py-1.5 rounded-lg transition">Start job</button>` : ''}
+      </div>
+    </div>`;
+}
+
+async function loadJobs() {
+  const listEl = document.getElementById('jobs-list');
+  const emptyEl = document.getElementById('jobs-empty');
+  try {
+    const jobs = await apiRequest('traxkey-get-vendor-jobs');
+    const real = jobs.filter(j => j.id);
+    listEl.innerHTML = real.map(jobCard).join('');
+    emptyEl.classList.toggle('hidden', real.length > 0);
+  } catch (err) {
+    if (err.message === 'Unauthorized') { logout(); }
+  }
+}
+
+function showJobs() {
+  document.getElementById('login-view').classList.add('hidden');
+  document.getElementById('jobs-view').classList.remove('hidden');
+  document.getElementById('vendor-name').textContent = localStorage.getItem('tk_vendor_name') || 'Vendor';
+  loadJobs();
+}
+
+if (getToken()) showJobs();
+</script>
+
+</body>
+</html>

@@ -68,6 +68,51 @@ function AddVendorForm({ onCreated }) {
   );
 }
 
+function EnablePortalAccess({ vendor }) {
+  const [open, setOpen] = useState(false);
+  const [password, setPassword] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [done, setDone] = useState(false);
+
+  async function submit(e) {
+    e.preventDefault();
+    setSaving(true);
+    setError('');
+    try {
+      await apiRequest('traxkey-set-vendor-password', { method: 'POST', body: { vendorId: vendor.id, password } });
+      setDone(true);
+    } catch (err) {
+      setError(err.message || 'Could not set password');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (done) {
+    return <p className="text-xs text-teal-400 mt-2">Portal access enabled. Share the login (vendors.traxkey.ai) with {vendor.contact_email || 'this vendor'}.</p>;
+  }
+
+  if (!open) {
+    return (
+      <button onClick={() => setOpen(true)} className="text-xs text-teal-400 hover:text-teal-300 mt-2">
+        Enable portal access →
+      </button>
+    );
+  }
+
+  return (
+    <form onSubmit={submit} className="flex items-center gap-2 mt-2">
+      <input required type="text" placeholder="Set a password" value={password} onChange={e => setPassword(e.target.value)}
+        className="bg-slate-950 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs w-40 focus:outline-none focus:border-teal-400" />
+      <button disabled={saving} type="submit" className="bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs px-3 py-1.5 rounded-lg transition disabled:opacity-50">
+        {saving ? 'Saving…' : 'Enable'}
+      </button>
+      {error && <span className="text-xs text-red-400">{error}</span>}
+    </form>
+  );
+}
+
 function VendorRow({ vendor }) {
   const hasStats = vendor.jobs_completed > 0;
   return (
@@ -90,6 +135,7 @@ function VendorRow({ vendor }) {
       ) : (
         <p className="text-xs text-slate-600">No jobs yet, TraxKey AI will start scoring this vendor once it dispatches work.</p>
       )}
+      <EnablePortalAccess vendor={vendor} />
     </div>
   );
 }
