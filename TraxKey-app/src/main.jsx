@@ -9,6 +9,8 @@ import PropertiesPage from './pages/PropertiesPage.jsx';
 import ResidentsPage from './pages/ResidentsPage.jsx';
 import VendorsPage from './pages/VendorsPage.jsx';
 import ActivityPage from './pages/ActivityPage.jsx';
+import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx';
+import ResetPasswordPage from './pages/ResetPasswordPage.jsx';
 import './index.css';
 
 function RequireAuth({ children }) {
@@ -24,6 +26,8 @@ function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/" element={<RequireAuth><DashboardPage /></RequireAuth>} />
           <Route path="/properties" element={<RequireAuth><PropertiesPage /></RequireAuth>} />
           <Route path="/residents" element={<RequireAuth><ResidentsPage /></RequireAuth>} />

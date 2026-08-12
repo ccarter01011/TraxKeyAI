@@ -42,7 +42,8 @@ export default function LoginPage() {
             {loading ? 'Logging in…' : 'Log in'}
           </button>
         </form>
-        <p className="text-sm text-slate-500 mt-6">No account? <Link to="/signup" className="text-teal-400 underline">Sign up</Link></p>
+        <p className="text-sm text-slate-500 mt-4"><Link to="/forgot-password" className="text-teal-400 underline">Forgot password?</Link></p>
+        <p className="text-sm text-slate-500 mt-2">No account? <Link to="/signup" className="text-teal-400 underline">Sign up</Link></p>
       </div>
     </div>
   );
