@@ -106,16 +106,50 @@ def gather_facts(company_id):
     }
 
 
+# The persona below is a condensed version of a full AI-COO framework the
+# operator asked for. Sections that depend on data we don't collect yet
+# (pricing/ADR, guest messaging, KPI dashboards) are deliberately left out
+# rather than faked — the "never invent facts" rule applies to the prompt
+# itself, not just its output. Expand this as those data sources land.
+PERSONA = """You are the AI Chief Operating Officer for a property management
+and short-term-rental business, briefing the owner or property manager who
+runs it day to day.
+
+Priority order when things compete for attention, unless the facts below
+clearly say otherwise:
+1. Guest/resident safety and legal or lease obligations
+2. Guest experience and fast problem resolution
+3. Property protection and preventive maintenance
+4. Cost and cash flow
+5. Reputation and reviews
+6. Operational efficiency
+
+Rules:
+- Use only the facts given below. Never invent a number, a property name, a
+  cost, a date, or a guest detail. If something isn't in the facts, don't
+  claim to know it.
+- Never state legal, tax, insurance, or fair-housing conclusions as certain.
+  If one of those is implicated, say so and recommend the operator verify
+  with a qualified professional, don't rule on it yourself.
+- Never expose or repeat access codes, tokens, or full contact details, even
+  if they're present in the underlying data.
+- Say what TraxKey already handled versus what needs the operator's decision.
+  Don't ask them to chase something already dispatched.
+- Plain, direct language. No greeting, no filler, no em dashes."""
+
+
 def build_briefing(facts):
-    """Claude writes the narrative. The facts are already decided."""
+    """Claude writes the narrative and the to-do bullets. The facts, and
+    their priority ranking, are already decided in Python — the model is
+    only trusted to phrase them, per PERSONA's "never invent" rule."""
     c = facts["counts"]
 
     # Nothing going on, don't spend a token inventing urgency.
     if not any([c["awaiting_approval"], c["needs_vendor"], c["open_emergencies"],
                 c["urgent_turns"], c["in_flight"], c["open_turns"]]):
         if not c["total_units"]:
-            return "Add your first property and unit, then share a resident link, and I'll start handling maintenance requests as they come in."
-        return "Nothing needs you right now. No open requests, no turns waiting, nothing overdue."
+            return "Add your first property and unit, then share a resident link, and I'll start handling maintenance requests as they come in.", []
+        return "Nothing needs you right now. No open requests, no turns waiting, nothing overdue.", []
 
     turn_lines = "\n".join(
         f"- {t['property_name']}{' Unit ' + t['unit_number'] if t['unit_number'] else ''}: "
@@ -129,8 +163,7 @@ def build_briefing(facts):
         for i in facts["action_items"]
     )
 
-    prompt = f"""You brief a property manager at the start of their day. Here is
-the real state of their portfolio right now:
+    prompt = f"""Here is the real state of the portfolio right now:
 
 Counts:
 - {c['awaiting_approval']} maintenance request(s) waiting on their approval
@@ -143,24 +176,27 @@ Counts:
 {('Turns with a near deadline:' + chr(10) + turn_lines) if turn_lines else ''}
 {('Items needing attention:' + chr(10) + item_lines) if item_lines else ''}
 
-Write 2 to 4 short sentences telling them what actually matters today.
-
-Rules:
-- Lead with whatever is most urgent. Anything blocking on their approval, or
-  a turn due today, comes first.
-- Use only the numbers above. Never invent a figure or a property name.
-- Say what YOU (TraxKey) already handled, and what needs THEM. Things already
-  dispatched are handled, don't ask them to chase those.
-- Plain, direct language. No greeting, no "I hope", no filler, no bullet points.
-- Never use em dashes."""
+Respond in exactly this shape:
+Line 1: one short sentence, the single most important thing right now, ranked
+by the priority order in your instructions.
+Then, one bullet per line, each starting with "- ", for the specific next
+actions the operator should take today. 2 to 5 bullets. Each bullet is one
+short, concrete action, not a restatement of a count. Skip anything already
+fully handled with nothing left for them to do."""
 
     response = anthropic_client.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=300,
         temperature=0.3,
+        system=PERSONA,
         messages=[{"role": "user", "content": prompt}],
     )
-    return response.content[0].text.strip()
+    text = response.content[0].text.strip()
+
+    lines = [l.strip() for l in text.split("\n") if l.strip()]
+    lead = lines[0] if lines else text
+    todos = [l[1:].strip() for l in lines[1:] if l.startswith("-")]
+    return lead, todos
 
 
 def get_briefing(token):
@@ -170,7 +206,7 @@ def get_briefing(token):
 
     facts = gather_facts(company_id)
     try:
-        greeting = build_briefing(facts)
+        greeting, todos = build_briefing(facts)
     except Exception:
         # A briefing failure must never blank the dashboard. Fall back to the
         # counts, which are the part that actually matters.
@@ -180,9 +216,11 @@ def get_briefing(token):
             f"{c['awaiting_approval']} waiting on approval, {c['needs_vendor']} need a vendor, "
             f"{c['in_flight']} jobs in progress."
         )
+        todos = []
 
     return {
         "greeting": greeting,
+        "todos": todos,
         "counts": facts["counts"],
         "action_items": [
             {

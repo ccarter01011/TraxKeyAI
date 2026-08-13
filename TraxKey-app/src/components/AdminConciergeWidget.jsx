@@ -24,7 +24,7 @@ export default function AdminConciergeWidget() {
     if (!data?.briefing) return;
     // Word by word at 90ms. See the note in ConciergeWidget: the orb's
     // impulse decay needs that gap between kicks to read as a pulse.
-    const words = data.briefing.split(' ');
+    const words = data.briefing.split(' ').filter(Boolean);
     let i = 0;
     const id = setInterval(() => {
       const prevWord = words[i - 1];
