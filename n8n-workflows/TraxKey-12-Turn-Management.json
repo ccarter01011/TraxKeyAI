@@ -533,7 +533,7 @@
         540
       ],
       "parameters": {
-        "query": "INSERT INTO traxkey.turn_events (turn_id, event_type, content) VALUES ('{{ $json.id }}', '{{ $(\"Advance Turn (Webhook)\").first().json.body.newStatus.replace(/'/g, \"''\") }}', 'Moved to {{ $(\"Advance Turn (Webhook)\").first().json.body.newStatus.replace(/'/g, \"''\") }}.');",
+        "query": "INSERT INTO traxkey.turn_events (turn_id, event_type, content) VALUES ('{{ $('Update Turn Status').first().json.id }}', '{{ $(\"Advance Turn (Webhook)\").first().json.body.newStatus.replace(/'/g, \"''\") }}', 'Moved to {{ $(\"Advance Turn (Webhook)\").first().json.body.newStatus.replace(/'/g, \"''\") }}.');",
         "options": {},
         "operation": "executeQuery"
       },
