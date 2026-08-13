@@ -16,6 +16,7 @@ from ical_sync import sync_all_calendars
 from checkout_turns import run_checkout_turns
 from readiness import run_readiness_checks
 from concierge import get_briefing
+from sales_chat import answer as sales_answer
 
 POLL_INTERVAL_SECONDS = int(os.environ.get("POLL_INTERVAL_SECONDS", "900"))  # 15 min default
 # Booking calendars change far less often than maintenance requests arrive,
@@ -51,6 +52,28 @@ class HealthHandler(BaseHTTPRequestHandler):
         self.send_response(204)
         self._cors()
         self.end_headers()
+
+    def do_POST(self):
+        if self.path.split("?")[0] != "/chat":
+            self._json(404, {"error": "Not found"})
+            return
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            if length > 20000:
+                self._json(413, {"error": "Too large"})
+                return
+            payload = json.loads(self.rfile.read(length) or b"{}")
+        except Exception:
+            self._json(400, {"error": "Bad request"})
+            return
+
+        # Behind Railway's proxy, the real client IP is in the forwarded header.
+        ip = (self.headers.get("X-Forwarded-For") or self.client_address[0] or "unknown").split(",")[0].strip()
+        reply, err = sales_answer(payload.get("question", ""), payload.get("history"), ip)
+        if err:
+            self._json(400, {"error": err})
+            return
+        self._json(200, {"reply": reply})
 
     def do_GET(self):
         if self.path.split("?")[0] == "/concierge":
