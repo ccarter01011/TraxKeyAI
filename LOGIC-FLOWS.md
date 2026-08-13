@@ -104,6 +104,35 @@ re-advancing never overwrites real history.
 **The metric that matters:** days vacant. Every day counted is a day not
 earning.
 
+### 3a. Auto-opened cleaning turns (STR)
+
+Where calendar sync becomes operational work:
+
+```
+Guest checkout date passes
+  ↓  (detected on the hourly calendar sync)
+Unit has no active turn?
+  ↓  yes
+OPEN CLEANING TURN        auto_created = true, unit → vacant
+  ↓
+DEADLINE = next guest's check-in
+  ↓
+  ├─ next guest arrives same day → "hours, not days"
+  ├─ arrives in N days           → N days to get ready
+  └─ nothing booked              → no hard deadline
+```
+
+**Owner blocks never trigger a turn**, an owner-blocked unit is unavailable
+but nobody stayed in it, so there's nothing to clean.
+
+**Idempotent:** the triggering booking is recorded on the turn, so repeated
+worker passes can't open duplicate turns for the same checkout.
+
+**Why this is defensible:** seeing a same-day turnaround requires having the
+booking calendar and the work engine in the same system. Turnover-only tools
+don't have the maintenance side; maintenance-only tools don't have the
+calendar.
+
 ---
 
 ## 4. Auth model

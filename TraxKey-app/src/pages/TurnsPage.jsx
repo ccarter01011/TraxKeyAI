@@ -107,6 +107,18 @@ function AddRepairForm({ turnId, onCreated, onClose }) {
   );
 }
 
+function deadlineInfo(turn) {
+  if (!turn.deadline_at) return null;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const due = new Date(turn.deadline_at + 'T00:00:00');
+  const days = Math.round((due - today) / 86400000);
+
+  if (days < 0) return { label: `Guest arrived ${-days}d ago`, tone: 'bg-red-500/15 text-red-600 dark:text-red-400' };
+  if (days === 0) return { label: 'Next guest arrives TODAY', tone: 'bg-red-500/15 text-red-600 dark:text-red-400' };
+  if (days === 1) return { label: 'Next guest arrives tomorrow', tone: 'bg-amber-500/15 text-amber-600 dark:text-amber-400' };
+  return { label: `${days} days until next guest`, tone: 'bg-slate-500/15 text-slate-500 dark:text-slate-400' };
+}
+
 function TurnCard({ turn, onChanged }) {
   const [addingRepair, setAddingRepair] = useState(false);
   const [advancing, setAdvancing] = useState(false);
@@ -114,6 +126,7 @@ function TurnCard({ turn, onChanged }) {
   const stageIndex = STAGES.findIndex(s => s.value === turn.status);
   const nextStage = STAGES[stageIndex + 1];
   const isDone = turn.status === 'occupied';
+  const deadline = deadlineInfo(turn);
 
   async function advance() {
     if (!nextStage) return;
@@ -136,10 +149,28 @@ function TurnCard({ turn, onChanged }) {
             {turn.total_cost > 0 ? ` · $${Math.round(turn.total_cost)} in repairs` : ''}
           </p>
         </div>
-        <span className={`shrink-0 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${STAGE_COLOR[turn.status]}`}>
-          {turn.status.replace(/_/g, ' ')}
-        </span>
+        <div className="flex items-center gap-2 shrink-0">
+          {turn.turn_type === 'cleaning' && (
+            <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-600 dark:text-sky-400">
+              Cleaning
+            </span>
+          )}
+          <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${STAGE_COLOR[turn.status]}`}>
+            {turn.status.replace(/_/g, ' ')}
+          </span>
+        </div>
       </div>
+
+      {deadline && !isDone && (
+        <div className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full mt-2 ${deadline.tone}`}>
+          {deadline.label}
+        </div>
+      )}
+      {turn.auto_created && (
+        <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-2">
+          Opened automatically from the booking calendar.
+        </p>
+      )}
 
       {turn.repairs.length > 0 && (
         <div className="mt-3 space-y-1.5">
