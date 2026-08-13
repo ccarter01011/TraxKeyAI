@@ -11,6 +11,7 @@ import ResidentsPage from './pages/ResidentsPage.jsx';
 import VendorsPage from './pages/VendorsPage.jsx';
 import ActivityPage from './pages/ActivityPage.jsx';
 import CalendarsPage from './pages/CalendarsPage.jsx';
+import TurnsPage from './pages/TurnsPage.jsx';
 import AdminLoginPage from './pages/AdminLoginPage.jsx';
 import AdminDashboardPage from './pages/AdminDashboardPage.jsx';
 import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx';
@@ -38,6 +39,7 @@ function App() {
           <Route path="/residents" element={<RequireAuth><ResidentsPage /></RequireAuth>} />
           <Route path="/vendors" element={<RequireAuth><VendorsPage /></RequireAuth>} />
           <Route path="/calendars" element={<RequireAuth><CalendarsPage /></RequireAuth>} />
+          <Route path="/turns" element={<RequireAuth><TurnsPage /></RequireAuth>} />
           <Route path="/admin/login" element={<AdminLoginPage />} />
           <Route path="/admin" element={<AdminDashboardPage />} />
           <Route path="/activity" element={<RequireAuth><ActivityPage /></RequireAuth>} />
