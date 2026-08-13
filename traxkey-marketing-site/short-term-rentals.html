@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TraxKey AI for Short-Term Rentals — Same-Day Turnarounds, Guest-Aware Maintenance</title>
+<meta name="description" content="TraxKey AI syncs your Airbnb and Vrbo calendars, opens a cleaning turn the moment a guest checks out, flags same-day turnarounds, and warns you when a unit isn't ready before the next arrival." />
+<link rel="canonical" href="https://traxkey.ai/short-term-rentals" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="TraxKey AI — AI Maintenance Coordinator for Property Management" />
+<meta property="og:description" content="An AI agent that reads maintenance requests, diagnoses issues, matches vendors by real performance history, and dispatches work, with you in control of the approval gate." />
+<meta property="og:url" content="https://traxkey.ai/" />
+<meta property="og:site_name" content="TraxKey AI" />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  * { font-family: 'Inter', sans-serif; }
+  html, body { overflow-x: hidden; max-width: 100vw; }
+  .dot-pattern { background-image: radial-gradient(rgba(255,255,255,0.08) 1px, transparent 1px); background-size: 22px 22px; }
+  .glow-card { box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 20px 60px -20px rgba(13,148,136,0.35); }
+  .fade-up { opacity: 0; transform: translateY(10px); animation: fadeUp 0.5s ease both; }
+  @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+  @media (prefers-reduced-motion: reduce) { .fade-up { animation: none; opacity: 1; transform: none; } }
+</style>
+</head>
+<body class="bg-slate-950 text-slate-100 antialiased min-h-screen">
+
+<!-- NAV -->
+<nav class="fixed top-0 w-full z-50 backdrop-blur-md bg-slate-950/70 border-b border-white/5">
+  <div class="max-w-7xl mx-auto px-4 md:px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <div class="w-8 h-8 rounded-lg bg-teal-500/15 border border-teal-500/30 flex items-center justify-center">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3L4 9V21H20V9L12 3Z" stroke="#2dd4bf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <span class="font-extrabold text-lg tracking-tight">TraxKey <span class="text-teal-400">AI</span></span>
+    </div>
+    <div class="hidden md:flex items-center gap-8 text-sm text-slate-300">
+      <a href="/#how" class="hover:text-white transition">How it works</a>
+      <a href="/#coordinator" class="hover:text-white transition">The AI Coordinator</a>
+      <a href="/short-term-rentals" class="text-teal-400">Short-term rentals</a>
+      <a href="/#pricing" class="hover:text-white transition">Pricing</a>
+    </div>
+    <div class="hidden md:flex items-center gap-4">
+      <a href="https://app.traxkey.ai/login" class="text-sm text-slate-300 hover:text-white transition">Customer Login</a>
+      <a href="https://app.traxkey.ai/signup" class="bg-teal-500 hover:bg-teal-400 text-slate-950 font-semibold text-sm px-4 py-2 rounded-lg transition active:scale-95 duration-150">Start Free Trial</a>
+    </div>
+    <button onclick="toggleMobileNav()" class="md:hidden text-white p-2 -mr-2" aria-label="Toggle menu">
+      <svg id="nav-icon-open" width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <svg id="nav-icon-close" class="hidden" width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M6 6L18 18M6 18L18 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+  <div id="mobile-nav" class="hidden md:hidden border-t border-white/5 px-4 pb-4 pt-2 space-y-1 bg-slate-950/95">
+    <a href="/#how" onclick="toggleMobileNav()" class="block py-2 text-slate-300 hover:text-white">How it works</a>
+    <a href="/#coordinator" onclick="toggleMobileNav()" class="block py-2 text-slate-300 hover:text-white">The AI Coordinator</a>
+    <a href="/short-term-rentals" onclick="toggleMobileNav()" class="block py-2 text-slate-300 hover:text-white">Short-term rentals</a>
+    <a href="/#pricing" onclick="toggleMobileNav()" class="block py-2 text-slate-300 hover:text-white">Pricing</a>
+    <a href="https://app.traxkey.ai/login" class="block py-2 text-slate-300 hover:text-white">Customer Login</a>
+    <a href="https://app.traxkey.ai/signup" class="block mt-2 text-center bg-teal-500 text-slate-950 font-semibold text-sm px-4 py-2.5 rounded-lg">Start Free Trial</a>
+  </div>
+</nav>
+<script>
+function toggleMobileNav() {
+  document.getElementById('mobile-nav').classList.toggle('hidden');
+  document.getElementById('nav-icon-open').classList.toggle('hidden');
+  document.getElementById('nav-icon-close').classList.toggle('hidden');
+}
+</script>
+
+<!-- HERO -->
+<header class="dot-pattern pt-24 md:pt-40 pb-16 md:pb-24 px-6 relative overflow-hidden">
+  <div class="max-w-5xl mx-auto text-center relative z-10">
+    <div class="inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-4 py-1.5 text-xs text-teal-300 mb-5 md:mb-8 fade-up">
+      <span class="w-1.5 h-1.5 bg-teal-400 rounded-full animate-pulse"></span>
+      For short-term rental operators
+    </div>
+    <h1 class="text-3xl sm:text-4xl md:text-6xl font-black tracking-tight leading-[1.1] md:leading-[1.05] mb-4 md:mb-6 fade-up" style="animation-delay:0.05s">
+      Your calendar knows.<br/><span class="bg-gradient-to-r from-teal-300 to-sky-400 bg-clip-text text-transparent">Now your maintenance does too.</span>
+    </h1>
+    <p class="text-base md:text-xl text-slate-300 max-w-2xl mx-auto mb-6 md:mb-10 fade-up" style="animation-delay:0.1s">
+      TraxKey AI reads your Airbnb and Vrbo calendars, so it knows when someone's actually in the unit. A broken AC with a guest inside is an emergency. The same AC in a unit that's empty for two weeks isn't.
+    </p>
+    <div class="flex flex-col sm:flex-row items-center justify-center gap-3 fade-up" style="animation-delay:0.15s">
+      <a href="https://app.traxkey.ai/signup" class="w-full sm:w-auto bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold px-10 py-4 rounded-xl transition active:scale-95 duration-150 text-base shadow-lg shadow-teal-500/20">Start Free Trial →</a>
+      <a href="#str-how" class="w-full sm:w-auto border border-white/15 hover:border-teal-400/50 hover:bg-white/5 text-slate-200 font-bold px-10 py-4 rounded-xl transition active:scale-95 duration-150 text-base">See how it works</a>
+    </div>
+    <p class="text-xs text-slate-500 mt-5">Works alongside Hostaway, OwnerRez, or nothing at all · Read-only calendar sync</p>
+  </div>
+</header>
+
+<!-- THE THREE MOMENTS -->
+<section id="str-how" class="py-24 px-6 bg-slate-950">
+  <div class="max-w-5xl mx-auto">
+    <div class="text-center mb-16">
+      <p class="text-teal-400 font-semibold text-sm mb-3 tracking-wide uppercase">Three moments that cost you money</p>
+      <h2 class="text-3xl md:text-4xl font-bold mb-4">Every one of them needs your calendar and your maintenance in the same place</h2>
+      <p class="text-slate-400 max-w-2xl mx-auto">Turnover tools don't run maintenance. Maintenance tools don't read calendars. TraxKey does both, which is the only way to catch these.</p>
+    </div>
+
+    <div class="space-y-5">
+      <div class="bg-slate-900 border border-white/5 rounded-2xl p-6 md:flex gap-6 items-start">
+        <div class="w-10 h-10 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-center shrink-0 mb-4 md:mb-0">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 8V12M12 16H12.01M21 12A9 9 0 1 1 3 12A9 9 0 0 1 21 12Z" stroke="#f87171" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div>
+          <h3 class="font-bold mb-2">A guest reports a problem mid-stay</h3>
+          <p class="text-sm text-slate-400 mb-3">TraxKey checks the calendar before deciding how urgent it is. Someone in the unit right now, checking out Thursday, changes the answer.</p>
+          <p class="text-xs text-teal-300">Nobody else does this. Long-term tools assume occupancy never changes. Turnover tools only handle scheduled cleanings, not surprises.</p>
+        </div>
+      </div>
+
+      <div class="bg-slate-900 border border-white/5 rounded-2xl p-6 md:flex gap-6 items-start">
+        <div class="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0 mb-4 md:mb-0">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 8V12L15 15" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="9" stroke="#fbbf24" stroke-width="2"/></svg>
+        </div>
+        <div>
+          <h3 class="font-bold mb-2">Checkout at 11, check-in at 4</h3>
+          <p class="text-sm text-slate-400 mb-3">The moment a guest checks out, TraxKey opens the cleaning turn on its own and reads the next arrival off your calendar. Same-day turnaround gets flagged as <em class="text-white not-italic font-semibold">hours, not days</em>.</p>
+          <p class="text-xs text-teal-300">No one has to notice the checkout happened. The calendar already told us.</p>
+        </div>
+      </div>
+
+      <div class="bg-slate-900 border border-white/5 rounded-2xl p-6 md:flex gap-6 items-start">
+        <div class="w-10 h-10 rounded-xl bg-teal-500/15 border border-teal-500/30 flex items-center justify-center shrink-0 mb-4 md:mb-0">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17L4 12" stroke="#2dd4bf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div>
+          <h3 class="font-bold mb-2">A guest arrives in two days and the shower's still broken</h3>
+          <p class="text-sm text-slate-400 mb-3">TraxKey cross-checks arrivals against open repairs and unfinished turns, and tells you before they walk in.</p>
+          <p class="text-xs text-teal-300">This is the one that turns into a 3-star review. It takes reading three things at once, which is why it gets missed.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CALENDAR SYNC -->
+<section class="py-24 px-6 bg-slate-900/40 border-y border-white/5">
+  <div class="max-w-5xl mx-auto grid md:grid-cols-2 gap-12 items-center">
+    <div>
+      <p class="text-teal-400 font-semibold text-sm mb-3 tracking-wide uppercase">Setup</p>
+      <h2 class="text-3xl md:text-4xl font-bold mb-4">Paste one link per listing</h2>
+      <p class="text-slate-400 mb-6">Airbnb, Vrbo, and Booking.com all publish a calendar export link. Paste it in, and TraxKey checks it hourly. No API keys, no partner approval, no waiting on anyone.</p>
+      <ul class="space-y-3">
+        <li class="flex items-start gap-3"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="shrink-0 mt-1"><path d="M20 6L9 17L4 12" stroke="#2dd4bf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="text-sm text-slate-300">Read-only. TraxKey never touches your listing or your bookings.</span></li>
+        <li class="flex items-start gap-3"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="shrink-0 mt-1"><path d="M20 6L9 17L4 12" stroke="#2dd4bf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="text-sm text-slate-300">List one unit on two platforms? Connect both calendars to it.</span></li>
+        <li class="flex items-start gap-3"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="shrink-0 mt-1"><path d="M20 6L9 17L4 12" stroke="#2dd4bf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="text-sm text-slate-300">Your own calendar blocks don't get mistaken for guests.</span></li>
+        <li class="flex items-start gap-3"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="shrink-0 mt-1"><path d="M20 6L9 17L4 12" stroke="#2dd4bf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="text-sm text-slate-300">Revoke the link any time from Airbnb or Vrbo.</span></li>
+      </ul>
+    </div>
+    <div class="bg-slate-900 border border-white/5 rounded-2xl p-6 glow-card">
+      <p class="text-xs font-bold text-teal-400 uppercase tracking-wide mb-4">What TraxKey does with it</p>
+      <div class="space-y-3">
+        <div class="bg-slate-950/60 border border-white/5 rounded-lg p-3">
+          <p class="text-xs text-slate-500 mb-1">Guest checks out today</p>
+          <p class="text-sm">Cleaning turn opened automatically</p>
+        </div>
+        <div class="flex items-center gap-2 text-xs text-teal-300 pl-2">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 5V19M12 19L6 13M12 19L18 13" stroke="#5eead4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Next arrival read off the calendar
+        </div>
+        <div class="bg-red-500/10 border border-red-400/20 rounded-lg p-3">
+          <p class="text-xs text-red-300 font-bold uppercase tracking-wide mb-1">Same-day turnaround</p>
+          <p class="text-sm">Next guest arrives today. Hours, not days.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MIXED PORTFOLIO -->
+<section class="py-24 px-6 bg-slate-950">
+  <div class="max-w-3xl mx-auto text-center">
+    <p class="text-teal-400 font-semibold text-sm mb-3 tracking-wide uppercase">Also have long-term units?</p>
+    <h2 class="text-3xl md:text-4xl font-bold mb-4">They live in the same place</h2>
+    <p class="text-slate-400 mb-8">Most tools make you pick a side. Short-term platforms don't handle long-term tenants; long-term platforms don't understand guests. If you run both, you're running two systems that don't talk to each other, with two vendor lists and split history. TraxKey treats them as one portfolio.</p>
+    <a href="/" class="inline-block border border-white/15 hover:border-teal-400/50 hover:bg-white/5 text-slate-200 font-bold px-8 py-3 rounded-xl transition text-sm">See the full platform →</a>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="py-24 px-6 bg-slate-900/40 border-t border-white/5">
+  <div class="max-w-3xl mx-auto text-center">
+    <h2 class="text-3xl md:text-4xl font-bold mb-4">Connect your first calendar in about a minute</h2>
+    <p class="text-slate-400 mb-8">Free for one unit. No credit card.</p>
+    <a href="https://app.traxkey.ai/signup" class="inline-block bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold px-10 py-4 rounded-xl transition active:scale-95 duration-150 text-base shadow-lg shadow-teal-500/20">Start Free Trial →</a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="border-t border-white/5 py-10 px-6">
+  <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+    <div class="flex items-center gap-2">
+      <span class="font-extrabold text-sm tracking-tight">TraxKey <span class="text-teal-400">AI</span></span>
+    </div>
+    <p class="text-xs text-slate-500">© 2026 TraxKey AI. All rights reserved.</p>
+  </div>
+</footer>
+
+</body>
+</html>

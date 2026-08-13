@@ -8,7 +8,7 @@ actually working in production.** Overclaiming is how you lose the first
 customer, and we only get one shot at a first impression with a small
 operator who talks to other small operators.
 
-Last updated: 2026-08-13
+Last updated: 2026-08-13 (turn management + STR readiness shipped)
 
 ---
 
@@ -66,6 +66,28 @@ listing. We test against a self-hosted `test-calendar.ics`
 (`traxkey-marketing-site/test-calendar.ics`), hand-written to match Airbnb's
 real export format exactly. Verified end-to-end against it over real HTTP
 before ever needing a customer's real calendar.
+
+---
+
+### 1b. Same-day turnaround detection — LIVE
+**The claim:** when a guest checks out and the next one arrives the same
+day, TraxKey opens the cleaning turn automatically and marks it as hours,
+not days.
+
+**Why nobody else has it:** it requires the booking calendar and the work
+engine in the same system. Breezeway schedules turnovers but doesn't run
+maintenance. Property Meld runs maintenance but has no calendar. Neither can
+see both halves of this.
+
+---
+
+### 1c. Pre-arrival readiness check — LIVE
+**The claim:** a guest arrives in two days and the unit still has an open
+repair, TraxKey says so before they show up.
+
+**Why it matters:** this is the specific failure that produces a bad review,
+and small operators miss it because it needs three separate things checked
+together: the calendar, open maintenance, and turn status.
 
 ---
 
@@ -159,6 +181,10 @@ have auto-dispatched every new vendor's first job.)
 | Per-resident invite links | no app, no account, unit already known |
 | Short-term guest support | check-in/check-out dates |
 | iCal calendar sync | Airbnb, Vrbo, Booking.com, direct |
+| Turn management | vacant-to-ready, one engine for LTR turnover and STR cleaning |
+| Auto-opened cleaning turns | guest checkout opens a turn automatically |
+| Same-day turnaround detection | next check-in becomes the turn deadline |
+| Pre-arrival readiness check | guest arriving within 2 days + open work = alert |
 | Properties, units, residents, vendors | data entry |
 | Light/dark theme | |
 | Password reset | |
@@ -166,7 +192,6 @@ have auto-dispatched every new vendor's first job.)
 ### Built but not yet exercised
 | Feature | Status |
 |---|---|
-| Turn management schema | tables exist, no UI or logic yet |
 | Owner records | table exists, no owner portal or reporting yet |
 
 ### Not built (be honest about these in sales conversations)
@@ -194,9 +219,7 @@ have auto-dispatched every new vendor's first job.)
    regenerating the link in Airbnb/Vrbo settings, but we shouldn't rely on
    that as the only safeguard. Encrypt the column (or move to a secrets
    store) before the first real STR customer connects a live calendar.
-2. **Turn management** — serves both LTR move-out turnover and STR cleaning
-   turn from one engine. Schema already exists.
-3. **Owner reporting** — research flagged that every competitor still ships
+2. **Owner reporting** — research flagged that every competitor still ships
    static PDFs. An AI that narrates portfolio performance and answers owner
    questions is unclaimed.
 4. **SMS vendor notification** — needs Twilio credentials.
