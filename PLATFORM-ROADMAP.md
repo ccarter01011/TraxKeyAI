@@ -21,7 +21,7 @@ approval where money or reputation is at stake.
 | # | Specialist | Status | Serves |
 |---|---|---|---|
 | 1 | **Maintenance Coordinator** | ✅ built | Both |
-| 2 | **Turnover Coordinator** | 🟡 partial | Both |
+| 2 | **Turnover Coordinator** | 🟡 cleaner assignment built, checklist/app open | Both |
 | 3 | **Lease Agent** | 🟡 built, pending migration | Long-term |
 | 4 | **Renewal Agent** | 🟡 built, pending migration | Long-term |
 | 5 | **Resident Communications** | ❌ | Long-term |
@@ -77,10 +77,11 @@ our own scoring.
 
 ## Short-term rental gaps (in build order)
 
-### 1. Turnover Coordinator (complete it) — BLOCKING
-Turns exist, but there's no cleaner assignment, no checklist, no cleaner
-app. This is Breezeway's core and its absence is why an STR operator won't
-take us seriously.
+### 1. Turnover Coordinator — cleaner assignment BUILT, checklist/app still open
+A cleaning turn now assigns a cleaner automatically the same pass it opens,
+ranked by the same completion-rate/rating/cost history as any vendor. No
+checklist UI or cleaner-facing app yet, cleaners currently work off the
+existing vendor portal built for repairs.
 
 *AI angle:* assigns based on cleaner performance history, same engine as
 vendor scoring.

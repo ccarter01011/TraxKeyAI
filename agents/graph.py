@@ -27,7 +27,7 @@ anthropic_client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY")  # optional: notification is best-effort, never blocks dispatch
 NOTIFY_FROM_ADDRESS = os.environ.get("NOTIFY_FROM_ADDRESS", "dispatch@notify.traxkey.ai")
 
-VALID_TRADES = ["hvac", "plumbing", "electrical", "appliance", "general", "pest", "locksmith", "roofing"]
+VALID_TRADES = ["hvac", "plumbing", "electrical", "appliance", "general", "pest", "locksmith", "roofing", "cleaning"]
 
 
 class RequestState(TypedDict, total=False):
@@ -54,6 +54,7 @@ def load_context(state: RequestState) -> RequestState:
         cur.execute(
             """
             SELECT mr.description, mr.company_id, mr.unit_id, c.cost_approval_threshold,
+                   mr.category, mr.urgency, mr.responsibility,
                    COALESCE(r.requires_human_review, false) AS requires_human_review,
                    r.review_reason
             FROM traxkey.maintenance_requests mr
@@ -81,6 +82,13 @@ def load_context(state: RequestState) -> RequestState:
         "occupancy": occupancy,
         "requires_human_review": row["requires_human_review"],
         "review_reason": row["review_reason"],
+        # Set when something upstream (cleaner_assignment.py, so far) already
+        # knows category/urgency/responsibility as plain facts, a cleaning
+        # turn doesn't need an LLM to tell it the job is a cleaning job.
+        # diagnose() skips its API call when these are already present.
+        "category": row["category"],
+        "urgency": row["urgency"],
+        "responsibility": row["responsibility"],
     }
 
 
@@ -113,7 +121,25 @@ urgent than the same issue in a unit that will sit empty."""
 
 def diagnose(state: RequestState) -> RequestState:
     """The one LLM step: classify a free-text tenant description. Everything
-    downstream of this is plain SQL, no further AI judgment calls."""
+    downstream of this is plain SQL, no further AI judgment calls.
+
+    Skipped entirely when category/urgency/responsibility already arrived
+    pre-set, e.g. an auto-created cleaning job: a cleaning turn's category is
+    'cleaning' by construction, there is no ambiguous text to classify, and
+    spending an API call to have the model re-derive a fact we already have
+    would violate the one rule this whole system runs on."""
+    if state.get("category") and state.get("urgency") and state.get("responsibility"):
+        with db() as conn, conn.cursor() as cur:
+            cur.execute(
+                "UPDATE traxkey.maintenance_requests SET status = 'triaged' WHERE id = %s",
+                (state["request_id"],),
+            )
+            cur.execute(
+                "INSERT INTO traxkey.maintenance_events (request_id, event_type, content) VALUES (%s, 'triaged', %s)",
+                (state["request_id"], f"Pre-classified: {state['category']}, {state['urgency']}. No AI call needed."),
+            )
+        return state
+
     prompt = f"""A tenant reported this maintenance issue:
 
 "{state['description']}"

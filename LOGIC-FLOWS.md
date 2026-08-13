@@ -222,3 +222,28 @@ days-vacant clock starts on the real move-out date, not whenever somebody
 remembered to log it.
 
 **No LLM runs anywhere in this flow.** Dates and thresholds are facts.
+
+
+---
+
+## Cleaner assignment flow
+
+1. A cleaning turn opens (checkout_turns.py, automatic, or the operator
+   starts one by hand).
+2. The same pass, `agents/cleaner_assignment.py` opens a cleaning job on that
+   turn: a `maintenance_requests` row with `category = 'cleaning'`, already
+   marked urgent if the turn has a deadline (a next guest booked), routine if
+   not.
+3. Because category, urgency, and responsibility are already known facts,
+   `graph.py`'s `diagnose()` step skips its LLM call entirely and goes
+   straight to `find_vendor`, the exact function that ranks any vendor by
+   completion rate, rating, and cost history. A cleaner is found the same way
+   a plumber is, because it's the same question: who has done good, reliable
+   work.
+4. Dispatch and approval follow the normal path. An unfamiliar cleaner with
+   no job history still requires approval, same as any new vendor.
+5. The assigned cleaner's name and status show up directly in the turn's
+   repair list on the Turns page.
+
+No separate cleaner engine exists. This is the same maintenance coordinator,
+pointed at a pre-classified job instead of free text.

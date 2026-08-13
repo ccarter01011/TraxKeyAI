@@ -14,6 +14,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from graph import run_batch
 from ical_sync import sync_all_calendars
 from checkout_turns import run_checkout_turns
+from cleaner_assignment import run_cleaner_assignment
 from readiness import run_readiness_checks
 from review_risk import run_review_risk_checks
 from lease_agent import run_lease_agent
@@ -140,6 +141,12 @@ if __name__ == "__main__":
             # Runs right after a sync so it acts on fresh checkout data.
             try:
                 run_checkout_turns()
+            except Exception:
+                traceback.print_exc()
+            # Right after checkout_turns, so a turn it just opened gets a
+            # cleaning job the same pass rather than waiting an hour.
+            try:
+                run_cleaner_assignment()
             except Exception:
                 traceback.print_exc()
             try:

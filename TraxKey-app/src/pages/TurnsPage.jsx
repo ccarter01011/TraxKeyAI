@@ -176,8 +176,16 @@ function TurnCard({ turn, onChanged }) {
         <div className="mt-3 space-y-1.5">
           {turn.repairs.map(r => (
             <div key={r.id} className="flex items-center gap-3 text-xs bg-slate-100 dark:bg-slate-950/40 rounded-lg px-3 py-2">
-              <span className="flex-1">{r.description}</span>
-              {r.final_cost && <span className="text-slate-400 dark:text-slate-500">${Math.round(r.final_cost)}</span>}
+              {r.category === 'cleaning' && (
+                <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-sky-600 dark:text-sky-400">Cleaner</span>
+              )}
+              <span className="flex-1">
+                {r.description}
+                {r.vendor_name && <span className="text-slate-400 dark:text-slate-500"> — assigned to {r.vendor_name}</span>}
+              </span>
+              {(r.final_cost || r.quoted_cost) && (
+                <span className="text-slate-400 dark:text-slate-500">${Math.round(r.final_cost || r.quoted_cost)}</span>
+              )}
               <span className="text-[10px] font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">{r.status.replace(/_/g, ' ')}</span>
             </div>
           ))}
@@ -243,12 +251,13 @@ export default function TurnsPage() {
                 title="How a turn works"
                 steps={[
                   'Start a turn when a unit goes vacant, the unit is marked vacant and the days-vacant clock starts.',
+                  'A short-term cleaning turn assigns a cleaner automatically, ranked by the same performance history as any vendor. No manual step.',
                   'Inspect, then add each repair you find.',
-                  'Every repair runs through the AI Coordinator: diagnosed, vendor matched, dispatched.',
+                  'Every repair or cleaning job runs through the AI Coordinator: matched to a vendor, dispatched.',
                   'Mark ready when the work is done, that stops the clock.',
                   'Relist, then mark occupied when the next resident or guest moves in.',
                 ]}
-                note="Same flow for a long-term move-out and a short-term cleaning turn, only the timeline differs. Repair costs roll up automatically."
+                note="Same flow for a long-term move-out and a short-term cleaning turn, only the timeline differs. Repair and cleaning costs roll up automatically."
               />
             </h1>
           </div>
