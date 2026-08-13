@@ -21,10 +21,10 @@ html, body, #root {
   transition: opacity .4s ease, filter .4s ease;
 }
 .tk-orb--active::before { opacity: .95; filter: blur(11px); animation-duration: 1.6s, 1.6s; }
-.tk-orb__core {
+.tk-orb__canvas {
   position: absolute; inset: 0; border-radius: 9999px; z-index: 1;
-  background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.35), rgba(15,23,42,.85) 70%);
-  border: 1px solid rgba(255,255,255,.12);
+  background: radial-gradient(circle, rgba(15,23,42,.55), rgba(15,23,42,.15));
+  border: 1px solid rgba(255,255,255,.10);
 }
 @media (prefers-reduced-motion: reduce) {
   .tk-orb::before { animation: none; }

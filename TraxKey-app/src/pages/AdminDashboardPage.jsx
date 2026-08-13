@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ThemeToggle from '../components/ThemeToggle.jsx';
+import AdminConciergeWidget from '../components/AdminConciergeWidget.jsx';
 
 const API_BASE = 'https://main-production-b95e.up.railway.app/webhook';
 
@@ -56,6 +57,8 @@ export default function AdminDashboardPage() {
 
         {data && (
           <>
+            <AdminConciergeWidget />
+
             <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-3">Accounts</p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
               <Stat label="Total companies" value={data.total_companies} />

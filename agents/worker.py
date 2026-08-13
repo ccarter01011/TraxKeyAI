@@ -15,7 +15,9 @@ from graph import run_batch
 from ical_sync import sync_all_calendars
 from checkout_turns import run_checkout_turns
 from readiness import run_readiness_checks
+from review_risk import run_review_risk_checks
 from concierge import get_briefing
+from admin_concierge import get_admin_briefing
 from sales_chat import answer as sales_answer
 
 POLL_INTERVAL_SECONDS = int(os.environ.get("POLL_INTERVAL_SECONDS", "900"))  # 15 min default
@@ -76,6 +78,20 @@ class HealthHandler(BaseHTTPRequestHandler):
         self._json(200, {"reply": reply})
 
     def do_GET(self):
+        if self.path.split("?")[0] == "/admin-concierge":
+            token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
+            try:
+                result = get_admin_briefing(token)
+            except Exception:
+                traceback.print_exc()
+                self._json(500, {"error": "Could not build briefing"})
+                return
+            if result is None:
+                self._json(401, {"error": "Unauthorized"})
+                return
+            self._json(200, result)
+            return
+
         if self.path.split("?")[0] == "/concierge":
             token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
             try:
@@ -127,6 +143,10 @@ if __name__ == "__main__":
                 traceback.print_exc()
             try:
                 run_readiness_checks()
+            except Exception:
+                traceback.print_exc()
+            try:
+                run_review_risk_checks()
             except Exception:
                 traceback.print_exc()
             # Set even on failure, so a persistently broken feed can't turn
