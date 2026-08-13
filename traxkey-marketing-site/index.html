@@ -505,7 +505,7 @@ function toggleMobileNav() {
   <div class="flex items-center gap-3 p-4 border-b border-white/10">
     <span id="tk-chat-orb" class="tk-orb" style="width:32px;height:32px"><span class="tk-orb__core"></span></span>
     <div class="flex-1 min-w-0">
-      <p class="text-sm font-bold">Ask about TraxKey</p>
+      <p class="text-sm font-bold">TraxKey AI</p>
       <p class="text-xs text-slate-500">Straight answers, including what it can't do</p>
     </div>
     <button onclick="tkChatToggle()" aria-label="Close" class="text-slate-500 hover:text-white p-1">
@@ -517,16 +517,49 @@ function toggleMobileNav() {
     <div class="text-sm text-slate-300">Ask me anything about TraxKey. If it doesn't do something, I'll tell you.</div>
     <div class="flex flex-wrap gap-1.5 pt-1">
       <button onclick="tkChatAsk('I have short-term and long-term rentals, is this for me?')" class="text-xs border border-white/10 hover:border-teal-400/50 rounded-full px-2.5 py-1 text-slate-400 hover:text-white transition">Do you fit my portfolio?</button>
-      <button onclick="tkChatAsk('How is this different from Breezeway?')" class="text-xs border border-white/10 hover:border-teal-400/50 rounded-full px-2.5 py-1 text-slate-400 hover:text-white transition">vs Breezeway?</button>
+      <button onclick="tkChatAsk('How is this different from Breezeway and AppFolio?')" class="text-xs border border-white/10 hover:border-teal-400/50 rounded-full px-2.5 py-1 text-slate-400 hover:text-white transition">How do you compare?</button>
       <button onclick="tkChatAsk('What does TraxKey not do?')" class="text-xs border border-white/10 hover:border-teal-400/50 rounded-full px-2.5 py-1 text-slate-400 hover:text-white transition">What doesn't it do?</button>
     </div>
   </div>
 
-  <form onsubmit="return tkChatSubmit(event)" class="p-3 border-t border-white/10 flex gap-2">
-    <input id="tk-chat-input" placeholder="Type a question…" autocomplete="off"
-      class="flex-1 bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-teal-400" />
-    <button type="submit" class="bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs px-3 rounded-lg transition">Send</button>
+  <form onsubmit="return tkChatSubmit(event)" class="p-3 border-t border-white/10 space-y-2">
+    <div class="flex gap-2">
+      <input id="tk-chat-input" placeholder="Type a question…" autocomplete="off" maxlength="500"
+        class="flex-1 bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-teal-400" />
+      <button type="submit" class="bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs px-3 rounded-lg transition">Send</button>
+    </div>
+    <button type="button" onclick="tkOpenAskHuman()" class="w-full text-center text-xs text-slate-500 hover:text-teal-400 transition py-0.5">Prefer a person? Ask a human →</button>
   </form>
+</div>
+
+<!-- ASK A HUMAN -->
+<div id="tk-human-modal" class="hidden fixed inset-0 z-[100] items-center justify-center bg-black/60 p-4" onclick="tkCloseAskHuman(event)">
+  <div class="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-md p-6 relative glow-card" onclick="event.stopPropagation()">
+    <button onclick="tkCloseAskHuman()" class="absolute top-4 right-4 text-slate-500 hover:text-white text-xl leading-none">×</button>
+    <div id="tk-human-form-wrap">
+      <h2 class="text-lg font-bold mb-1">Ask a human</h2>
+      <p class="text-sm text-slate-400 mb-5">Tell us a bit about your portfolio and we'll follow up directly, no bot in the loop.</p>
+      <form onsubmit="return tkSubmitAskHuman(event)" class="space-y-3">
+        <input required id="th-name" placeholder="Full name" class="w-full bg-slate-950 border border-white/10 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-teal-400" />
+        <input required id="th-email" type="email" placeholder="Email" class="w-full bg-slate-950 border border-white/10 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-teal-400" />
+        <input id="th-company" placeholder="Company (optional)" class="w-full bg-slate-950 border border-white/10 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-teal-400" />
+        <select id="th-portfolio" class="w-full bg-slate-950 border border-white/10 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-teal-400">
+          <option value="">Portfolio size (optional)</option>
+          <option>1-5 units</option>
+          <option>6-25 units</option>
+          <option>26-75 units</option>
+          <option>76-150 units</option>
+          <option>150+ units</option>
+        </select>
+        <textarea id="th-message" placeholder="What do you want to know? (optional)" rows="3" class="w-full bg-slate-950 border border-white/10 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-teal-400"></textarea>
+        <button type="submit" class="w-full bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold py-3 rounded-xl transition active:scale-95 duration-150">Send</button>
+      </form>
+    </div>
+    <div id="tk-human-success" class="hidden text-center py-6">
+      <h2 class="text-lg font-bold mb-2">Got it.</h2>
+      <p class="text-sm text-slate-400">A human will follow up by email, not the chatbot.</p>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -577,19 +610,53 @@ function tkChatSubmit(e) {
   })
     .then(function (r) { return r.json(); })
     .then(function (j) {
-      thinking.textContent = j.reply || 'Something went wrong. Email hello@traxkey.ai.';
+      thinking.textContent = j.reply || 'Something went wrong. Use "Ask a human" below.';
       tkHistory.push({ role: 'user', content: q });
       tkHistory.push({ role: 'assistant', content: j.reply || '' });
       if (tkHistory.length > 12) tkHistory = tkHistory.slice(-12);
     })
     .catch(function () {
-      thinking.textContent = 'Could not reach the assistant. Email hello@traxkey.ai.';
+      thinking.textContent = 'Could not reach the assistant. Use "Ask a human" below.';
     })
     .then(function () {
       tkBusy = false;
       document.getElementById('tk-chat-orb').classList.remove('active');
       document.getElementById('tk-chat-log').scrollTop = 99999;
     });
+  return false;
+}
+var TK_LEADS_API = 'https://main-production-b95e.up.railway.app/webhook/traxkey-capture-lead';
+
+function tkOpenAskHuman() {
+  document.getElementById('tk-human-form-wrap').classList.remove('hidden');
+  document.getElementById('tk-human-success').classList.add('hidden');
+  var modal = document.getElementById('tk-human-modal');
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+}
+function tkCloseAskHuman(e) {
+  if (e && e.target !== e.currentTarget) return;
+  var modal = document.getElementById('tk-human-modal');
+  modal.classList.add('hidden');
+  modal.classList.remove('flex');
+}
+function tkSubmitAskHuman(e) {
+  e.preventDefault();
+  var payload = {
+    name: document.getElementById('th-name').value,
+    email: document.getElementById('th-email').value,
+    company: document.getElementById('th-company').value,
+    portfolioSize: document.getElementById('th-portfolio').value,
+    message: document.getElementById('th-message').value,
+    source: 'chat_ask_human'
+  };
+  fetch(TK_LEADS_API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  }).catch(function () {});
+  document.getElementById('tk-human-form-wrap').classList.add('hidden');
+  document.getElementById('tk-human-success').classList.remove('hidden');
   return false;
 }
 </script>
