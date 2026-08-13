@@ -13,7 +13,7 @@ const STATUS_LABEL = {
   in_progress: 'In progress',
 };
 
-function useTypedText(fullText, speed = 18) {
+function useTypedText(fullText, orbRef, speed = 18) {
   const [shown, setShown] = useState('');
   const [done, setDone] = useState(false);
   const timer = useRef(null);
@@ -26,13 +26,23 @@ function useTypedText(fullText, speed = 18) {
     timer.current = setInterval(() => {
       i += 1;
       setShown(fullText.slice(0, i));
+
+      // Drive the orb from the text itself: a small kick per character, a
+      // brighter flare when a new sentence starts. Makes it feel like the
+      // orb is doing the talking.
+      const ch = fullText[i - 1];
+      if (orbRef?.current) {
+        if (i === 1 || ['.', '!', '?'].includes(fullText[i - 2])) orbRef.current.flare(0.9);
+        else if (ch && ch !== ' ') orbRef.current.pulse(0.05);
+      }
+
       if (i >= fullText.length) {
         clearInterval(timer.current);
         setDone(true);
       }
     }, speed);
     return () => clearInterval(timer.current);
-  }, [fullText, speed]);
+  }, [fullText, speed, orbRef]);
 
   return { shown, done };
 }
@@ -40,7 +50,8 @@ function useTypedText(fullText, speed = 18) {
 export default function ConciergeWidget() {
   const [data, setData] = useState(null);
   const [failed, setFailed] = useState(false);
-  const { shown, done } = useTypedText(data?.greeting || '');
+  const orbRef = useRef(null);
+  const { shown, done } = useTypedText(data?.greeting || '', orbRef);
 
   useEffect(() => {
     const token = localStorage.getItem('tk_token');
@@ -60,7 +71,7 @@ export default function ConciergeWidget() {
   return (
     <div className="bg-gradient-to-r from-teal-500/10 to-sky-500/10 border border-teal-400/20 rounded-xl p-5 mb-6">
       <div className="flex items-start gap-4">
-        <ConciergeOrb active={thinking || !done} size={40} />
+        <ConciergeOrb ref={orbRef} active={thinking || !done} size={44} />
         <div className="flex-1 min-w-0">
           <p className="text-xs font-bold text-teal-600 dark:text-teal-400 uppercase tracking-wide mb-1.5">
             TraxKey AI

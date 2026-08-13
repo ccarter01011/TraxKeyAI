@@ -44,6 +44,8 @@ class RequestState(TypedDict, total=False):
     known_cost: bool
     requires_approval: bool
     occupancy: Optional[dict]
+    requires_human_review: bool
+    review_reason: Optional[str]
     final_status: str
 
 
@@ -51,9 +53,12 @@ def load_context(state: RequestState) -> RequestState:
     with db() as conn, conn.cursor() as cur:
         cur.execute(
             """
-            SELECT mr.description, mr.company_id, mr.unit_id, c.cost_approval_threshold
+            SELECT mr.description, mr.company_id, mr.unit_id, c.cost_approval_threshold,
+                   COALESCE(r.requires_human_review, false) AS requires_human_review,
+                   r.review_reason
             FROM traxkey.maintenance_requests mr
             JOIN traxkey.companies c ON c.id = mr.company_id
+            LEFT JOIN traxkey.residents r ON r.id = mr.resident_id
             WHERE mr.id = %s
             """,
             (state["request_id"],),
@@ -74,6 +79,8 @@ def load_context(state: RequestState) -> RequestState:
         "unit_id": unit_id,
         "cost_approval_threshold": float(row["cost_approval_threshold"]),
         "occupancy": occupancy,
+        "requires_human_review": row["requires_human_review"],
+        "review_reason": row["review_reason"],
     }
 
 
@@ -162,6 +169,27 @@ clogged drain from grease, a broken window from tenant negligence),
         )
 
     return {**state, "category": parsed["category"], "urgency": parsed["urgency"], "responsibility": parsed["responsibility"]}
+
+
+def route_after_diagnose(state: RequestState) -> str:
+    """A resident the operator flagged never reaches auto-dispatch. Still
+    diagnosed, so the operator sees the AI's read on it, but a human decides
+    what happens next."""
+    return "hold_for_review" if state.get("requires_human_review") else "find_vendor"
+
+
+def hold_for_review(state: RequestState) -> RequestState:
+    reason = state.get("review_reason") or "This resident is set to human review."
+    with db() as conn, conn.cursor() as cur:
+        cur.execute(
+            "UPDATE traxkey.maintenance_requests SET status = 'needs_human_review' WHERE id = %s",
+            (state["request_id"],),
+        )
+        cur.execute(
+            "INSERT INTO traxkey.maintenance_events (request_id, event_type, content) VALUES (%s, 'needs_human_review', %s)",
+            (state["request_id"], f"Held for a person to review. {reason}"),
+        )
+    return {**state, "final_status": "needs_human_review"}
 
 
 def find_vendor(state: RequestState) -> RequestState:
@@ -345,13 +373,15 @@ builder.add_node("diagnose", diagnose)
 builder.add_node("find_vendor", find_vendor)
 builder.add_node("check_approval", check_approval)
 builder.add_node("dispatch", dispatch)
+builder.add_node("hold_for_review", hold_for_review)
 
 builder.set_entry_point("load_context")
 builder.add_edge("load_context", "diagnose")
-builder.add_edge("diagnose", "find_vendor")
+builder.add_conditional_edges("diagnose", route_after_diagnose)
 builder.add_conditional_edges("find_vendor", route_after_vendor)
 builder.add_conditional_edges("check_approval", route_after_approval)
 builder.add_edge("dispatch", END)
+builder.add_edge("hold_for_review", END)
 
 graph = builder.compile()
 
