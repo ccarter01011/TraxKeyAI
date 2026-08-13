@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
 import ConciergeOrb from './ConciergeOrb.jsx';
 import WaveText from './WaveText.jsx';
+import TaskModal from './TaskModal.jsx';
 import useTypedSequence from '../lib/useTypedSequence.js';
 
 // The concierge lives in the agents service, not n8n, because that's where
@@ -18,7 +18,19 @@ const STATUS_LABEL = {
 export default function ConciergeWidget() {
   const [data, setData] = useState(null);
   const [failed, setFailed] = useState(false);
+  const [openTaskId, setOpenTaskId] = useState(null);
   const orbRef = useRef(null);
+
+  // Re-fetch the briefing after an approve/complete, so the item that was
+  // just handled stops being listed as needing attention.
+  function reload() {
+    const token = localStorage.getItem('tk_token');
+    if (!token) return;
+    fetch(`${AGENT_BASE}/concierge`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => (r.ok ? r.json() : Promise.reject()))
+      .then(setData)
+      .catch(() => {});
+  }
 
   // Lead sentence first, then one segment per bullet. The whole briefing
   // types as one continuous stream so it reads as live, not pasted.
@@ -75,26 +87,34 @@ export default function ConciergeWidget() {
           )}
 
           {done && data?.action_items?.length > 0 && (
-            <div className="mt-4 space-y-1.5">
+            <div className="mt-3">
               {data.action_items.map(item => (
-                <Link
+                <button
                   key={item.id}
-                  to="/activity"
-                  className="flex items-start gap-2.5 text-xs bg-white/50 dark:bg-slate-950/40 rounded-lg px-3 py-2 hover:bg-white dark:hover:bg-slate-950/70 transition"
+                  onClick={() => setOpenTaskId(item.id)}
+                  className="w-full text-left flex items-start gap-2.5 text-xs rounded-lg px-2 py-1 leading-snug hover:bg-white/60 dark:hover:bg-slate-950/60 transition"
                 >
-                  <span className={`shrink-0 mt-0.5 w-1.5 h-1.5 rounded-full ${
+                  <span className={`shrink-0 mt-1 w-1.5 h-1.5 rounded-full ${
                     item.status === 'awaiting_approval' ? 'bg-amber-400'
                     : item.status === 'needs_vendor' ? 'bg-red-400' : 'bg-teal-400'}`} />
                   <span className="flex-1 text-slate-700 dark:text-slate-300">{item.description}</span>
                   <span className="shrink-0 text-slate-400 dark:text-slate-500">
                     {STATUS_LABEL[item.status] || item.status.replace(/_/g, ' ')}
                   </span>
-                </Link>
+                </button>
               ))}
             </div>
           )}
         </div>
       </div>
+
+      {openTaskId && (
+        <TaskModal
+          requestId={openTaskId}
+          onClose={() => setOpenTaskId(null)}
+          onChanged={reload}
+        />
+      )}
     </div>
   );
 }
