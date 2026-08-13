@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import ConciergeOrb from './ConciergeOrb.jsx';
+import WaveText from './WaveText.jsx';
 import useTypedSequence from '../lib/useTypedSequence.js';
 
 // The concierge lives in the agents service, not n8n, because that's where
@@ -52,7 +53,9 @@ export default function ConciergeWidget() {
           </p>
 
           {thinking ? (
-            <p className="text-sm text-slate-400 dark:text-slate-500">Looking over your portfolio…</p>
+            <p className="text-sm text-slate-400 dark:text-slate-500">
+              <WaveText text="Looking over your portfolio…" />
+            </p>
           ) : (
             <p className={`text-sm text-slate-700 dark:text-slate-200 leading-relaxed ${
               !done && lastActive === -1 ? 'tk-caret' : ''}`}>
@@ -61,9 +64,9 @@ export default function ConciergeWidget() {
           )}
 
           {typedTodos.some(Boolean) && (
-            <ul className="mt-3 space-y-1.5 list-none">
+            <ul className="mt-2 list-none">
               {typedTodos.map((todo, i) => todo ? (
-                <li key={i} className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-200">
+                <li key={i} className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-200 leading-snug py-0.5">
                   <span className="shrink-0 mt-1.5 w-1 h-1 rounded-full bg-teal-500 dark:bg-teal-400" />
                   <span className={!done && i === lastActive ? 'tk-caret' : ''}>{todo}</span>
                 </li>

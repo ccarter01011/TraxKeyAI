@@ -35,3 +35,18 @@ html, body, #root {
   content: '▍'; margin-left: 1px; opacity: .7;
   animation: tk-orb-breathe 1s ease-in-out infinite;
 }
+
+/* "Looking over your portfolio…" while the AI is still fetching: each
+   letter bobs on a stagger, a small wave rather than a static sentence, so
+   it's obvious something is actively happening before any text has typed. */
+@keyframes tk-wave {
+  0%, 60%, 100% { transform: translateY(0); opacity: .55; }
+  30% { transform: translateY(-3px); opacity: 1; }
+}
+.tk-wave-letter {
+  display: inline-block;
+  animation: tk-wave 1.2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tk-wave-letter { animation: none; }
+}
