@@ -39,7 +39,7 @@
       "parameters": {
         "operation": "executeQuery",
         "options": {},
-        "query": "INSERT INTO traxkey.leads (name, email, company, portfolio_size, message, source)\nVALUES (\n  NULLIF('{{ $json.body.name.replace(/'/g, \"''\") }}', ''),\n  NULLIF('{{ $json.body.email.replace(/'/g, \"''\") }}', ''),\n  NULLIF('{{ (String($json.body.company || \"\")).replace(/'/g, \"''\") }}', ''),\n  NULLIF('{{ (String($json.body.portfolioSize || \"\")).replace(/'/g, \"''\") }}', ''),\n  NULLIF('{{ (String($json.body.message || \"\")).replace(/'/g, \"''\") }}', ''),\n  NULLIF('{{ (String($json.body.source || \"\")).replace(/'/g, \"''\") }}', '')\n)\nWHERE '{{ $json.body.email || \"\" }}' <> '' AND '{{ $json.body.name || \"\" }}' <> ''\nRETURNING id;"
+        "query": "INSERT INTO traxkey.leads (name, email, company, portfolio_size, message, source)\nSELECT\n  NULLIF('{{ (String($json.body.name || \"\")).replace(/'/g, \"''\") }}', ''),\n  NULLIF('{{ (String($json.body.email || \"\")).replace(/'/g, \"''\") }}', ''),\n  NULLIF('{{ (String($json.body.company || \"\")).replace(/'/g, \"''\") }}', ''),\n  NULLIF('{{ (String($json.body.portfolioSize || \"\")).replace(/'/g, \"''\") }}', ''),\n  NULLIF('{{ (String($json.body.message || \"\")).replace(/'/g, \"''\") }}', ''),\n  NULLIF('{{ (String($json.body.source || \"\")).replace(/'/g, \"''\") }}', '')\nWHERE '{{ (String($json.body.email || \"\")).replace(/'/g, \"''\") }}' <> ''\n  AND '{{ (String($json.body.name || \"\")).replace(/'/g, \"''\") }}' <> ''\nRETURNING id;"
       }
     },
     {

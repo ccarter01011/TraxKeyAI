@@ -30,6 +30,7 @@ approval where money or reputation is at stake.
 | 8 | **Owner Relations** | ❌ | Both |
 | 9 | **Supply & Inventory** | ❌ | Short-term |
 | 10 | **Leasing / Applications** | ❌ | Long-term |
+| 11 | **Business Memory & Insights** | ⏭️ next, 2026-08-14 | Both |
 
 ---
 
@@ -103,6 +104,63 @@ Schlage, Seam covers several at once).
 
 ### 5. Damage and incident capture
 Photo evidence at checkout, tied to the turn and the booking.
+
+---
+
+## Business Memory & Insights — NEXT (targeted 2026-08-14)
+
+How TraxKey gets smarter about *this specific* operator's business over time.
+
+**What this is not:** retraining or fine-tuning a model on customer data.
+That is not how this system works, and claiming it would break the one rule
+the platform runs on. "Memory" here means durable rows in Postgres that the
+AI reads as facts, exactly like every other fact it uses.
+
+### 1. `business_memory` table — explicit rules the operator sets once
+
+The seed already exists: `companies.cost_approval_threshold` is per-company
+AI behaviour stored in the database. This generalises it.
+
+```
+business_memory
+  company_id, key, value, scope (global | trade | property | unit),
+  scope_ref, set_by, note, created_at, updated_at
+```
+
+Examples an operator would actually set:
+- "Always require approval over $200 for HVAC specifically"
+- "Never auto-dispatch after 8pm"
+- "Vendor X gets first refusal on plumbing regardless of ranking"
+- "Unit 4B's owner wants to approve everything, no exceptions"
+
+Read in `load_context()` and applied in `check_approval()` / `find_vendor()`
+as deterministic overrides. Not AI judgment, configuration the AI obeys.
+
+### 2. Surface the learning that already happens
+
+`vendor_performance` means every company's AI already makes different vendor
+calls, because every company's vendors have different track records. That is
+per-business learning already shipping, it is just invisible. Show it: "your
+AI has learned X about your vendors from Y completed jobs."
+
+### 3. `business_insights` — pattern surfacing, never pattern acting
+
+Aggregate SQL over `maintenance_requests`, `vendor_performance`, `turns`,
+`leases`, then the concierge narrates. Same deterministic-facts-then-AI-
+narrates split used everywhere else.
+
+- "Your HVAC vendor's average response time doubled over 90 days."
+- "Three emergency requests on Unit B in two months, all plumbing."
+- "Unit 12 is $300/mo under your portfolio average at renewal."
+- "Same-day turnarounds fail readiness checks 40% of the time."
+
+### Hard constraint
+
+The AI **never** infers an unstated rule from behaviour and applies it
+silently. "I noticed you always approve HVAC over threshold, want me to
+raise the limit?" is acceptable **only as a question**. Anything that
+quietly changes the system's own risk posture is out, that is exactly the
+class of thing that fails silently and destroys trust in one incident.
 
 ---
 

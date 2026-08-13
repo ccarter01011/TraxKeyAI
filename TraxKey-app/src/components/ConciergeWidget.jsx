@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import ConciergeOrb from './ConciergeOrb.jsx';
+import useTypedSequence from '../lib/useTypedSequence.js';
 
 // The concierge lives in the agents service, not n8n, because that's where
 // the Anthropic key already is and where all other AI in this system runs.
@@ -13,49 +14,15 @@ const STATUS_LABEL = {
   in_progress: 'In progress',
 };
 
-const SENTENCE_ENDERS = new Set(['.', '!', '?']);
-
-// Type word by word, not character by character. The orb's impulse energy
-// decays ~10% per frame, so a kick every 90ms falls away visibly before the
-// next one lands — that gap is what reads as a pulse. Per-character typing
-// fires too fast for the decay to show and just looks like a steady spin.
-function useTypedText(fullText, orbRef, speed = 90) {
-  const [shown, setShown] = useState('');
-  const [done, setDone] = useState(false);
-  const timer = useRef(null);
-
-  useEffect(() => {
-    setShown('');
-    setDone(false);
-    if (!fullText) return;
-    // filter(Boolean) drops empty strings from double spaces, which would
-    // otherwise burn a tick without moving the shown text or the orb.
-    const words = fullText.split(' ').filter(Boolean);
-    let i = 0;
-    timer.current = setInterval(() => {
-      const prevWord = words[i - 1];
-      const isSentenceStart = i === 0 || (prevWord && SENTENCE_ENDERS.has(prevWord.slice(-1)));
-      if (isSentenceStart) orbRef?.current?.flare(0.9);
-      else orbRef?.current?.pulse(0.3);
-
-      i += 1;
-      setShown(words.slice(0, i).join(' '));
-      if (i >= words.length) {
-        clearInterval(timer.current);
-        setDone(true);
-      }
-    }, speed);
-    return () => clearInterval(timer.current);
-  }, [fullText, speed, orbRef]);
-
-  return { shown, done };
-}
-
 export default function ConciergeWidget() {
   const [data, setData] = useState(null);
   const [failed, setFailed] = useState(false);
   const orbRef = useRef(null);
-  const { shown, done } = useTypedText(data?.greeting || '', orbRef);
+
+  // Lead sentence first, then one segment per bullet. The whole briefing
+  // types as one continuous stream so it reads as live, not pasted.
+  const segments = data ? [data.greeting || '', ...(data.todos || [])] : [];
+  const { shown, done } = useTypedSequence(segments, orbRef);
 
   useEffect(() => {
     const token = localStorage.getItem('tk_token');
@@ -71,6 +38,9 @@ export default function ConciergeWidget() {
   if (failed) return null;
 
   const thinking = !data;
+  const typedTodos = shown.slice(1);
+  // Index of the bullet currently being written, so the caret sits there.
+  const lastActive = typedTodos.reduce((acc, t, i) => (t ? i : acc), -1);
 
   return (
     <div className="bg-gradient-to-r from-teal-500/10 to-sky-500/10 border border-teal-400/20 rounded-xl p-5 mb-6">
@@ -84,19 +54,20 @@ export default function ConciergeWidget() {
           {thinking ? (
             <p className="text-sm text-slate-400 dark:text-slate-500">Looking over your portfolio…</p>
           ) : (
-            <p className={`text-sm text-slate-700 dark:text-slate-200 leading-relaxed ${done ? '' : 'tk-caret'}`}>
-              {shown}
+            <p className={`text-sm text-slate-700 dark:text-slate-200 leading-relaxed ${
+              !done && lastActive === -1 ? 'tk-caret' : ''}`}>
+              {shown[0] || ''}
             </p>
           )}
 
-          {done && data?.todos?.length > 0 && (
+          {typedTodos.some(Boolean) && (
             <ul className="mt-3 space-y-1.5 list-none">
-              {data.todos.map((todo, i) => (
+              {typedTodos.map((todo, i) => todo ? (
                 <li key={i} className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-200">
                   <span className="shrink-0 mt-1.5 w-1 h-1 rounded-full bg-teal-500 dark:bg-teal-400" />
-                  <span>{todo}</span>
+                  <span className={!done && i === lastActive ? 'tk-caret' : ''}>{todo}</span>
                 </li>
-              ))}
+              ) : null)}
             </ul>
           )}
 
