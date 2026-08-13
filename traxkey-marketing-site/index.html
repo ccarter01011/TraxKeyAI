@@ -23,6 +23,19 @@
   .fade-up { opacity: 0; transform: translateY(10px); animation: fadeUp 0.5s ease both; }
   @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
   @media (prefers-reduced-motion: reduce) { .fade-up { animation: none; opacity: 1; transform: none; } }
+  @keyframes tk-orb-spin { to { transform: rotate(360deg); } }
+  @keyframes tk-orb-breathe { 0%,100% { opacity:.45 } 50% { opacity:.75 } }
+  .tk-orb { position: relative; border-radius: 9999px; display:inline-block; flex-shrink:0; isolation:isolate; width:40px; height:40px; }
+  .tk-orb::before { content:''; position:absolute; inset:-5px; border-radius:9999px;
+    background: conic-gradient(from 0deg,#2dd4bf,#38bdf8,#a78bfa,#2dd4bf);
+    filter: blur(7px); opacity:.5; z-index:0;
+    animation: tk-orb-spin 5s linear infinite, tk-orb-breathe 3s ease-in-out infinite; }
+  .tk-orb.active::before { opacity:.95; filter:blur(11px); animation-duration:1.6s,1.6s; }
+  .tk-orb__core { position:absolute; inset:0; border-radius:9999px; z-index:1;
+    background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.35), rgba(15,23,42,.85) 70%);
+    border:1px solid rgba(255,255,255,.12); }
+  .tk-caret::after { content:'▍'; margin-left:1px; opacity:.7; animation: tk-orb-breathe 1s ease-in-out infinite; }
+  @media (prefers-reduced-motion: reduce) { .tk-orb::before { animation:none } .tk-caret::after { animation:none } }
 </style>
 </head>
 <body class="bg-slate-950 text-slate-100 antialiased min-h-screen">
@@ -390,6 +403,77 @@ function toggleMobileNav() {
     <p class="text-xs text-slate-500 text-center mt-8">More than 150 units? We're built for smaller portfolios right now, <a href="mailto:hello@traxkey.ai" class="text-teal-400 underline">reach out</a> and we'll be honest about whether we're a fit yet.</p>
   </div>
 </section>
+
+
+<!-- AI CONCIERGE DEMO -->
+<section class="py-24 px-6 bg-slate-900/40 border-y border-white/5">
+  <div class="max-w-3xl mx-auto">
+    <div class="text-center mb-10">
+      <p class="text-teal-400 font-semibold text-sm mb-3 tracking-wide uppercase">Every morning</p>
+      <h2 class="text-3xl md:text-4xl font-bold mb-4">It tells you what actually needs you</h2>
+      <p class="text-slate-400 max-w-xl mx-auto">Not a dashboard to interpret. A short read on what's urgent, what's handled, and what's waiting on a decision.</p>
+    </div>
+
+    <div class="bg-gradient-to-r from-teal-500/10 to-sky-500/10 border border-teal-400/20 rounded-xl p-5">
+      <div class="flex items-start gap-4">
+        <span id="demo-orb" class="tk-orb active"><span class="tk-orb__core"></span></span>
+        <div class="flex-1 min-w-0">
+          <p class="text-xs font-bold text-teal-300 uppercase tracking-wide mb-1.5">TraxKey AI</p>
+          <p id="demo-text" class="text-sm text-slate-200 leading-relaxed tk-caret"></p>
+          <div id="demo-items" class="mt-4 space-y-1.5 hidden">
+            <div class="flex items-start gap-2.5 text-xs bg-slate-950/40 rounded-lg px-3 py-2">
+              <span class="shrink-0 mt-0.5 w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+              <span class="flex-1 text-slate-300">Water heater replacement, Maple Street House</span>
+              <span class="shrink-0 text-slate-500">Needs your approval</span>
+            </div>
+            <div class="flex items-start gap-2.5 text-xs bg-slate-950/40 rounded-lg px-3 py-2">
+              <span class="shrink-0 mt-0.5 w-1.5 h-1.5 rounded-full bg-red-400"></span>
+              <span class="flex-1 text-slate-300">Garage door opener, Riverside Unit C</span>
+              <span class="shrink-0 text-slate-500">No vendor available</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="text-xs text-slate-500 text-center mt-4">Sample briefing. Yours is built from your own properties, vendors, and calendar.</p>
+  </div>
+</section>
+
+<script>
+(function () {
+  var text = "Riverside Unit B has a same-day turnaround today, the cleaner needs to be confirmed this morning. A $980 water heater replacement is waiting on your approval, and one request has no plumber available in that area. The other four jobs are dispatched and running without you.";
+  var el = document.getElementById('demo-text');
+  var orb = document.getElementById('demo-orb');
+  var items = document.getElementById('demo-items');
+  var started = false;
+
+  function type() {
+    if (started) return;
+    started = true;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      el.textContent = text; el.classList.remove('tk-caret');
+      orb.classList.remove('active'); items.classList.remove('hidden');
+      return;
+    }
+    var i = 0;
+    var id = setInterval(function () {
+      el.textContent = text.slice(0, ++i);
+      if (i >= text.length) {
+        clearInterval(id);
+        el.classList.remove('tk-caret');
+        orb.classList.remove('active');
+        items.classList.remove('hidden');
+      }
+    }, 18);
+  }
+
+  // Only start once it's actually on screen, so the visitor sees it type.
+  var obs = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) { if (e.isIntersecting) type(); });
+  }, { threshold: 0.4 });
+  obs.observe(el);
+})();
+</script>
 
 <!-- FINAL CTA -->
 <section class="py-24 px-6 bg-slate-950">

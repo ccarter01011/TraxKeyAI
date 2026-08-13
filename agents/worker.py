@@ -15,6 +15,7 @@ from graph import run_batch
 from ical_sync import sync_all_calendars
 from checkout_turns import run_checkout_turns
 from readiness import run_readiness_checks
+from concierge import get_briefing
 
 POLL_INTERVAL_SECONDS = int(os.environ.get("POLL_INTERVAL_SECONDS", "900"))  # 15 min default
 # Booking calendars change far less often than maintenance requests arrive,
@@ -22,12 +23,51 @@ POLL_INTERVAL_SECONDS = int(os.environ.get("POLL_INTERVAL_SECONDS", "900"))  # 1
 CALENDAR_SYNC_INTERVAL_SECONDS = int(os.environ.get("CALENDAR_SYNC_INTERVAL_SECONDS", "3600"))  # 1 hr default
 
 
+import json
+
+
 class HealthHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(200)
+    """Health check plus the one on-demand endpoint: the concierge briefing.
+    Everything else in this service runs on the loop; the briefing has to be
+    synchronous because the dashboard asks for it when the page opens."""
+
+    def _cors(self):
+        # The dashboard is a different origin (app.traxkey.ai), so the
+        # browser preflights and requires these on the real response too.
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Headers", "Authorization, Content-Type")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+
+    def _json(self, code, payload):
+        body = json.dumps(payload).encode()
+        self.send_response(code)
         self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self._cors()
         self.end_headers()
-        self.wfile.write(b'{"status":"ok"}')
+        self.wfile.write(body)
+
+    def do_OPTIONS(self):
+        self.send_response(204)
+        self._cors()
+        self.end_headers()
+
+    def do_GET(self):
+        if self.path.split("?")[0] == "/concierge":
+            token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
+            try:
+                result = get_briefing(token)
+            except Exception:
+                traceback.print_exc()
+                self._json(500, {"error": "Could not build briefing"})
+                return
+            if result is None:
+                self._json(401, {"error": "Unauthorized"})
+                return
+            self._json(200, result)
+            return
+
+        self._json(200, {"status": "ok"})
 
     def log_message(self, format, *args):
         pass  # quiet, don't spam Railway logs with health-check hits

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext.jsx';
 import { apiRequest } from '../lib/api.js';
 import ThemeToggle from '../components/ThemeToggle.jsx';
+import ConciergeWidget from '../components/ConciergeWidget.jsx';
 
 const TENANT_PORTAL_BASE = 'https://tenant.traxkey.ai';
 
@@ -54,6 +55,8 @@ export default function DashboardPage() {
             <button onClick={logout} className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">Log out</button>
           </div>
         </div>
+
+        <ConciergeWidget />
 
         <TenantPortalLink />
 
