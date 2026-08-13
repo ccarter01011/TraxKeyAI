@@ -1,0 +1,26 @@
+BEGIN:VCALENDAR
+PRODID:-//TraxKey AI//Test Calendar//EN
+CALSCALE:GREGORIAN
+VERSION:2.0
+BEGIN:VEVENT
+DTSTART;VALUE=DATE:20260812
+DTEND;VALUE=DATE:20260817
+UID:traxkey-test-current-guest
+SUMMARY:Reserved
+DESCRIPTION:Test booking, guest currently in unit
+END:VEVENT
+BEGIN:VEVENT
+DTSTART;VALUE=DATE:20260821
+DTEND;VALUE=DATE:20260826
+UID:traxkey-test-future-guest
+SUMMARY:Reserved
+DESCRIPTION:Test booking, upcoming guest
+END:VEVENT
+BEGIN:VEVENT
+DTSTART;VALUE=DATE:20260901
+DTEND;VALUE=DATE:20260906
+UID:traxkey-test-owner-block
+SUMMARY:Airbnb (Not available)
+DESCRIPTION:Test owner-side calendar block, unit unavailable but empty
+END:VEVENT
+END:VCALENDAR
