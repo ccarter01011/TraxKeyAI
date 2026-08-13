@@ -56,6 +56,17 @@ export default function AdminConciergeWidget() {
               {shown}
             </p>
           )}
+
+          {done && data?.todos?.length > 0 && (
+            <ul className="mt-3 space-y-1.5 list-none">
+              {data.todos.map((todo, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-200">
+                  <span className="shrink-0 mt-1.5 w-1 h-1 rounded-full bg-teal-500 dark:bg-teal-400" />
+                  <span>{todo}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
     </div>

@@ -117,6 +117,58 @@ export default function AdminDashboardPage() {
                 </tbody>
               </table>
             </div>
+
+            <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide mt-8 mb-3">
+              Leads {data.leads?.length ? `(${data.leads.length})` : ''}
+            </p>
+            <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl overflow-x-auto">
+              <table className="w-full text-sm min-w-[640px]">
+                <thead className="bg-slate-100 dark:bg-slate-950 text-left text-xs uppercase text-slate-400 dark:text-slate-500">
+                  <tr>
+                    <th className="p-3">Name</th><th className="p-3">Email</th><th className="p-3">Company</th>
+                    <th className="p-3">Portfolio</th><th className="p-3">Source</th><th className="p-3">Received</th><th className="p-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(data.leads || []).length === 0 && (
+                    <tr><td colSpan={7} className="p-4 text-center text-slate-400 dark:text-slate-500">No leads yet.</td></tr>
+                  )}
+                  {(data.leads || []).map((l) => {
+                    const hoursOld = (Date.now() - new Date(l.created_at).getTime()) / 3600000;
+                    return (
+                      <tr key={l.id} className="border-t border-slate-200 dark:border-white/5 align-top">
+                        <td className="p-3 font-medium">{l.name}</td>
+                        <td className="p-3">
+                          <a href={`mailto:${l.email}`} className="text-teal-600 dark:text-teal-400 hover:underline">{l.email}</a>
+                        </td>
+                        <td className="p-3">{l.company || '—'}</td>
+                        <td className="p-3 text-slate-400 dark:text-slate-500">{l.portfolio_size || '—'}</td>
+                        <td className="p-3 text-slate-400 dark:text-slate-500">{l.source || '—'}</td>
+                        <td className="p-3 text-slate-400 dark:text-slate-500">{new Date(l.created_at).toLocaleDateString()}</td>
+                        <td className="p-3">
+                          {l.contacted_at ? (
+                            <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-teal-500/15 text-teal-600 dark:text-teal-400">
+                              Followed up
+                            </span>
+                          ) : hoursOld >= 48 ? (
+                            <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                              Due for follow-up
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-slate-500/15 text-slate-500 dark:text-slate-400">
+                              New
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
+              A lead who hasn't converted to a customer gets an automatic invite-and-feedback email 48 hours after coming in. "Followed up" means that email went out, not that they replied.
+            </p>
           </>
         )}
       </div>

@@ -18,6 +18,7 @@ from cleaner_assignment import run_cleaner_assignment
 from readiness import run_readiness_checks
 from review_risk import run_review_risk_checks
 from lease_agent import run_lease_agent
+from lead_followup import run_lead_followup
 from concierge import get_briefing
 from admin_concierge import get_admin_briefing
 from sales_chat import answer as sales_answer
@@ -159,6 +160,10 @@ if __name__ == "__main__":
                 traceback.print_exc()
             try:
                 run_lease_agent()
+            except Exception:
+                traceback.print_exc()
+            try:
+                run_lead_followup()
             except Exception:
                 traceback.print_exc()
             # Set even on failure, so a persistently broken feed can't turn

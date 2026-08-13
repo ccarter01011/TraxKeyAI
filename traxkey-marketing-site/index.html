@@ -573,13 +573,41 @@ function tkChatToggle() {
   if (!p.classList.contains('hidden')) document.getElementById('tk-chat-input').focus();
 }
 
+function tkRenderBody(el, text) {
+  // Lines starting with "- " render as an actual bulleted list; everything
+  // else is plain text. Keeps a one-line answer looking like a chat message
+  // while a comparison or feature list is easy to scan, not a wall of dashes.
+  el.textContent = '';
+  var lines = String(text).split('\n');
+  var list = null;
+  lines.forEach(function (line) {
+    var trimmed = line.trim();
+    if (trimmed.indexOf('- ') === 0) {
+      if (!list) {
+        list = document.createElement('ul');
+        list.className = 'list-disc pl-4 space-y-1 mt-1';
+        el.appendChild(list);
+      }
+      var li = document.createElement('li');
+      li.textContent = trimmed.slice(2);
+      list.appendChild(li);
+    } else {
+      list = null;
+      if (!trimmed) return;
+      var p = document.createElement('div');
+      p.textContent = trimmed;
+      el.appendChild(p);
+    }
+  });
+}
+
 function tkAppend(role, text) {
   var log = document.getElementById('tk-chat-log');
   var d = document.createElement('div');
   d.className = role === 'user'
     ? 'text-sm text-slate-950 bg-teal-400 rounded-lg px-3 py-2 ml-8'
-    : 'text-sm text-slate-200';
-  d.textContent = text;
+    : 'text-sm text-slate-200 space-y-1';
+  tkRenderBody(d, text);
   log.appendChild(d);
   log.scrollTop = log.scrollHeight;
   return d;
@@ -610,13 +638,13 @@ function tkChatSubmit(e) {
   })
     .then(function (r) { return r.json(); })
     .then(function (j) {
-      thinking.textContent = j.reply || 'Something went wrong. Use "Ask a human" below.';
+      tkRenderBody(thinking, j.reply || 'Something went wrong. Use "Ask a human" below.');
       tkHistory.push({ role: 'user', content: q });
       tkHistory.push({ role: 'assistant', content: j.reply || '' });
       if (tkHistory.length > 12) tkHistory = tkHistory.slice(-12);
     })
     .catch(function () {
-      thinking.textContent = 'Could not reach the assistant. Use "Ask a human" below.';
+      tkRenderBody(thinking, 'Could not reach the assistant. Use "Ask a human" below.');
     })
     .then(function () {
       tkBusy = false;

@@ -92,7 +92,7 @@ def build_admin_briefing(m):
     if m["companies"] == 0:
         return ("No accounts yet. The product is built and tested, but nobody has signed up. "
                 "Right now the bottleneck is distribution, not features. Getting one real "
-                "operator using this matters more than anything you could build this week.")
+                "operator using this matters more than anything you could build this week.", [])
 
     account_lines = "\n".join(
         f"- {a['name']}: {a['plan']}/{a['plan_status']}, {a['units']} units, "
@@ -123,20 +123,23 @@ Friction signals:
 Accounts:
 {account_lines}
 
-Write 3 to 5 sentences telling the founder what these numbers actually mean
-and what to do next.
+Respond in exactly this shape:
+Line 1: one blunt sentence, the single most important thing these numbers
+mean. Not a summary, the most important thing.
+Then, one bullet per line, each starting with "- ", for specific next
+actions. 2 to 5 bullets, each one concrete action, not a restatement of a
+number.
 
 Rules:
 - Be blunt. If the numbers are bad, say they're bad. A dashboard that
   flatters him is worse than none.
-- Lead with the single most important thing, not a summary.
 - If there are almost no customers, say plainly that distribution is the
   problem and building more features is avoidance.
-- Point at a specific next action, not a category. "Ask X" or "fix Y", not
+- Each bullet is a specific action, not a category. "Ask X" or "fix Y", not
   "focus on growth".
 - Use only these numbers. Never invent a metric, a benchmark, or an
   industry average.
-- No greeting, no filler, no bullet points. Never use em dashes."""
+- No greeting, no filler. Never use em dashes."""
 
     response = anthropic_client.messages.create(
         model="claude-sonnet-4-6",
@@ -144,8 +147,12 @@ Rules:
         temperature=0.4,
         messages=[{"role": "user", "content": prompt}],
     )
-    text = response.content[0].text.strip()
-    return text.replace(" — ", ", ").replace("—", ", ").replace("–", "-")
+    text = response.content[0].text.strip().replace(" — ", ", ").replace("—", ", ").replace("–", "-")
+
+    lines = [l.strip() for l in text.split("\n") if l.strip()]
+    lead = lines[0] if lines else text
+    todos = [l[1:].strip() for l in lines[1:] if l.startswith("-")]
+    return lead, todos
 
 
 def get_admin_briefing(token):
@@ -153,9 +160,10 @@ def get_admin_briefing(token):
         return None
     m = gather_metrics()
     try:
-        briefing = build_admin_briefing(m)
+        briefing, todos = build_admin_briefing(m)
     except Exception:
         traceback.print_exc()
         briefing = (f"{m['companies']} accounts, {m['paying']} paying, "
                     f"{m['units']} units, {m['requests_all']} requests all time.")
-    return {"briefing": briefing, "metrics": {k: v for k, v in m.items() if k != "accounts"}}
+        todos = []
+    return {"briefing": briefing, "todos": todos, "metrics": {k: v for k, v in m.items() if k != "accounts"}}
