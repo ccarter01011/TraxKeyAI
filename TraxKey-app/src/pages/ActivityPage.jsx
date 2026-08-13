@@ -27,6 +27,8 @@ const EVENT_LABEL = {
   verified: 'Verified',
   invoiced: 'Invoiced',
   closed: 'Closed',
+  readiness_alert: 'Guest arriving, not ready',
+  in_progress: 'Vendor started work',
 };
 
 function RequestCard({ request, onApproved }) {

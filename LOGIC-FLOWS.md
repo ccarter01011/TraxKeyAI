@@ -135,6 +135,29 @@ calendar.
 
 ---
 
+## 3b. Pre-arrival readiness check (STR)
+
+Catches the failure that costs an operator a bad review.
+
+```
+Guest arriving within 2 days
+  ↓
+Unit has open maintenance, or a turn not yet ready?
+  ↓  yes
+ALERT                     logged to the audit trail + emailed to the operator
+  ↓
+Once per unit per arrival   (worker runs hourly, nobody wants it hourly)
+```
+
+**Why small operators miss this:** it needs the booking calendar, open
+maintenance, and turn status looked at together. Most tools hold only one of
+the three.
+
+**Window is 2 days** deliberately: enough lead time to actually fix
+something, not so far out that it cries wolf.
+
+---
+
 ## 4. Auth model
 
 Three separate principals, deliberately never sharing a session store:

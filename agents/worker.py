@@ -14,6 +14,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from graph import run_batch
 from ical_sync import sync_all_calendars
 from checkout_turns import run_checkout_turns
+from readiness import run_readiness_checks
 
 POLL_INTERVAL_SECONDS = int(os.environ.get("POLL_INTERVAL_SECONDS", "900"))  # 15 min default
 # Booking calendars change far less often than maintenance requests arrive,
@@ -59,6 +60,10 @@ if __name__ == "__main__":
             # Runs right after a sync so it acts on fresh checkout data.
             try:
                 run_checkout_turns()
+            except Exception:
+                traceback.print_exc()
+            try:
+                run_readiness_checks()
             except Exception:
                 traceback.print_exc()
             # Set even on failure, so a persistently broken feed can't turn
