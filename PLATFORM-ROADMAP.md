@@ -22,8 +22,8 @@ approval where money or reputation is at stake.
 |---|---|---|---|
 | 1 | **Maintenance Coordinator** | ✅ built | Both |
 | 2 | **Turnover Coordinator** | 🟡 partial | Both |
-| 3 | **Lease Agent** | ❌ | Long-term |
-| 4 | **Renewal Agent** | ❌ | Long-term |
+| 3 | **Lease Agent** | 🟡 built, pending migration | Long-term |
+| 4 | **Renewal Agent** | 🟡 built, pending migration | Long-term |
 | 5 | **Resident Communications** | ❌ | Long-term |
 | 6 | **Guest Experience** | ❌ | Short-term |
 | 7 | **Inspection Agent** | ❌ | Both |
@@ -35,7 +35,7 @@ approval where money or reputation is at stake.
 
 ## Long-term rental gaps (in build order)
 
-### 1. Leases and lease tracking — BLOCKING
+### 1. Leases and lease tracking — BUILT (schema v15)
 Cannot credibly call this a PM platform without it. Lease start/end, rent
 amount, deposit, terms, documents. **We track rent amounts; we don't collect
 them.**
@@ -43,7 +43,7 @@ them.**
 *AI angle:* flag expirations, surface below-market rents, catch missing
 documents.
 
-### 2. Renewal Agent
+### 2. Renewal Agent — BUILT (folded into the Lease Agent)
 Lease expiring in 90/60/30 days, draft the renewal offer, track response.
 Renewals are the single highest-leverage retention lever a PM has and most
 tools treat it as a calendar reminder.

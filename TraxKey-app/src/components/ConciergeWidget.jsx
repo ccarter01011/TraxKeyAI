@@ -13,30 +13,32 @@ const STATUS_LABEL = {
   in_progress: 'In progress',
 };
 
-function useTypedText(fullText, orbRef, speed = 18) {
+const SENTENCE_ENDERS = new Set(['.', '!', '?']);
+
+// Type word by word, not character by character. The orb's impulse energy
+// decays ~10% per frame, so a kick every 90ms falls away visibly before the
+// next one lands — that gap is what reads as a pulse. Per-character typing
+// fires too fast for the decay to show and just looks like a steady spin.
+function useTypedText(fullText, orbRef, speed = 90) {
   const [shown, setShown] = useState('');
   const [done, setDone] = useState(false);
   const timer = useRef(null);
 
   useEffect(() => {
-    if (!fullText) return;
     setShown('');
     setDone(false);
+    if (!fullText) return;
+    const words = fullText.split(' ');
     let i = 0;
     timer.current = setInterval(() => {
+      const prevWord = words[i - 1];
+      const isSentenceStart = i === 0 || (prevWord && SENTENCE_ENDERS.has(prevWord.slice(-1)));
+      if (isSentenceStart) orbRef?.current?.flare(0.9);
+      else orbRef?.current?.pulse(0.3);
+
       i += 1;
-      setShown(fullText.slice(0, i));
-
-      // Drive the orb from the text itself: a small kick per character, a
-      // brighter flare when a new sentence starts. Makes it feel like the
-      // orb is doing the talking.
-      const ch = fullText[i - 1];
-      if (orbRef?.current) {
-        if (i === 1 || ['.', '!', '?'].includes(fullText[i - 2])) orbRef.current.flare(0.9);
-        else if (ch && ch !== ' ') orbRef.current.pulse(0.05);
-      }
-
-      if (i >= fullText.length) {
+      setShown(words.slice(0, i).join(' '));
+      if (i >= words.length) {
         clearInterval(timer.current);
         setDone(true);
       }

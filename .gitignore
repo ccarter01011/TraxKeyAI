@@ -5,3 +5,6 @@ dist/
 *.log
 __pycache__/
 *.pyc
+
+# Local setup notes — contains live API keys, never commit
+TraxKey Setup.rtf

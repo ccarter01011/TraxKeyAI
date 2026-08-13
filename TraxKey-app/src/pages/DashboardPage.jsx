@@ -70,6 +70,11 @@ export default function DashboardPage() {
           <p className="text-sm text-slate-500 dark:text-slate-400">Invite each resident (or short-term guest, set check-in/check-out dates) with their own maintenance-reporting link.</p>
         </Link>
 
+        <Link to="/leases" className="block bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl p-6 hover:border-teal-400/50 dark:hover:border-teal-400/30 transition mb-4">
+          <p className="font-bold mb-1">Leases →</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Terms, rent, and renewal dates. TraxKey flags every lease 90 days before it ends.</p>
+        </Link>
+
         <Link to="/vendors" className="block bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl p-6 hover:border-teal-400/50 dark:hover:border-teal-400/30 transition mb-4">
           <p className="font-bold mb-1">Vendors →</p>
           <p className="text-sm text-slate-500 dark:text-slate-400">The vendor network the AI Maintenance Coordinator dispatches to.</p>

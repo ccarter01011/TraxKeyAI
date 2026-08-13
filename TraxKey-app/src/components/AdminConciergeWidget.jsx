@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import ConciergeOrb from './ConciergeOrb.jsx';
 
 const AGENT_BASE = 'https://langgraph-production-42ef.up.railway.app';
+const SENTENCE_ENDERS = new Set(['.', '!', '?']);
 
 export default function AdminConciergeWidget() {
   const [data, setData] = useState(null);
@@ -21,17 +22,20 @@ export default function AdminConciergeWidget() {
 
   useEffect(() => {
     if (!data?.briefing) return;
+    // Word by word at 90ms. See the note in ConciergeWidget: the orb's
+    // impulse decay needs that gap between kicks to read as a pulse.
+    const words = data.briefing.split(' ');
     let i = 0;
     const id = setInterval(() => {
+      const prevWord = words[i - 1];
+      const isSentenceStart = i === 0 || (prevWord && SENTENCE_ENDERS.has(prevWord.slice(-1)));
+      if (isSentenceStart) orbRef.current?.flare(0.9);
+      else orbRef.current?.pulse(0.3);
+
       i += 1;
-      setShown(data.briefing.slice(0, i));
-      const prev = data.briefing[i - 2];
-      if (orbRef.current) {
-        if (i === 1 || ['.', '!', '?'].includes(prev)) orbRef.current.flare(0.9);
-        else orbRef.current.pulse(0.05);
-      }
-      if (i >= data.briefing.length) { clearInterval(id); setDone(true); }
-    }, 14);
+      setShown(words.slice(0, i).join(' '));
+      if (i >= words.length) { clearInterval(id); setDone(true); }
+    }, 90);
     return () => clearInterval(id);
   }, [data]);
 

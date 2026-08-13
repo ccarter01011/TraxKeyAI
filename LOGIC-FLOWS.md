@@ -190,3 +190,35 @@ Bugs found in production, worth not repeating:
    route to human approval.
 4. **Zero-row SELECTs return `[{}]`, not `[]`.** Filter on a real field
    client-side.
+
+
+---
+
+## Lease and renewal flow
+
+1. Operator adds a lease: unit, term, rent, deposit, notice period.
+   The unit is marked occupied.
+2. TraxKey surfaces the lease **90 days** before its end date, chosen because
+   most leases need 30 to 60 days notice. Anything later means the operator is
+   reacting, not deciding.
+3. Operator offers a renewal at a rent they choose. The offer and its date are
+   recorded on the lease.
+4. **Accepted** → a follow-on term is written as a `draft` lease starting the
+   day after the current one ends. It is draft, not active, because a partial
+   unique index allows only one active lease per unit and a term that has not
+   started is not in force.
+5. **Declined or no answer** → nothing happens yet. The lease still runs to its
+   end date.
+6. Hourly, the Lease Agent (`agents/lease_agent.py`) does four things:
+   - activates draft terms whose start date has arrived
+   - ends fixed terms past their end date (month-to-month leases have a NULL
+     end date and are skipped — an open tenancy is real, not missing data)
+   - flags renewal offers unanswered for 14 days as `no_response`
+   - opens a **move-out turn** automatically when a lease ends with no
+     follow-on term, and marks the unit vacant
+
+Step 6's last item is the reason leases and turns belong in one system: the
+days-vacant clock starts on the real move-out date, not whenever somebody
+remembered to log it.
+
+**No LLM runs anywhere in this flow.** Dates and thresholds are facts.
