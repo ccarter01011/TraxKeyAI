@@ -510,7 +510,7 @@
         800,
         540
       ],
-      "notes": "Only fires the actual UPDATE when the new status is 'occupied', the WHERE clause makes it a no-op otherwise rather than needing a separate branch.",
+      "notes": "Only fires the real UPDATE when the new status is 'occupied'. alwaysOutputData is REQUIRED: with any other status the WHERE matches zero rows, and without this flag the node emits no items and the chain dies before the event ever gets logged.",
       "parameters": {
         "query": "UPDATE traxkey.units\nSET status = 'occupied'\nWHERE id = '{{ $json.unit_id }}'\nAND '{{ $(\"Advance Turn (Webhook)\").first().json.body.newStatus }}' = 'occupied';",
         "options": {},
@@ -522,7 +522,8 @@
           "name": "Postgres account"
         }
       },
-      "typeVersion": 2.5
+      "typeVersion": 2.5,
+      "alwaysOutputData": true
     },
     {
       "id": "at-log",
