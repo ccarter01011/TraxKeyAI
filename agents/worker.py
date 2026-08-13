@@ -12,8 +12,12 @@ import traceback
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
 from graph import run_batch
+from ical_sync import sync_all_calendars
 
 POLL_INTERVAL_SECONDS = int(os.environ.get("POLL_INTERVAL_SECONDS", "900"))  # 15 min default
+# Booking calendars change far less often than maintenance requests arrive,
+# and these are third-party feeds, no reason to hammer them every pass.
+CALENDAR_SYNC_INTERVAL_SECONDS = int(os.environ.get("CALENDAR_SYNC_INTERVAL_SECONDS", "3600"))  # 1 hr default
 
 
 class HealthHandler(BaseHTTPRequestHandler):
@@ -35,10 +39,24 @@ def run_health_server():
 if __name__ == "__main__":
     threading.Thread(target=run_health_server, daemon=True).start()
     print(f"AI Maintenance Coordinator worker started, polling every {POLL_INTERVAL_SECONDS}s")
+    print(f"iCal calendar sync every {CALENDAR_SYNC_INTERVAL_SECONDS}s")
+
+    last_calendar_sync = 0.0
     while True:
         try:
             run_batch()
         except Exception:
             # Never let one bad request kill the whole loop, log and keep going.
             traceback.print_exc()
+
+        now = time.monotonic()
+        if now - last_calendar_sync >= CALENDAR_SYNC_INTERVAL_SECONDS:
+            try:
+                sync_all_calendars()
+            except Exception:
+                traceback.print_exc()
+            # Set even on failure, so a persistently broken feed can't turn
+            # this into a retry-every-pass loop against a third party.
+            last_calendar_sync = now
+
         time.sleep(POLL_INTERVAL_SECONDS)

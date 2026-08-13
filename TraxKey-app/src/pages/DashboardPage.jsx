@@ -72,6 +72,11 @@ export default function DashboardPage() {
           <p className="text-sm text-slate-500 dark:text-slate-400">The vendor network the AI Maintenance Coordinator dispatches to.</p>
         </Link>
 
+        <Link to="/calendars" className="block bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl p-6 hover:border-teal-400/50 dark:hover:border-teal-400/30 transition mb-4">
+          <p className="font-bold mb-1">Booking calendars →</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Sync Airbnb or Vrbo so the AI knows when a guest is actually in the unit.</p>
+        </Link>
+
         <Link to="/activity" className="block bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl p-6 hover:border-teal-400/50 dark:hover:border-teal-400/30 transition mb-4">
           <p className="font-bold mb-1">AI Activity →</p>
           <p className="text-sm text-slate-500 dark:text-slate-400">Every maintenance request and every step the AI Coordinator took on it.</p>

@@ -15,13 +15,13 @@ import json
 import traceback
 from typing import TypedDict, Optional
 
-import psycopg
 import requests
-from psycopg.rows import dict_row
 from anthropic import Anthropic
 from langgraph.graph import StateGraph, END
 
-DATABASE_URL = os.environ["DATABASE_URL"]
+from db import db
+from ical_sync import get_occupancy
+
 anthropic_client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY")  # optional: notification is best-effort, never blocks dispatch
@@ -43,11 +43,8 @@ class RequestState(TypedDict, total=False):
     quoted_cost: Optional[float]
     known_cost: bool
     requires_approval: bool
+    occupancy: Optional[dict]
     final_status: str
-
-
-def db():
-    return psycopg.connect(DATABASE_URL, row_factory=dict_row, autocommit=True)
 
 
 def load_context(state: RequestState) -> RequestState:
@@ -62,13 +59,49 @@ def load_context(state: RequestState) -> RequestState:
             (state["request_id"],),
         )
         row = cur.fetchone()
+
+    unit_id = str(row["unit_id"]) if row["unit_id"] else None
+    # Occupancy is a plain SQL fact, not an AI judgment. It only exists for
+    # units with a synced iCal calendar, a long-term unit or one with no
+    # calendar configured simply returns no occupancy and the urgency call
+    # proceeds exactly as it did before.
+    occupancy = get_occupancy(unit_id) if unit_id else None
+
     return {
         **state,
         "description": row["description"],
         "company_id": str(row["company_id"]),
-        "unit_id": str(row["unit_id"]) if row["unit_id"] else None,
+        "unit_id": unit_id,
         "cost_approval_threshold": float(row["cost_approval_threshold"]),
+        "occupancy": occupancy,
     }
+
+
+def _occupancy_context(occupancy):
+    """Turn occupancy facts into a line for the diagnosis prompt. Same
+    broken appliance is a different problem with a guest in the unit than
+    in one sitting empty for two weeks, and short-term rentals live or die
+    on that distinction."""
+    if not occupancy:
+        return ""
+
+    if occupancy["occupied_now"]:
+        line = "Someone is staying in this unit RIGHT NOW"
+        if occupancy["current_checkout"]:
+            line += f", checking out {occupancy['current_checkout']}"
+        line += "."
+    elif occupancy["next_checkin"]:
+        line = f"The unit is empty right now. The next guest arrives {occupancy['next_checkin']}."
+    else:
+        line = "The unit is empty right now, with no upcoming booking on the calendar."
+
+    return f"""
+
+Occupancy context (from the unit's booking calendar):
+{line}
+Weigh this in the urgency call. An issue affecting someone currently in
+the unit, or one that must be fixed before an imminent arrival, is more
+urgent than the same issue in a unit that will sit empty."""
 
 
 def diagnose(state: RequestState) -> RequestState:
@@ -77,6 +110,7 @@ def diagnose(state: RequestState) -> RequestState:
     prompt = f"""A tenant reported this maintenance issue:
 
 "{state['description']}"
+{_occupancy_context(state.get('occupancy'))}
 
 Classify it. Respond with ONLY a JSON object, no markdown, no prose:
 {{
@@ -109,12 +143,22 @@ clogged drain from grease, a broken window from tenant negligence),
             """,
             (parsed["category"], parsed["urgency"], parsed["responsibility"], state["request_id"]),
         )
+        occ = state.get("occupancy")
+        if occ and occ["occupied_now"]:
+            occ_note = f" Occupied now, checkout {occ['current_checkout']}."
+        elif occ and occ["next_checkin"]:
+            occ_note = f" Vacant, next arrival {occ['next_checkin']}."
+        elif occ:
+            occ_note = " Vacant, nothing booked."
+        else:
+            occ_note = ""
+
         cur.execute(
             """
             INSERT INTO traxkey.maintenance_events (request_id, event_type, content)
             VALUES (%s, 'triaged', %s)
             """,
-            (state["request_id"], f"Category: {parsed['category']}, urgency: {parsed['urgency']}, responsibility: {parsed['responsibility']}"),
+            (state["request_id"], f"Category: {parsed['category']}, urgency: {parsed['urgency']}, responsibility: {parsed['responsibility']}.{occ_note}"),
         )
 
     return {**state, "category": parsed["category"], "urgency": parsed["urgency"], "responsibility": parsed["responsibility"]}
