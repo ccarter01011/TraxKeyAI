@@ -1,0 +1,1152 @@
+{
+  "name": "TraxKey-14-Leases",
+  "nodes": [
+    {
+      "id": "traxkey-get-leases",
+      "name": "Leases (Webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        -320,
+        32
+      ],
+      "typeVersion": 2,
+      "webhookId": "traxkey-get-leases",
+      "parameters": {
+        "path": "traxkey-get-leases",
+        "options": {
+          "allowedOrigins": "*"
+        },
+        "httpMethod": "GET",
+        "responseMode": "responseNode"
+      }
+    },
+    {
+      "id": "validate-session-(leases)",
+      "name": "Validate Session (Leases)",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        -96,
+        32
+      ],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "parameters": {
+        "query": "SELECT company_id FROM traxkey.sessions WHERE token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\") }}' AND expires_at > now();",
+        "options": {},
+        "operation": "executeQuery"
+      }
+    },
+    {
+      "id": "session-valid?-(leases)",
+      "name": "Session Valid? (Leases)",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        128,
+        32
+      ],
+      "typeVersion": 2,
+      "parameters": {
+        "options": {},
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c1",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json.company_id }}",
+              "rightValue": ""
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "respond:-leases-unauthorized",
+      "name": "Respond: Leases Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        352,
+        182
+      ],
+      "typeVersion": 1,
+      "parameters": {
+        "options": {
+          "responseCode": 401
+        },
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"Unauthorized\" }"
+      }
+    },
+    {
+      "id": "get-leases",
+      "name": "Get Leases",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        352,
+        32
+      ],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "parameters": {
+        "query": "SELECT l.id, l.unit_id, l.start_date, l.end_date, l.rent_amount, l.deposit_amount,\n  l.rent_due_day, l.notice_days, l.status, l.renewal_status, l.renewal_offered_at,\n  l.renewal_rent_amount, l.ended_at, l.end_reason,\n  u.unit_number, p.name AS property_name,\n  (SELECT r.name FROM traxkey.residents r\n    WHERE r.lease_id = l.id AND r.is_active ORDER BY r.created_at LIMIT 1) AS resident_name\nFROM traxkey.leases l\nJOIN traxkey.units u ON u.id = l.unit_id\nJOIN traxkey.properties p ON p.id = u.property_id\nWHERE p.company_id = '{{ $json.company_id }}' AND l.status <> 'ended'\nORDER BY l.end_date NULLS LAST, p.name;",
+        "options": {},
+        "operation": "executeQuery"
+      }
+    },
+    {
+      "id": "respond:-leases",
+      "name": "Respond: Leases",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        576,
+        32
+      ],
+      "typeVersion": 1,
+      "parameters": {
+        "options": {
+          "responseCode": 200
+        },
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($input.all().map(i => i.json).filter(l => l.id)) }}"
+      }
+    },
+    {
+      "id": "traxkey-create-lease",
+      "name": "Create Lease (Webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        -320,
+        320
+      ],
+      "typeVersion": 2,
+      "webhookId": "traxkey-create-lease",
+      "parameters": {
+        "path": "traxkey-create-lease",
+        "options": {
+          "allowedOrigins": "*"
+        },
+        "httpMethod": "POST",
+        "responseMode": "responseNode"
+      }
+    },
+    {
+      "id": "validate-session-(create-lease)",
+      "name": "Validate Session (Create Lease)",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        -96,
+        320
+      ],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "parameters": {
+        "query": "SELECT company_id FROM traxkey.sessions WHERE token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\") }}' AND expires_at > now();",
+        "options": {},
+        "operation": "executeQuery"
+      }
+    },
+    {
+      "id": "session-valid?-(create-lease)",
+      "name": "Session Valid? (Create Lease)",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        128,
+        320
+      ],
+      "typeVersion": 2,
+      "parameters": {
+        "options": {},
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c1",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json.company_id }}",
+              "rightValue": ""
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "respond:-create-lease-unauthorized",
+      "name": "Respond: Create Lease Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        352,
+        470
+      ],
+      "typeVersion": 1,
+      "parameters": {
+        "options": {
+          "responseCode": 401
+        },
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"Unauthorized\" }"
+      }
+    },
+    {
+      "id": "insert-lease",
+      "name": "Insert Lease",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        352,
+        320
+      ],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "parameters": {
+        "query": "INSERT INTO traxkey.leases\n  (unit_id, start_date, end_date, rent_amount, deposit_amount, rent_due_day, notice_days, status, renewal_status)\nSELECT '{{ $(\"Create Lease (Webhook)\").first().json.body.unitId }}'::uuid,\n  '{{ $(\"Create Lease (Webhook)\").first().json.body.startDate }}'::date,\n  NULLIF('{{ $(\"Create Lease (Webhook)\").first().json.body.endDate || \"\" }}', '')::date,\n  NULLIF('{{ $(\"Create Lease (Webhook)\").first().json.body.rentAmount || \"\" }}', '')::numeric,\n  NULLIF('{{ $(\"Create Lease (Webhook)\").first().json.body.depositAmount || \"\" }}', '')::numeric,\n  COALESCE(NULLIF('{{ $(\"Create Lease (Webhook)\").first().json.body.rentDueDay || \"\" }}', '')::smallint, 1),\n  COALESCE(NULLIF('{{ $(\"Create Lease (Webhook)\").first().json.body.noticeDays || \"\" }}', '')::smallint, 30),\n  'active', 'none'\n-- Tenant isolation: the unit must belong to the caller's company. Without this\n-- any signed-in user could attach a lease to somebody else's property.\nWHERE EXISTS (\n  SELECT 1 FROM traxkey.units u JOIN traxkey.properties p ON p.id = u.property_id\n  WHERE u.id = '{{ $(\"Create Lease (Webhook)\").first().json.body.unitId }}'::uuid AND p.company_id = '{{ $json.company_id }}'::uuid\n)\nRETURNING id, unit_id, start_date, end_date;",
+        "options": {},
+        "operation": "executeQuery"
+      }
+    },
+    {
+      "id": "lease-created?",
+      "name": "Lease Created?",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        576,
+        320
+      ],
+      "typeVersion": 2,
+      "parameters": {
+        "options": {},
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c1",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json.id }}",
+              "rightValue": ""
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "respond:-lease-not-created",
+      "name": "Respond: Lease Not Created",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        800,
+        470
+      ],
+      "typeVersion": 1,
+      "parameters": {
+        "options": {
+          "responseCode": 409
+        },
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"That unit was not found, or it already has an active lease.\" }"
+      }
+    },
+    {
+      "id": "log-lease-created",
+      "name": "Log Lease Created",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        800,
+        250
+      ],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "parameters": {
+        "query": "INSERT INTO traxkey.lease_events (lease_id, event_type, content, created_by)\nVALUES ('{{ $(\"Insert Lease\").first().json.id }}', 'lease_created',\n  'Lease created, term {{ $(\"Insert Lease\").first().json.start_date }} to {{ $(\"Insert Lease\").first().json.end_date || \"month-to-month\" }}.',\n  'operator');",
+        "options": {},
+        "operation": "executeQuery"
+      }
+    },
+    {
+      "id": "mark-unit-occupied",
+      "name": "Mark Unit Occupied",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        1024,
+        250
+      ],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "parameters": {
+        "query": "UPDATE traxkey.units SET status = 'occupied'\nWHERE id = '{{ $(\"Insert Lease\").first().json.unit_id }}'::uuid RETURNING id;",
+        "options": {},
+        "operation": "executeQuery"
+      }
+    },
+    {
+      "id": "respond:-lease-created",
+      "name": "Respond: Lease Created",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        1248,
+        250
+      ],
+      "typeVersion": 1,
+      "parameters": {
+        "options": {
+          "responseCode": 200
+        },
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, leaseId: $(\"Insert Lease\").first().json.id }) }}"
+      }
+    },
+    {
+      "id": "traxkey-offer-renewal",
+      "name": "Offer Renewal (Webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        -320,
+        640
+      ],
+      "typeVersion": 2,
+      "webhookId": "traxkey-offer-renewal",
+      "parameters": {
+        "path": "traxkey-offer-renewal",
+        "options": {
+          "allowedOrigins": "*"
+        },
+        "httpMethod": "POST",
+        "responseMode": "responseNode"
+      }
+    },
+    {
+      "id": "validate-session-(offer-renewal)",
+      "name": "Validate Session (Offer Renewal)",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        -96,
+        640
+      ],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "parameters": {
+        "query": "SELECT company_id FROM traxkey.sessions WHERE token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\") }}' AND expires_at > now();",
+        "options": {},
+        "operation": "executeQuery"
+      }
+    },
+    {
+      "id": "session-valid?-(offer-renewal)",
+      "name": "Session Valid? (Offer Renewal)",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        128,
+        640
+      ],
+      "typeVersion": 2,
+      "parameters": {
+        "options": {},
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c1",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json.company_id }}",
+              "rightValue": ""
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "respond:-offer-renewal-unauthorized",
+      "name": "Respond: Offer Renewal Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        352,
+        790
+      ],
+      "typeVersion": 1,
+      "parameters": {
+        "options": {
+          "responseCode": 401
+        },
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"Unauthorized\" }"
+      }
+    },
+    {
+      "id": "set-renewal-offered",
+      "name": "Set Renewal Offered",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        352,
+        640
+      ],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "parameters": {
+        "query": "UPDATE traxkey.leases l\nSET renewal_status = 'offered',\n    renewal_offered_at = now(),\n    renewal_rent_amount = NULLIF('{{ $(\"Offer Renewal (Webhook)\").first().json.body.renewalRentAmount || \"\" }}', '')::numeric,\n    updated_at = now()\nFROM traxkey.units u, traxkey.properties p\nWHERE l.id = '{{ $(\"Offer Renewal (Webhook)\").first().json.body.leaseId }}'::uuid\n  AND u.id = l.unit_id AND p.id = u.property_id\n  AND p.company_id = '{{ $json.company_id }}'::uuid\n  AND l.status = 'active'\nRETURNING l.id, l.renewal_rent_amount, l.rent_amount;",
+        "options": {},
+        "operation": "executeQuery"
+      }
+    },
+    {
+      "id": "renewal-offered?",
+      "name": "Renewal Offered?",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        576,
+        640
+      ],
+      "typeVersion": 2,
+      "parameters": {
+        "options": {},
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c1",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json.id }}",
+              "rightValue": ""
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "respond:-renewal-not-offered",
+      "name": "Respond: Renewal Not Offered",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        800,
+        790
+      ],
+      "typeVersion": 1,
+      "parameters": {
+        "options": {
+          "responseCode": 404
+        },
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"Lease not found.\" }"
+      }
+    },
+    {
+      "id": "log-renewal-offered",
+      "name": "Log Renewal Offered",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        800,
+        570
+      ],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "parameters": {
+        "query": "INSERT INTO traxkey.lease_events (lease_id, event_type, content, created_by)\nVALUES ('{{ $(\"Set Renewal Offered\").first().json.id }}', 'renewal_offered',\n  'Renewal offered at {{ $(\"Set Renewal Offered\").first().json.renewal_rent_amount }} per month, previous rent {{ $(\"Set Renewal Offered\").first().json.rent_amount }}.',\n  'operator');",
+        "options": {},
+        "operation": "executeQuery"
+      }
+    },
+    {
+      "id": "respond:-renewal-offered",
+      "name": "Respond: Renewal Offered",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        1024,
+        570
+      ],
+      "typeVersion": 1,
+      "parameters": {
+        "options": {
+          "responseCode": 200
+        },
+        "respondWith": "json",
+        "responseBody": "={ \"success\": true }"
+      }
+    },
+    {
+      "id": "traxkey-update-renewal",
+      "name": "Update Renewal (Webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        -320,
+        980
+      ],
+      "typeVersion": 2,
+      "webhookId": "traxkey-update-renewal",
+      "parameters": {
+        "path": "traxkey-update-renewal",
+        "options": {
+          "allowedOrigins": "*"
+        },
+        "httpMethod": "POST",
+        "responseMode": "responseNode"
+      }
+    },
+    {
+      "id": "validate-session-(update-renewal)",
+      "name": "Validate Session (Update Renewal)",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        -96,
+        980
+      ],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "parameters": {
+        "query": "SELECT company_id FROM traxkey.sessions WHERE token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\") }}' AND expires_at > now();",
+        "options": {},
+        "operation": "executeQuery"
+      }
+    },
+    {
+      "id": "session-valid?-(update-renewal)",
+      "name": "Session Valid? (Update Renewal)",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        128,
+        980
+      ],
+      "typeVersion": 2,
+      "parameters": {
+        "options": {},
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c1",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json.company_id }}",
+              "rightValue": ""
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "respond:-update-renewal-unauthorized",
+      "name": "Respond: Update Renewal Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        352,
+        1130
+      ],
+      "typeVersion": 1,
+      "parameters": {
+        "options": {
+          "responseCode": 401
+        },
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"Unauthorized\" }"
+      }
+    },
+    {
+      "id": "set-renewal-result",
+      "name": "Set Renewal Result",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        352,
+        980
+      ],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "parameters": {
+        "query": "UPDATE traxkey.leases l\nSET renewal_status = '{{ $(\"Update Renewal (Webhook)\").first().json.body.renewalStatus }}',\n    updated_at = now()\nFROM traxkey.units u, traxkey.properties p\nWHERE l.id = '{{ $(\"Update Renewal (Webhook)\").first().json.body.leaseId }}'::uuid\n  AND u.id = l.unit_id AND p.id = u.property_id\n  AND p.company_id = '{{ $json.company_id }}'::uuid\n  AND l.status = 'active'\n  AND '{{ $(\"Update Renewal (Webhook)\").first().json.body.renewalStatus }}' IN ('accepted','declined','no_response')\nRETURNING l.id, l.unit_id, l.end_date, l.renewal_rent_amount, l.rent_amount,\n          l.deposit_amount, l.rent_due_day, l.notice_days, l.renewal_status;",
+        "options": {},
+        "operation": "executeQuery"
+      }
+    },
+    {
+      "id": "renewal-updated?",
+      "name": "Renewal Updated?",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        576,
+        980
+      ],
+      "typeVersion": 2,
+      "parameters": {
+        "options": {},
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c1",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json.id }}",
+              "rightValue": ""
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "respond:-renewal-not-updated",
+      "name": "Respond: Renewal Not Updated",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        800,
+        1130
+      ],
+      "typeVersion": 1,
+      "parameters": {
+        "options": {
+          "responseCode": 404
+        },
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"Lease not found.\" }"
+      }
+    },
+    {
+      "id": "renewal-accepted?",
+      "name": "Renewal Accepted?",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        800,
+        910
+      ],
+      "typeVersion": 2,
+      "parameters": {
+        "options": {},
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c1",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "leftValue": "={{ $json.renewal_status }}",
+              "rightValue": "accepted"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "draft-follow-on-lease",
+      "name": "Draft Follow-On Lease",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        1024,
+        830
+      ],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "parameters": {
+        "query": "INSERT INTO traxkey.leases\n  (unit_id, start_date, end_date, rent_amount, deposit_amount, rent_due_day, notice_days, status, renewal_status)\nSELECT '{{ $(\"Set Renewal Result\").first().json.unit_id }}'::uuid,\n  ('{{ $(\"Set Renewal Result\").first().json.end_date }}'::date + 1),\n  ('{{ $(\"Set Renewal Result\").first().json.end_date }}'::date + 1 + INTERVAL '1 year' - INTERVAL '1 day')::date,\n  COALESCE({{ $(\"Set Renewal Result\").first().json.renewal_rent_amount || 'NULL' }},\n           {{ $(\"Set Renewal Result\").first().json.rent_amount || 'NULL' }}),\n  {{ $(\"Set Renewal Result\").first().json.deposit_amount || 'NULL' }},\n  {{ $(\"Set Renewal Result\").first().json.rent_due_day || 1 }},\n  {{ $(\"Set Renewal Result\").first().json.notice_days || 30 }},\n  'draft', 'none'\nWHERE '{{ $(\"Set Renewal Result\").first().json.end_date }}' <> ''\nRETURNING id;",
+        "options": {},
+        "operation": "executeQuery"
+      }
+    },
+    {
+      "id": "log-renewal-result",
+      "name": "Log Renewal Result",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        1248,
+        980
+      ],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "parameters": {
+        "query": "INSERT INTO traxkey.lease_events (lease_id, event_type, content, created_by)\nVALUES ('{{ $(\"Set Renewal Result\").first().json.id }}', 'renewal_{{ $(\"Set Renewal Result\").first().json.renewal_status }}',\n  'Renewal marked {{ $(\"Set Renewal Result\").first().json.renewal_status }}.', 'operator');",
+        "options": {},
+        "operation": "executeQuery"
+      }
+    },
+    {
+      "id": "respond:-renewal-updated",
+      "name": "Respond: Renewal Updated",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        1472,
+        980
+      ],
+      "typeVersion": 1,
+      "parameters": {
+        "options": {
+          "responseCode": 200
+        },
+        "respondWith": "json",
+        "responseBody": "={ \"success\": true }"
+      }
+    }
+  ],
+  "connections": {
+    "Leases (Webhook)": {
+      "main": [
+        [
+          {
+            "node": "Validate Session (Leases)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Session (Leases)": {
+      "main": [
+        [
+          {
+            "node": "Session Valid? (Leases)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Session Valid? (Leases)": {
+      "main": [
+        [
+          {
+            "node": "Get Leases",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Leases Unauthorized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Leases": {
+      "main": [
+        [
+          {
+            "node": "Respond: Leases",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Lease (Webhook)": {
+      "main": [
+        [
+          {
+            "node": "Validate Session (Create Lease)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Session (Create Lease)": {
+      "main": [
+        [
+          {
+            "node": "Session Valid? (Create Lease)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Session Valid? (Create Lease)": {
+      "main": [
+        [
+          {
+            "node": "Insert Lease",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Create Lease Unauthorized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Lease": {
+      "main": [
+        [
+          {
+            "node": "Lease Created?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lease Created?": {
+      "main": [
+        [
+          {
+            "node": "Log Lease Created",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Lease Not Created",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Lease Created": {
+      "main": [
+        [
+          {
+            "node": "Mark Unit Occupied",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Unit Occupied": {
+      "main": [
+        [
+          {
+            "node": "Respond: Lease Created",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Offer Renewal (Webhook)": {
+      "main": [
+        [
+          {
+            "node": "Validate Session (Offer Renewal)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Session (Offer Renewal)": {
+      "main": [
+        [
+          {
+            "node": "Session Valid? (Offer Renewal)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Session Valid? (Offer Renewal)": {
+      "main": [
+        [
+          {
+            "node": "Set Renewal Offered",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Offer Renewal Unauthorized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Renewal Offered": {
+      "main": [
+        [
+          {
+            "node": "Renewal Offered?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Renewal Offered?": {
+      "main": [
+        [
+          {
+            "node": "Log Renewal Offered",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Renewal Not Offered",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Renewal Offered": {
+      "main": [
+        [
+          {
+            "node": "Respond: Renewal Offered",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Renewal (Webhook)": {
+      "main": [
+        [
+          {
+            "node": "Validate Session (Update Renewal)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Session (Update Renewal)": {
+      "main": [
+        [
+          {
+            "node": "Session Valid? (Update Renewal)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Session Valid? (Update Renewal)": {
+      "main": [
+        [
+          {
+            "node": "Set Renewal Result",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Update Renewal Unauthorized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Renewal Result": {
+      "main": [
+        [
+          {
+            "node": "Renewal Updated?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Renewal Updated?": {
+      "main": [
+        [
+          {
+            "node": "Renewal Accepted?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Renewal Not Updated",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Renewal Accepted?": {
+      "main": [
+        [
+          {
+            "node": "Draft Follow-On Lease",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Renewal Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Draft Follow-On Lease": {
+      "main": [
+        [
+          {
+            "node": "Log Renewal Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Renewal Result": {
+      "main": [
+        [
+          {
+            "node": "Respond: Renewal Updated",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {}
+}
