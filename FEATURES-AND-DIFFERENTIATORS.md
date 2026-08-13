@@ -60,6 +60,13 @@ reservations via a text heuristic on the iCal SUMMARY field, since the spec
 has no structured field for it. Unrecognised summaries are treated as real
 bookings (the safer default).
 
+**Testing note:** neither Airbnb nor Vrbo offers a sandbox/test iCal feed,
+confirmed 2026-08-13. Both only issue a real export URL tied to a real live
+listing. We test against a self-hosted `test-calendar.ics`
+(`traxkey-marketing-site/test-calendar.ics`), hand-written to match Airbnb's
+real export format exactly. Verified end-to-end against it over real HTTP
+before ever needing a customer's real calendar.
+
 ---
 
 ### 2. Mixed portfolio in one system — LIVE
@@ -179,15 +186,23 @@ have auto-dispatched every new vendor's first job.)
 
 ## Roadmap, in priority order
 
-1. **Turn management** — serves both LTR move-out turnover and STR cleaning
+1. **Encrypt iCal URLs at rest** — do soon. `unit_calendars.ical_url` is
+   stored in plain text today. It's effectively a bearer token: anyone who
+   reads it can pull a customer's real booking dates and occupancy patterns
+   indefinitely, no login required. Fine for our own testing, not fine once
+   real customers connect real calendars. The customer can always revoke by
+   regenerating the link in Airbnb/Vrbo settings, but we shouldn't rely on
+   that as the only safeguard. Encrypt the column (or move to a secrets
+   store) before the first real STR customer connects a live calendar.
+2. **Turn management** — serves both LTR move-out turnover and STR cleaning
    turn from one engine. Schema already exists.
-2. **Owner reporting** — research flagged that every competitor still ships
+3. **Owner reporting** — research flagged that every competitor still ships
    static PDFs. An AI that narrates portfolio performance and answers owner
    questions is unclaimed.
-3. **SMS vendor notification** — needs Twilio credentials.
-4. **Unit-count enforcement per pricing tier** — currently nothing stops a
+4. **SMS vendor notification** — needs Twilio credentials.
+5. **Unit-count enforcement per pricing tier** — currently nothing stops a
    free account from adding 500 units.
-5. **More AI specialists** — the "team of specialists" positioning needs a
+6. **More AI specialists** — the "team of specialists" positioning needs a
    second specialist to be credible.
 
 ---
