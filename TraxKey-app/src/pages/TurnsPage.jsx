@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiRequest } from '../lib/api.js';
+import FlowHelp from '../components/FlowHelp.jsx';
 
 // Deliberately generalized: an annual long-term move-out turnover and a
 // same-week short-term cleaning turn are the same lifecycle, only the
@@ -205,7 +206,20 @@ export default function TurnsPage() {
         <div className="flex items-center justify-between mb-6 mt-2">
           <div>
             <p className="text-xs text-teal-600 dark:text-teal-400 font-semibold uppercase tracking-wide mb-1">Turns</p>
-            <h1 className="text-2xl font-bold">Vacant to ready</h1>
+            <h1 className="text-2xl font-bold inline-flex items-center gap-2">
+              Vacant to ready
+              <FlowHelp
+                title="How a turn works"
+                steps={[
+                  'Start a turn when a unit goes vacant, the unit is marked vacant and the days-vacant clock starts.',
+                  'Inspect, then add each repair you find.',
+                  'Every repair runs through the AI Coordinator: diagnosed, vendor matched, dispatched.',
+                  'Mark ready when the work is done, that stops the clock.',
+                  'Relist, then mark occupied when the next resident or guest moves in.',
+                ]}
+                note="Same flow for a long-term move-out and a short-term cleaning turn, only the timeline differs. Repair costs roll up automatically."
+              />
+            </h1>
           </div>
           <StartTurnForm units={units} onCreated={load} />
         </div>

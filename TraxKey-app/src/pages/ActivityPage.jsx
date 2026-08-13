@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiRequest } from '../lib/api.js';
+import FlowHelp from '../components/FlowHelp.jsx';
 
 const STATUS_COLOR = {
   submitted: 'bg-slate-500/15 text-slate-500 dark:text-slate-400',
@@ -150,7 +151,21 @@ export default function ActivityPage() {
         <Link to="/" className="text-xs text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white">← Dashboard</Link>
         <div className="mt-2 mb-6">
           <p className="text-xs text-teal-600 dark:text-teal-400 font-semibold uppercase tracking-wide mb-1">AI Activity</p>
-          <h1 className="text-2xl font-bold">Maintenance Coordinator</h1>
+          <h1 className="text-2xl font-bold inline-flex items-center gap-2">
+            Maintenance Coordinator
+            <FlowHelp
+              title="How the AI Coordinator works"
+              steps={[
+                'Reads the resident\'s description and classifies the trade, urgency, and whether it\'s owner or tenant responsibility.',
+                'Checks the booking calendar: someone in the unit right now raises urgency.',
+                'Picks the vendor with the best completion rate, rating, and cost history for that trade.',
+                'Under your cost threshold with a proven vendor, dispatches on its own.',
+                'Over threshold, or a vendor with no cost history, waits for your approval.',
+                'Emails the vendor, then tracks the job through to completion.',
+              ]}
+              note="Only the first step uses AI. Every threshold and vendor ranking is plain math over your real data, so nothing can be invented."
+            />
+          </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Every request, and every step the AI took on it. Click one to expand its trail.</p>
         </div>
 

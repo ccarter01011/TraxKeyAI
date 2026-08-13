@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiRequest } from '../lib/api.js';
+import FlowHelp from '../components/FlowHelp.jsx';
 
 const SOURCES = [
   { value: 'airbnb', label: 'Airbnb' },
@@ -152,7 +153,19 @@ export default function CalendarsPage() {
         <div className="flex items-center justify-between mb-6 mt-2">
           <div>
             <p className="text-xs text-teal-600 dark:text-teal-400 font-semibold uppercase tracking-wide mb-1">Booking calendars</p>
-            <h1 className="text-2xl font-bold">Short-term rental sync</h1>
+            <h1 className="text-2xl font-bold inline-flex items-center gap-2">
+              Short-term rental sync
+              <FlowHelp
+                title="How calendar sync works"
+                steps={[
+                  'Paste the unit\'s export link from Airbnb, Vrbo, or Booking.com.',
+                  'TraxKey checks it hourly for new bookings and cancellations.',
+                  'Real reservations count as occupancy, owner-side blocks don\'t.',
+                  'The AI uses this to judge urgency: a guest in the unit changes what counts as an emergency.',
+                ]}
+                note="Read-only. TraxKey never changes your listing or your bookings. You can revoke the link any time from the platform."
+              />
+            </h1>
           </div>
           <AddCalendarForm units={units} onCreated={load} />
         </div>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiRequest } from '../lib/api.js';
+import FlowHelp from '../components/FlowHelp.jsx';
 
 const TRADES = ['hvac', 'plumbing', 'electrical', 'appliance', 'general', 'pest', 'locksmith', 'roofing'];
 
@@ -162,7 +163,19 @@ export default function VendorsPage() {
         <div className="flex items-center justify-between mb-6 mt-2">
           <div>
             <p className="text-xs text-teal-600 dark:text-teal-400 font-semibold uppercase tracking-wide mb-1">Vendors</p>
-            <h1 className="text-2xl font-bold">Your vendor network</h1>
+            <h1 className="text-2xl font-bold inline-flex items-center gap-2">
+              Your vendor network
+              <FlowHelp
+                title="How vendors get picked"
+                steps={[
+                  'Every completed job records the real cost and your rating.',
+                  'That builds a score per vendor: completion rate, rating, average cost.',
+                  'The AI dispatches to the best-scoring vendor for that trade.',
+                  'A vendor with no history always needs your approval first.',
+                ]}
+                note="Vendor choice is plain math over your own job history, never an AI guess. A new vendor earns autonomy by building a track record."
+              />
+            </h1>
           </div>
           <AddVendorForm onCreated={load} />
         </div>
