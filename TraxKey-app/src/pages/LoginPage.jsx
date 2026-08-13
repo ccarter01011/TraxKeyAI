@@ -27,23 +27,23 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center px-6">
+    <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex items-center justify-center px-6">
       <div className="max-w-sm w-full">
-        <h1 className="text-2xl font-bold mb-1">TraxKey <span className="text-teal-400">AI</span></h1>
-        <p className="text-sm text-slate-400 mb-8">Log in to your dashboard</p>
+        <h1 className="text-2xl font-bold mb-1">TraxKey <span className="text-teal-500 dark:text-teal-400">AI</span></h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mb-8">Log in to your dashboard</p>
         <form onSubmit={handleSubmit} className="space-y-4">
           <input required type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)}
-            className="w-full bg-slate-900 border border-white/10 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-teal-400" />
+            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-teal-400" />
           <input required type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)}
-            className="w-full bg-slate-900 border border-white/10 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-teal-400" />
-          {error && <p className="text-sm text-red-400">{error}</p>}
+            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-teal-400" />
+          {error && <p className="text-sm text-red-500 dark:text-red-400">{error}</p>}
           <button disabled={loading} type="submit"
             className="w-full bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold py-3 rounded-xl transition disabled:opacity-50">
             {loading ? 'Logging in…' : 'Log in'}
           </button>
         </form>
-        <p className="text-sm text-slate-500 mt-4"><Link to="/forgot-password" className="text-teal-400 underline">Forgot password?</Link></p>
-        <p className="text-sm text-slate-500 mt-2">No account? <Link to="/signup" className="text-teal-400 underline">Sign up</Link></p>
+        <p className="text-sm text-slate-500 mt-4"><Link to="/forgot-password" className="text-teal-600 dark:text-teal-400 underline">Forgot password?</Link></p>
+        <p className="text-sm text-slate-500 mt-2">No account? <Link to="/signup" className="text-teal-600 dark:text-teal-400 underline">Sign up</Link></p>
       </div>
     </div>
   );

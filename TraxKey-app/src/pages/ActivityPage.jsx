@@ -3,12 +3,12 @@ import { Link } from 'react-router-dom';
 import { apiRequest } from '../lib/api.js';
 
 const STATUS_COLOR = {
-  submitted: 'bg-slate-500/15 text-slate-400',
+  submitted: 'bg-slate-500/15 text-slate-500 dark:text-slate-400',
   triaged: 'bg-sky-500/15 text-sky-400',
-  needs_vendor: 'bg-red-500/15 text-red-400',
+  needs_vendor: 'bg-red-500/15 text-red-500 dark:text-red-400',
   awaiting_approval: 'bg-amber-500/15 text-amber-400',
   assigned: 'bg-sky-500/15 text-sky-400',
-  scheduled: 'bg-teal-500/15 text-teal-400',
+  scheduled: 'bg-teal-500/15 text-teal-600 dark:text-teal-400',
   in_progress: 'bg-sky-500/15 text-sky-400',
   on_hold: 'bg-amber-500/15 text-amber-400',
   completed: 'bg-green-500/15 text-green-400',
@@ -69,15 +69,15 @@ function RequestCard({ request, onApproved }) {
   }
 
   return (
-    <div className="bg-slate-900 border border-white/5 rounded-2xl p-5 mb-3">
+    <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl p-5 mb-3">
       <button onClick={() => setExpanded(v => !v)} className="w-full text-left">
         <div className="flex items-start justify-between gap-3 mb-1">
           <p className="text-sm font-medium flex-1">{request.description}</p>
-          <span className={`shrink-0 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${STATUS_COLOR[request.status] || 'bg-slate-500/15 text-slate-400'}`}>
+          <span className={`shrink-0 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${STATUS_COLOR[request.status] || 'bg-slate-500/15 text-slate-500 dark:text-slate-400'}`}>
             {request.status.replace('_', ' ')}
           </span>
         </div>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-slate-400 dark:text-slate-500">
           {request.property_name ? `${request.property_name}${request.unit_number ? ` — Unit ${request.unit_number}` : ''} · ` : ''}
           {request.category || 'not yet classified'}
           {request.urgency ? ` · ${request.urgency}` : ''}
@@ -93,16 +93,16 @@ function RequestCard({ request, onApproved }) {
             {approving ? 'Approving…' : 'Approve dispatch'}
           </button>
           <span className="text-xs text-amber-400">Waiting on you before this gets sent to a vendor.</span>
-          {approveError && <span className="text-xs text-red-400">{approveError}</span>}
+          {approveError && <span className="text-xs text-red-500 dark:text-red-400">{approveError}</span>}
         </div>
       )}
 
       {canComplete && (
         <div onClick={e => e.stopPropagation()} className="mt-3 pt-3 border-t border-teal-400/20 flex flex-wrap items-center gap-2">
           <input type="number" placeholder="Final cost $" value={finalCost} onChange={e => setFinalCost(e.target.value)}
-            className="bg-slate-950 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs w-28 focus:outline-none focus:border-teal-400" />
+            className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-lg px-2.5 py-1.5 text-xs w-28 focus:outline-none focus:border-teal-400" />
           <select value={rating} onChange={e => setRating(e.target.value)}
-            className="bg-slate-950 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-teal-400">
+            className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-teal-400">
             <option value="">Rating (optional)</option>
             {[5, 4, 3, 2, 1].map(n => <option key={n} value={n}>{n}★</option>)}
           </select>
@@ -110,7 +110,7 @@ function RequestCard({ request, onApproved }) {
             className="bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs px-3 py-1.5 rounded-lg transition disabled:opacity-50">
             {completing ? 'Saving…' : 'Mark complete'}
           </button>
-          {completeError && <span className="text-xs text-red-400">{completeError}</span>}
+          {completeError && <span className="text-xs text-red-500 dark:text-red-400">{completeError}</span>}
         </div>
       )}
 
@@ -120,9 +120,9 @@ function RequestCard({ request, onApproved }) {
             <div key={i} className="flex items-start gap-3 text-xs">
               <span className="w-1.5 h-1.5 rounded-full bg-teal-400 mt-1 shrink-0" />
               <div>
-                <span className="font-bold text-teal-300">{EVENT_LABEL[e.event_type] || e.event_type}</span>
-                <span className="text-slate-500"> — {new Date(e.created_at).toLocaleString()}</span>
-                {e.content && <p className="text-slate-400 mt-0.5">{e.content}</p>}
+                <span className="font-bold text-teal-600 dark:text-teal-300">{EVENT_LABEL[e.event_type] || e.event_type}</span>
+                <span className="text-slate-400 dark:text-slate-500"> — {new Date(e.created_at).toLocaleString()}</span>
+                {e.content && <p className="text-slate-500 dark:text-slate-400 mt-0.5">{e.content}</p>}
               </div>
             </div>
           ))}
@@ -145,20 +145,20 @@ export default function ActivityPage() {
   useEffect(() => { load(); }, []);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 px-6 py-8">
+    <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 px-6 py-8">
       <div className="max-w-3xl mx-auto">
-        <Link to="/" className="text-xs text-slate-500 hover:text-white">← Dashboard</Link>
+        <Link to="/" className="text-xs text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white">← Dashboard</Link>
         <div className="mt-2 mb-6">
-          <p className="text-xs text-teal-400 font-semibold uppercase tracking-wide mb-1">AI Activity</p>
+          <p className="text-xs text-teal-600 dark:text-teal-400 font-semibold uppercase tracking-wide mb-1">AI Activity</p>
           <h1 className="text-2xl font-bold">Maintenance Coordinator</h1>
-          <p className="text-sm text-slate-400 mt-1">Every request, and every step the AI took on it. Click one to expand its trail.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Every request, and every step the AI took on it. Click one to expand its trail.</p>
         </div>
 
-        {error && <p className="text-sm text-red-400 mb-4">{error}</p>}
-        {!requests && !error && <p className="text-sm text-slate-500">Loading…</p>}
+        {error && <p className="text-sm text-red-500 dark:text-red-400 mb-4">{error}</p>}
+        {!requests && !error && <p className="text-sm text-slate-400 dark:text-slate-500">Loading…</p>}
         {requests && requests.length === 0 && (
-          <div className="bg-slate-900 border border-white/5 rounded-2xl p-8 text-center">
-            <p className="text-sm text-slate-400">No maintenance requests yet.</p>
+          <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl p-8 text-center">
+            <p className="text-sm text-slate-500 dark:text-slate-400">No maintenance requests yet.</p>
           </div>
         )}
         {requests && requests.map(r => <RequestCard key={r.id} request={r} onApproved={load} />)}
