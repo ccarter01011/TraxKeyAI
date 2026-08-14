@@ -3,7 +3,8 @@
 *Written for someone who has not seen the code.*
 
 **Live Google Doc:**
-https://docs.google.com/document/d/1voRMCvqoEiHzrxmCg3RP_rd5AQqBxnpkHEc4xzu2Apc/edit
+https://docs.google.com/document/d/1C-edfI_rqhZMVP2mdbyl234Oev-2BfVJQlZTaLs0Djs/edit
+(v2 — the earlier v1 Doc is superseded and can be deleted)
 
 This markdown file is the source. When it changes, update the Doc to match,
 otherwise the version handed to an investor drifts from the version that is
@@ -15,8 +16,12 @@ true.
 
 ## 1. What TraxKey AI is
 
-Software for people who rent out property, that does the coordinating work
-instead of just recording it.
+An AI operations platform for people who rent out property. It does the
+coordinating work instead of just recording it.
+
+"Platform" rather than "software" is deliberate and it is now accurate: this
+is not one tool, it is a set of specialised AI agents sharing one portfolio,
+one vendor network, and one set of rules.
 
 Most property software is a filing cabinet. A tenant reports a broken heater,
 the software makes a ticket, and a human still has to read it, work out which
@@ -25,6 +30,29 @@ trade it needs, decide who to call, and chase them. TraxKey does that part.
 ---
 
 ## 2. The problem we chose
+
+### The day this replaces
+
+A tenant texts at 10pm that the heating has died. Someone reads it, works out
+it is an HVAC job not a plumbing one, digs out which contractor was any good
+last time, calls three of them, waits, approves a price, and remembers to
+tell the tenant something is happening. Multiply by every unit, every week.
+
+That work is not skilled. It is coordination, and it is the reason a property
+business stops scaling at the point where one person can no longer hold it
+all in their head.
+
+| The pain | What TraxKey does |
+|---|---|
+| Every request needs a human to read and triage it | AI reads it and classifies the trade, urgency and responsibility |
+| Picking a vendor from memory or a spreadsheet | Ranked on that vendor's own completion rate, rating and real cost |
+| Chasing approval on every job, however small | Under your limit with a proven vendor it just goes; over it, one click |
+| The tenant hears nothing and chases you | Emailed automatically when a vendor is assigned and when it is done |
+| A guest complains about something you did not know was broken | The calendar tells the AI someone is in the unit, so it escalates |
+| Finding out a unit was not ready when the guest arrives | Checked before arrival, flagged while there is still time |
+| Discovering at renewal that a unit has been under-rented for a year | Surfaced 90 days out, with the gap against your own average |
+
+### Why nobody has solved it for this operator
 
 Property operators fall into two camps, and the software market matches them:
 
@@ -78,7 +106,7 @@ including the reason for each decision.
 | **Inspections** | Move-in and move-out condition records, and exactly what changed between them. |
 | **Business Memory** | Rules the AI obeys: approval limits, quiet hours, preferred vendors, set per trade, property or unit. |
 | **Insights** | Patterns in the operator's own data: vendors slowing down, units that keep breaking, rents below their own average. |
-| **Orders** | Parts and materials a job is waiting on, flagged when late and when late means a turn will slip. |
+| **Orders** | Parts and materials a job is waiting on, flagged when late, and when late means a turn will slip. Adapted from our own supply-chain product, TraxSail AI, which chases suppliers on purchase orders. |
 | **Supplies & damage** | Consumables per unit with reorder levels; checkout damage tied to the stay it happened during. |
 | **Vendor portal** | Vendors log in, see their jobs, mark them in progress. |
 | **Tenant portal** | Residents and guests report problems, with a warm AI assistant and a "talk to a person" escape hatch. |
@@ -86,7 +114,71 @@ including the reason for each decision.
 
 ---
 
-## 4. The design rule everything follows
+## 4. The specialised AI agents
+
+Each owns one workflow end to end and runs on its own schedule. They share
+the portfolio, the vendor network, and the operator's rules, which is what
+makes them a platform rather than a bundle of features.
+
+| Agent | What it owns | Runs |
+|---|---|---|
+| **Maintenance Coordinator** | Diagnose a reported problem, match a vendor, gate on cost, dispatch | On every new request |
+| **Turnover Coordinator** | Open a cleaning turn on checkout, set the deadline from the next arrival, assign a cleaner | Hourly |
+| **Lease Agent** | Activate and end lease terms, flag silent renewal offers, open move-out turns | Hourly |
+| **Readiness Agent** | Check a unit is actually ready before a guest arrives | Hourly |
+| **Review-Risk Agent** | Flag a stay that ended with an issue still open | Hourly |
+| **Insights Agent** | Vendor slowdowns, repeat-failure units, below-average rents, late parts blocking a turn | Daily |
+| **Follow-up Agent** | Keep residents and guests informed; chase leads who never converted | Every 15 min |
+
+### The three assistants, and why they sound different
+
+Three separate AI personalities, because they are talking to three different
+people in three different situations. Using one voice for all three would be
+a mistake.
+
+**1. The operator concierge** (dashboard). Briefs a professional on their own
+portfolio. Terse, ranked by urgency, no softening. Opens with the single most
+important thing, then a short list of what to do today. Every number in it is
+counted from real data, never estimated.
+
+**2. The resident and guest assistant** (reporting page). Talks to someone
+who may be cold, flooded, or locked out, and who never chose this software.
+Warm, short sentences, acknowledges the problem before solving it. Helps them
+describe the fault clearly, which is what gets the right trade sent first
+time.
+
+It is also the **most restricted** AI in the platform. It cannot promise a
+time, a cost, who pays, or that anything will be fixed, because it cannot see
+the schedule or the lease. For a gas smell or fire it says leave and call 911
+before anything else. A "talk to a person" button is always one tap away, and
+if the operator has switched off automated handling for that resident, the AI
+step is skipped entirely.
+
+**3. The sales assistant** (public site). Answers prospect questions from a
+fixed product brief with no database access. It is instructed to name
+competitors where they are genuinely better, and it does.
+
+### What "learning" does and does not mean here
+
+Worth being exact, because the honest version is a selling point.
+
+| Mechanism | What it is |
+|---|---|
+| **Vendor performance** | Every completed job updates that vendor's record. The AI's next choice differs because the evidence changed. Genuine learning from outcomes. |
+| **Business Memory** | Rules the operator sets: approval limits, quiet hours, preferred vendors, per trade, property or unit. The AI reads these as facts and obeys them. |
+| **Insights** | Patterns computed from the operator's own history and surfaced as suggestions. |
+
+**The AI never rewrites its own rules.** It can tell an operator "you have
+approved HVAC over your limit nine times out of ten, want to raise it?" It
+cannot raise it. Nothing silently changes the system's risk posture, which is
+the failure mode that destroys trust in one incident.
+
+There is no model fine-tuning on customer data. "Memory" is durable database
+rows, which is why it is inspectable and reversible.
+
+---
+
+## 5. The design rule everything follows
 
 **The AI classifies. Software decides.**
 
@@ -111,7 +203,7 @@ cost, choose a vendor it likes, or quietly change a rule the operator set.
 
 ---
 
-## 5. Things we deliberately do not build
+## 6. Things we deliberately do not build
 
 Stated plainly because it is a strategy, not a gap:
 
@@ -128,7 +220,7 @@ legal determination.**
 
 ---
 
-## 6. Who it is for
+## 7. Who it is for
 
 | Portfolio | Fit |
 |---|---|
@@ -141,7 +233,7 @@ and we would rather say so.
 
 ---
 
-## 7. Pricing
+## 8. Pricing
 
 | Tier | Units | Price |
 |---|---|---|
@@ -159,7 +251,7 @@ subscription covering both.
 
 ---
 
-## 8. Honest position, as of today
+## 9. Honest position, as of today
 
 Worth stating directly because anyone evaluating this will find it out.
 
@@ -188,14 +280,25 @@ current bottleneck is distribution, not features.
 
 ---
 
-## 9. How it is built
+## 10. How it is built
 
-Four separate web addresses, one shared database:
+### Addresses
 
-- **traxkey.ai** — the marketing site
-- **app.traxkey.ai** — the operator dashboard
-- **tenant.traxkey.ai** — where residents and guests report problems
-- **A vendor portal** — where contractors see their jobs
+| Address | Who uses it |
+|---|---|
+| `traxkey.ai` | Public marketing site |
+| `traxkey.ai/short-term-rentals` | Short-term operator landing page |
+| `traxkey.ai/demo` | Interactive dashboard demo, no signup |
+| `app.traxkey.ai` | Operator dashboard (the main product) |
+| `app.traxkey.ai/vendor` | Vendor portal, where contractors see and update their jobs |
+| `app.traxkey.ai/admin` | Internal admin, our own metrics. Not customer facing |
+| `tenant.traxkey.ai` | Residents and guests report problems. No login |
+
+### Inside the operator dashboard
+
+Calendar · AI Activity · Turns · Orders · Inspections · Properties & Units ·
+Residents & Guests · Leases · Insights · Supplies & Damage · Vendors ·
+Business Memory · Connect Airbnb & Vrbo
 
 Behind them: a workflow engine handling web requests, a separate always-on
 service running the AI and the scheduled work, and a Postgres database. The
@@ -203,16 +306,17 @@ two services share only the database and never call each other, so a fault in
 one cannot take down the other.
 
 Every company's data is isolated at the database level on every single query.
-Residents, vendors, staff and administrators use four separate login systems
-that never share a session.
+Residents, vendors, staff and administrators use separate login systems that
+never share a session, so a compromise in one cannot reach another.
 
 ---
 
-## 10. What is next
+## 11. What is next
 
 | Next | Why |
 |---|---|
 | Text-message updates | Email works today. Text is what residents actually read. |
+| Inbound reply handling | Today TraxKey **sends** updates but does not read replies. Competitors auto-answer inbound guest messages; we do not yet. |
 | Owner portal | Owners are the property manager's customer, and there is no way to show them anything yet. |
 | Tenant logins for long-term residents | Request history, documents, renewal offers. Short-term guests keep the no-login link. |
 | Subscription billing | Plans exist; taking payment does not yet. |
