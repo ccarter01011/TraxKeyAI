@@ -95,7 +95,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE traxkey.maintenance_requests\nSET status = 'completed', final_cost = {{ $(\"Complete Request (Webhook)\").first().json.body.finalCost || 'NULL' }},\n  resident_rating = {{ $(\"Complete Request (Webhook)\").first().json.body.rating || 'NULL' }}, closed_at = now()\nWHERE id = '{{ $(\"Complete Request (Webhook)\").first().json.body.requestId }}'\nAND company_id = '{{ $json.company_id }}'\nAND status IN ('scheduled', 'in_progress')\nRETURNING id, assigned_vendor_id, final_cost, resident_rating;",
+        "query": "UPDATE traxkey.maintenance_requests\nSET status = 'completed', final_cost = {{ $(\"Complete Request (Webhook)\").first().json.body.finalCost || 'NULL' }},\n  resident_rating = {{ $(\"Complete Request (Webhook)\").first().json.body.rating || 'NULL' }}, closed_at = now()\nWHERE id = '{{ (String($(\"Complete Request (Webhook)\").first().json.body.requestId || \"\")).replace(/[^a-zA-Z0-9._:-]/g, \"\") }}'\nAND company_id = '{{ $json.company_id }}'\nAND status IN ('scheduled', 'in_progress')\nRETURNING id, assigned_vendor_id, final_cost, resident_rating;",
         "options": {}
       },
       "id": "ef5ff95a-82ba-464c-9c13-d8da311770c5",

@@ -419,7 +419,7 @@
       },
       "alwaysOutputData": true,
       "parameters": {
-        "query": "DELETE FROM traxkey.business_memory\nWHERE id = '{{ $(\"Delete Rule (Webhook)\").first().json.body.ruleId }}'::uuid AND company_id = '{{ $json.company_id }}'::uuid\nRETURNING id;",
+        "query": "DELETE FROM traxkey.business_memory\nWHERE id = '{{ (String($(\"Delete Rule (Webhook)\").first().json.body.ruleId || \"\")).replace(/[^a-zA-Z0-9._:-]/g, \"\") }}'::uuid AND company_id = '{{ $json.company_id }}'::uuid\nRETURNING id;",
         "options": {},
         "operation": "executeQuery"
       }

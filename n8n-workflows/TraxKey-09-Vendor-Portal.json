@@ -102,7 +102,7 @@
       ],
       "notes": "Only touches a vendor that actually belongs to this company, standard tenant-isolation pattern.",
       "parameters": {
-        "query": "UPDATE traxkey.vendors\nSET password_hash = crypt('{{ $(\"Set Vendor Password (Webhook)\").first().json.body.password.replace(/'/g, \"''\") }}', gen_salt('bf')), portal_enabled = true\nWHERE id = '{{ $(\"Set Vendor Password (Webhook)\").first().json.body.vendorId }}'\nAND company_id = '{{ $json.company_id }}'\nRETURNING id, contact_email;",
+        "query": "UPDATE traxkey.vendors\nSET password_hash = crypt('{{ $(\"Set Vendor Password (Webhook)\").first().json.body.password.replace(/'/g, \"''\") }}', gen_salt('bf')), portal_enabled = true\nWHERE id = '{{ (String($(\"Set Vendor Password (Webhook)\").first().json.body.vendorId || \"\")).replace(/[^a-zA-Z0-9._:-]/g, \"\") }}'\nAND company_id = '{{ $json.company_id }}'\nRETURNING id, contact_email;",
         "options": {},
         "operation": "executeQuery"
       },
@@ -555,7 +555,7 @@
       ],
       "notes": "Only a job actually assigned to THIS vendor session can be touched, and only if it's currently scheduled.",
       "parameters": {
-        "query": "UPDATE traxkey.maintenance_requests\nSET status = 'in_progress'\nWHERE id = '{{ $(\"Vendor Mark In Progress (Webhook)\").first().json.body.requestId }}'\nAND assigned_vendor_id = '{{ $json.vendor_id }}'\nAND status = 'scheduled'\nRETURNING id;",
+        "query": "UPDATE traxkey.maintenance_requests\nSET status = 'in_progress'\nWHERE id = '{{ (String($(\"Vendor Mark In Progress (Webhook)\").first().json.body.requestId || \"\")).replace(/[^a-zA-Z0-9._:-]/g, \"\") }}'\nAND assigned_vendor_id = '{{ $json.vendor_id }}'\nAND status = 'scheduled'\nRETURNING id;",
         "options": {},
         "operation": "executeQuery"
       },

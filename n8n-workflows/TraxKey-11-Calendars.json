@@ -232,7 +232,7 @@
       ],
       "notes": "WHERE EXISTS ties the unit to the caller's own company via its property, same tenant-isolation pattern as every other insert here.",
       "parameters": {
-        "query": "INSERT INTO traxkey.unit_calendars (unit_id, source, ical_url)\nSELECT\n  '{{ $(\"Add Calendar (Webhook)\").first().json.body.unitId }}',\n  '{{ $(\"Add Calendar (Webhook)\").first().json.body.source || \"other\" }}',\n  '{{ $(\"Add Calendar (Webhook)\").first().json.body.icalUrl.replace(/'/g, \"''\") }}'\nWHERE EXISTS (\n  SELECT 1 FROM traxkey.units u\n  JOIN traxkey.properties p ON p.id = u.property_id\n  WHERE u.id = '{{ $(\"Add Calendar (Webhook)\").first().json.body.unitId }}'\n  AND p.company_id = '{{ $json.company_id }}'\n)\nRETURNING id;",
+        "query": "INSERT INTO traxkey.unit_calendars (unit_id, source, ical_url)\nSELECT\n  '{{ (String($(\"Add Calendar (Webhook)\").first().json.body.unitId || \"\")).replace(/[^a-zA-Z0-9._:-]/g, \"\") }}',\n  '{{ (String($(\"Add Calendar (Webhook)\").first().json.body.source || \"other\")).replace(/[^a-zA-Z0-9._:-]/g, \"\") }}',\n  '{{ $(\"Add Calendar (Webhook)\").first().json.body.icalUrl.replace(/'/g, \"''\") }}'\nWHERE EXISTS (\n  SELECT 1 FROM traxkey.units u\n  JOIN traxkey.properties p ON p.id = u.property_id\n  WHERE u.id = '{{ (String($(\"Add Calendar (Webhook)\").first().json.body.unitId || \"\")).replace(/[^a-zA-Z0-9._:-]/g, \"\") }}'\n  AND p.company_id = '{{ $json.company_id }}'\n)\nRETURNING id;",
         "options": {},
         "operation": "executeQuery"
       },
@@ -413,7 +413,7 @@
       ],
       "notes": "Bookings cascade-delete with the calendar row. Scoped to the caller's own company so one company can't remove another's calendar.",
       "parameters": {
-        "query": "DELETE FROM traxkey.unit_calendars uc\nUSING traxkey.units u, traxkey.properties p\nWHERE uc.id = '{{ $(\"Delete Calendar (Webhook)\").first().json.body.calendarId }}'\nAND u.id = uc.unit_id AND p.id = u.property_id\nAND p.company_id = '{{ $json.company_id }}'\nRETURNING uc.id;",
+        "query": "DELETE FROM traxkey.unit_calendars uc\nUSING traxkey.units u, traxkey.properties p\nWHERE uc.id = '{{ (String($(\"Delete Calendar (Webhook)\").first().json.body.calendarId || \"\")).replace(/[^a-zA-Z0-9._:-]/g, \"\") }}'\nAND u.id = uc.unit_id AND p.id = u.property_id\nAND p.company_id = '{{ $json.company_id }}'\nRETURNING uc.id;",
         "options": {},
         "operation": "executeQuery"
       },

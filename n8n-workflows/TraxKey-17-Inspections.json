@@ -239,7 +239,7 @@
       },
       "alwaysOutputData": true,
       "parameters": {
-        "query": "INSERT INTO traxkey.inspections (company_id, unit_id, inspection_type, lease_id, turn_id, notes)\nSELECT '{{ $json.company_id }}'::uuid,\n  '{{ $(\"Start Inspection (Webhook)\").first().json.body.unitId }}'::uuid,\n  '{{ (String($(\"Start Inspection (Webhook)\").first().json.body.inspectionType || \"\")).replace(/[^a-z_]/g, \"\") }}',\n  NULLIF('{{ $(\"Start Inspection (Webhook)\").first().json.body.leaseId || \"\" }}', '')::uuid,\n  NULLIF('{{ $(\"Start Inspection (Webhook)\").first().json.body.turnId || \"\" }}', '')::uuid,\n  NULLIF('{{ (String($(\"Start Inspection (Webhook)\").first().json.body.notes || \"\")).replace(/'/g, \"''\") }}', '')\nWHERE EXISTS (\n  SELECT 1 FROM traxkey.units u JOIN traxkey.properties p ON p.id = u.property_id\n  WHERE u.id = '{{ $(\"Start Inspection (Webhook)\").first().json.body.unitId }}'::uuid\n    AND p.company_id = '{{ $json.company_id }}'::uuid\n)\nRETURNING id;",
+        "query": "INSERT INTO traxkey.inspections (company_id, unit_id, inspection_type, lease_id, turn_id, notes)\nSELECT '{{ $json.company_id }}'::uuid,\n  '{{ (String($(\"Start Inspection (Webhook)\").first().json.body.unitId || \"\")).replace(/[^a-zA-Z0-9._:-]/g, \"\") }}'::uuid,\n  '{{ (String($(\"Start Inspection (Webhook)\").first().json.body.inspectionType || \"\")).replace(/[^a-z_]/g, \"\") }}',\n  NULLIF('{{ (String($(\"Start Inspection (Webhook)\").first().json.body.leaseId || \"\")).replace(/[^a-zA-Z0-9._:-]/g, \"\") }}', '')::uuid,\n  NULLIF('{{ (String($(\"Start Inspection (Webhook)\").first().json.body.turnId || \"\")).replace(/[^a-zA-Z0-9._:-]/g, \"\") }}', '')::uuid,\n  NULLIF('{{ (String($(\"Start Inspection (Webhook)\").first().json.body.notes || \"\")).replace(/'/g, \"''\") }}', '')\nWHERE EXISTS (\n  SELECT 1 FROM traxkey.units u JOIN traxkey.properties p ON p.id = u.property_id\n  WHERE u.id = '{{ (String($(\"Start Inspection (Webhook)\").first().json.body.unitId || \"\")).replace(/[^a-zA-Z0-9._:-]/g, \"\") }}'::uuid\n    AND p.company_id = '{{ $json.company_id }}'::uuid\n)\nRETURNING id;",
         "options": {},
         "operation": "executeQuery"
       }
@@ -419,7 +419,7 @@
       },
       "alwaysOutputData": true,
       "parameters": {
-        "query": "INSERT INTO traxkey.inspection_items (inspection_id, area, item, condition, notes, beyond_normal_wear)\nSELECT '{{ $(\"Add Item (Webhook)\").first().json.body.inspectionId }}'::uuid,\n  trim('{{ (String($(\"Add Item (Webhook)\").first().json.body.area || \"\")).replace(/'/g, \"''\") }}'),\n  trim('{{ (String($(\"Add Item (Webhook)\").first().json.body.item || \"\")).replace(/'/g, \"''\") }}'),\n  '{{ (String($(\"Add Item (Webhook)\").first().json.body.condition || \"\")).replace(/[^a-z]/g, \"\") }}',\n  NULLIF('{{ (String($(\"Add Item (Webhook)\").first().json.body.notes || \"\")).replace(/'/g, \"''\") }}', ''),\n  {{ $(\"Add Item (Webhook)\").first().json.body.beyondNormalWear === true ? 'true' : ($(\"Add Item (Webhook)\").first().json.body.beyondNormalWear === false ? 'false' : 'NULL') }}\nWHERE EXISTS (\n  SELECT 1 FROM traxkey.inspections i\n  WHERE i.id = '{{ $(\"Add Item (Webhook)\").first().json.body.inspectionId }}'::uuid AND i.company_id = '{{ $json.company_id }}'::uuid\n)\nRETURNING id;",
+        "query": "INSERT INTO traxkey.inspection_items (inspection_id, area, item, condition, notes, beyond_normal_wear)\nSELECT '{{ (String($(\"Add Item (Webhook)\").first().json.body.inspectionId || \"\")).replace(/[^a-zA-Z0-9._:-]/g, \"\") }}'::uuid,\n  trim('{{ (String($(\"Add Item (Webhook)\").first().json.body.area || \"\")).replace(/'/g, \"''\") }}'),\n  trim('{{ (String($(\"Add Item (Webhook)\").first().json.body.item || \"\")).replace(/'/g, \"''\") }}'),\n  '{{ (String($(\"Add Item (Webhook)\").first().json.body.condition || \"\")).replace(/[^a-z]/g, \"\") }}',\n  NULLIF('{{ (String($(\"Add Item (Webhook)\").first().json.body.notes || \"\")).replace(/'/g, \"''\") }}', ''),\n  {{ $(\"Add Item (Webhook)\").first().json.body.beyondNormalWear === true ? 'true' : ($(\"Add Item (Webhook)\").first().json.body.beyondNormalWear === false ? 'false' : 'NULL') }}\nWHERE EXISTS (\n  SELECT 1 FROM traxkey.inspections i\n  WHERE i.id = '{{ (String($(\"Add Item (Webhook)\").first().json.body.inspectionId || \"\")).replace(/[^a-zA-Z0-9._:-]/g, \"\") }}'::uuid AND i.company_id = '{{ $json.company_id }}'::uuid\n)\nRETURNING id;",
         "options": {},
         "operation": "executeQuery"
       }
@@ -599,7 +599,7 @@
       },
       "alwaysOutputData": true,
       "parameters": {
-        "query": "UPDATE traxkey.inspections\nSET status = 'completed', completed_at = now()\nWHERE id = '{{ $(\"Complete Inspection (Webhook)\").first().json.body.inspectionId }}'::uuid\n  AND company_id = '{{ $json.company_id }}'::uuid\nRETURNING id;",
+        "query": "UPDATE traxkey.inspections\nSET status = 'completed', completed_at = now()\nWHERE id = '{{ (String($(\"Complete Inspection (Webhook)\").first().json.body.inspectionId || \"\")).replace(/[^a-zA-Z0-9._:-]/g, \"\") }}'::uuid\n  AND company_id = '{{ $json.company_id }}'::uuid\nRETURNING id;",
         "options": {},
         "operation": "executeQuery"
       }

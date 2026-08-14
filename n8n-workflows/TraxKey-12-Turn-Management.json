@@ -233,7 +233,7 @@
       ],
       "notes": "WHERE EXISTS checks two things: the unit belongs to the caller's company, AND there's no already-active turn for it (any status other than 'occupied'). Prevents starting a second turn on a unit that's mid-turn.",
       "parameters": {
-        "query": "INSERT INTO traxkey.turns (company_id, unit_id)\nSELECT '{{ $json.company_id }}', '{{ $(\"Start Turn (Webhook)\").first().json.body.unitId }}'\nWHERE EXISTS (\n  SELECT 1 FROM traxkey.units u JOIN traxkey.properties p ON p.id = u.property_id\n  WHERE u.id = '{{ $(\"Start Turn (Webhook)\").first().json.body.unitId }}' AND p.company_id = '{{ $json.company_id }}'\n)\nAND NOT EXISTS (\n  SELECT 1 FROM traxkey.turns WHERE unit_id = '{{ $(\"Start Turn (Webhook)\").first().json.body.unitId }}' AND status != 'occupied'\n)\nRETURNING id;",
+        "query": "INSERT INTO traxkey.turns (company_id, unit_id)\nSELECT '{{ $json.company_id }}', '{{ (String($(\"Start Turn (Webhook)\").first().json.body.unitId || \"\")).replace(/[^a-zA-Z0-9._:-]/g, \"\") }}'\nWHERE EXISTS (\n  SELECT 1 FROM traxkey.units u JOIN traxkey.properties p ON p.id = u.property_id\n  WHERE u.id = '{{ (String($(\"Start Turn (Webhook)\").first().json.body.unitId || \"\")).replace(/[^a-zA-Z0-9._:-]/g, \"\") }}' AND p.company_id = '{{ $json.company_id }}'\n)\nAND NOT EXISTS (\n  SELECT 1 FROM traxkey.turns WHERE unit_id = '{{ (String($(\"Start Turn (Webhook)\").first().json.body.unitId || \"\")).replace(/[^a-zA-Z0-9._:-]/g, \"\") }}' AND status != 'occupied'\n)\nRETURNING id;",
         "options": {},
         "operation": "executeQuery"
       },
@@ -288,7 +288,7 @@
         220
       ],
       "parameters": {
-        "query": "UPDATE traxkey.units SET status = 'vacant' WHERE id = '{{ $(\"Start Turn (Webhook)\").first().json.body.unitId }}';",
+        "query": "UPDATE traxkey.units SET status = 'vacant' WHERE id = '{{ (String($(\"Start Turn (Webhook)\").first().json.body.unitId || \"\")).replace(/[^a-zA-Z0-9._:-]/g, \"\") }}';",
         "options": {},
         "operation": "executeQuery"
       },
@@ -298,7 +298,8 @@
           "name": "Postgres account"
         }
       },
-      "typeVersion": 2.5
+      "typeVersion": 2.5,
+      "alwaysOutputData": true
     },
     {
       "id": "st-log",
@@ -456,7 +457,7 @@
       ],
       "notes": "Recomputes total_cost from linked repairs on every call, cheap and always correct, rather than trying to track a running total. inspection_completed_at/unit_ready_at only get set the first time their status is reached (CASE preserves the existing value otherwise), so re-advancing doesn't overwrite an earlier real timestamp.",
       "parameters": {
-        "query": "UPDATE traxkey.turns t\nSET status = '{{ $(\"Advance Turn (Webhook)\").first().json.body.newStatus.replace(/'/g, \"''\") }}',\n  inspection_completed_at = CASE WHEN '{{ $(\"Advance Turn (Webhook)\").first().json.body.newStatus }}' = 'repairs_in_progress' AND t.inspection_completed_at IS NULL THEN now() ELSE t.inspection_completed_at END,\n  unit_ready_at = CASE WHEN '{{ $(\"Advance Turn (Webhook)\").first().json.body.newStatus }}' = 'ready' AND t.unit_ready_at IS NULL THEN now() ELSE t.unit_ready_at END,\n  new_resident_id = {{ $(\"Advance Turn (Webhook)\").first().json.body.newResidentId ? \"'\" + $(\"Advance Turn (Webhook)\").first().json.body.newResidentId + \"'\" : 't.new_resident_id' }},\n  total_cost = (SELECT COALESCE(SUM(mr.final_cost), 0) FROM traxkey.maintenance_requests mr WHERE mr.turn_id = t.id)\nFROM traxkey.units u, traxkey.properties p\nWHERE t.id = '{{ $(\"Advance Turn (Webhook)\").first().json.body.turnId }}'\nAND u.id = t.unit_id AND p.id = u.property_id\nAND p.company_id = '{{ $json.company_id }}'\nRETURNING t.id, t.status, t.unit_id;",
+        "query": "UPDATE traxkey.turns t\nSET status = '{{ $(\"Advance Turn (Webhook)\").first().json.body.newStatus.replace(/'/g, \"''\") }}',\n  inspection_completed_at = CASE WHEN '{{ (String($(\"Advance Turn (Webhook)\").first().json.body.newStatus || \"\")).replace(/[^a-zA-Z0-9._:-]/g, \"\") }}' = 'repairs_in_progress' AND t.inspection_completed_at IS NULL THEN now() ELSE t.inspection_completed_at END,\n  unit_ready_at = CASE WHEN '{{ (String($(\"Advance Turn (Webhook)\").first().json.body.newStatus || \"\")).replace(/[^a-zA-Z0-9._:-]/g, \"\") }}' = 'ready' AND t.unit_ready_at IS NULL THEN now() ELSE t.unit_ready_at END,\n  new_resident_id = {{ $(\"Advance Turn (Webhook)\").first().json.body.newResidentId ? \"'\" + String($(\"Advance Turn (Webhook)\").first().json.body.newResidentId).replace(/[^a-zA-Z0-9-]/g, \"\") + \"'\" : 't.new_resident_id' }},\n  total_cost = (SELECT COALESCE(SUM(mr.final_cost), 0) FROM traxkey.maintenance_requests mr WHERE mr.turn_id = t.id)\nFROM traxkey.units u, traxkey.properties p\nWHERE t.id = '{{ (String($(\"Advance Turn (Webhook)\").first().json.body.turnId || \"\")).replace(/[^a-zA-Z0-9._:-]/g, \"\") }}'\nAND u.id = t.unit_id AND p.id = u.property_id\nAND p.company_id = '{{ $json.company_id }}'\nRETURNING t.id, t.status, t.unit_id;",
         "options": {},
         "operation": "executeQuery"
       },
@@ -512,7 +513,7 @@
       ],
       "notes": "Only fires the real UPDATE when the new status is 'occupied'. alwaysOutputData is REQUIRED: with any other status the WHERE matches zero rows, and without this flag the node emits no items and the chain dies before the event ever gets logged.",
       "parameters": {
-        "query": "UPDATE traxkey.units\nSET status = 'occupied'\nWHERE id = '{{ $json.unit_id }}'\nAND '{{ $(\"Advance Turn (Webhook)\").first().json.body.newStatus }}' = 'occupied';",
+        "query": "UPDATE traxkey.units\nSET status = 'occupied'\nWHERE id = '{{ $json.unit_id }}'\nAND '{{ (String($(\"Advance Turn (Webhook)\").first().json.body.newStatus || \"\")).replace(/[^a-zA-Z0-9._:-]/g, \"\") }}' = 'occupied';",
         "options": {},
         "operation": "executeQuery"
       },
@@ -681,7 +682,7 @@
       ],
       "notes": "First property-manager-initiated maintenance_requests row, every prior one came from a tenant/guest via intake or resident-intake. unit_id and company_id are derived from the turn itself, not passed in the body, so this can't be pointed at a unit outside the caller's own turn.",
       "parameters": {
-        "query": "INSERT INTO traxkey.maintenance_requests (company_id, unit_id, turn_id, description, urgency, submitter_name, status)\nSELECT t.company_id, t.unit_id, t.id,\n  '{{ $(\"Create Turn Repair (Webhook)\").first().json.body.description.replace(/'/g, \"''\") }}',\n  '{{ $(\"Create Turn Repair (Webhook)\").first().json.body.urgency || \"routine\" }}',\n  'Property Manager', 'submitted'\nFROM traxkey.turns t\nWHERE t.id = '{{ $(\"Create Turn Repair (Webhook)\").first().json.body.turnId }}'\nAND t.company_id = '{{ $json.company_id }}'\nRETURNING id;",
+        "query": "INSERT INTO traxkey.maintenance_requests (company_id, unit_id, turn_id, description, urgency, submitter_name, status)\nSELECT t.company_id, t.unit_id, t.id,\n  '{{ $(\"Create Turn Repair (Webhook)\").first().json.body.description.replace(/'/g, \"''\") }}',\n  '{{ (String($(\"Create Turn Repair (Webhook)\").first().json.body.urgency || \"routine\")).replace(/[^a-zA-Z0-9._:-]/g, \"\") }}',\n  'Property Manager', 'submitted'\nFROM traxkey.turns t\nWHERE t.id = '{{ (String($(\"Create Turn Repair (Webhook)\").first().json.body.turnId || \"\")).replace(/[^a-zA-Z0-9._:-]/g, \"\") }}'\nAND t.company_id = '{{ $json.company_id }}'\nRETURNING id;",
         "options": {},
         "operation": "executeQuery"
       },

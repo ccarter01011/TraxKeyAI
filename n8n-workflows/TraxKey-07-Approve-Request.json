@@ -102,7 +102,7 @@
       ],
       "notes": "WHERE clause checks company_id AND status = 'awaiting_approval', so this can't approve another company's request, and can't double-approve or approve something that was never paused.",
       "parameters": {
-        "query": "UPDATE traxkey.maintenance_requests\nSET approved_by = '{{ $json.user_id }}', approved_at = now(), status = 'assigned'\nWHERE id = '{{ $(\"Approve Request (Webhook)\").first().json.body.requestId }}'\nAND company_id = '{{ $json.company_id }}'\nAND status = 'awaiting_approval'\nRETURNING id;",
+        "query": "UPDATE traxkey.maintenance_requests\nSET approved_by = '{{ $json.user_id }}', approved_at = now(), status = 'assigned'\nWHERE id = '{{ (String($(\"Approve Request (Webhook)\").first().json.body.requestId || \"\")).replace(/[^a-zA-Z0-9._:-]/g, \"\") }}'\nAND company_id = '{{ $json.company_id }}'\nAND status = 'awaiting_approval'\nRETURNING id;",
         "options": {},
         "operation": "executeQuery"
       },
