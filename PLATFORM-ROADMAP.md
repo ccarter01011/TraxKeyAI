@@ -36,6 +36,7 @@ approval where money or reputation is at stake.
 | 14 | **Tenant logins (LTR only)** | ⏭️ planned | Long-term |
 | 15 | **Resident & Guest Comms (email)** | ✅ built 2026-08-14 | Both |
 | 16 | **SMS notifications** | ⏭️ next week 2026-08-21 | Both |
+| 17 | **Portfolio Insights** | 📋 spec'd | Both |
 
 ---
 
@@ -232,6 +233,63 @@ truncation since the email bodies are too long for SMS.
 **Constraint:** SMS to a resident who never opted in is a legal problem in
 several jurisdictions, not just an annoyance. Opt-in must be explicit and
 recorded, and every message needs a STOP path.
+
+---
+
+## Portfolio Insights — SPEC
+
+The completion of Business Memory. That feature stores the rules an operator
+sets; this one surfaces the patterns they have not noticed.
+
+### The shape it must NOT take
+
+A "Reports" page. Every competitor has one and they are all ignored, because
+a report is something you go look at and interpret, which is work added
+rather than removed. TraxKey's whole argument is that it does the noticing.
+
+### Three rules
+
+1. **Every number is deterministic SQL.** The LLM only narrates. Same split
+   as everywhere else in this system.
+2. **No metric without a decision attached.** "Occupancy 94%" is trivia.
+   "Unit 12 is $300 under market and its lease ends in 34 days" is money.
+   If a number does not imply an action, it does not ship.
+3. **It feeds the concierge, it does not live in a silo.** The best outcome
+   is a morning briefing saying "your HVAC vendor has gotten 40% slower since
+   June" and the operator never opening an insights page at all. The page is
+   the archive; the briefing is the product.
+
+### The questions it answers
+
+Chosen specifically because they are unanswerable in a split LTR/STR stack,
+which is exactly the gap TraxKey exists to fill:
+
+| Question | Needs |
+|---|---|
+| Which unit costs most per month, and is it the unit or the tenant? | maintenance_requests + units + residents |
+| When did a vendor start slowing down? | vendor_performance over time |
+| Am I losing more to vacancy or to maintenance on this property? | turns + maintenance_requests |
+| Do same-day turnarounds fail readiness checks more often? | bookings + turns + readiness |
+| Which units generate repeat requests for the same trade? | maintenance_requests grouped |
+| Is a lease under market for its unit type? | leases across the portfolio |
+
+The fourth needs the booking calendar and the maintenance engine in one
+system. No competitor can answer it, which makes it the one worth leading on.
+
+### Schema
+
+`vendor_performance` is a rolling snapshot with no history, so "when did this
+start" cannot be answered today. Needs `vendor_performance_history`
+(vendor_id, captured_at, jobs_completed, avg_response_hours, avg_cost,
+completion_rate, avg_rating), appended by the worker weekly. Everything else
+is derivable from existing tables.
+
+### Hard constraint
+
+An insight is an observation, never an action. The AI may say "you approve
+HVAC over threshold nine times out of ten, want to raise the limit?" but
+never raises it. Same rule as Business Memory: nothing silently changes the
+system's own risk posture.
 
 ---
 
