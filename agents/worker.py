@@ -26,6 +26,9 @@ from insights import get_insights, snapshot_vendor_performance
 from ordered_items import list_items, create as create_item, set_status as set_item_status
 from str_ops import (list_supplies, upsert_supply, delete_supply,
                      list_damage, record_damage, set_claim_status)
+from owner_portal import (login as owner_login, validate as owner_validate,
+                          get_dashboard as owner_dashboard, set_password as owner_set_password,
+                          list_owners, create_owner, assign_property)
 from concierge import validate_session
 from concierge import get_briefing
 from admin_concierge import get_admin_briefing
@@ -69,7 +72,8 @@ class HealthHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         route = self.path.split("?")[0]
-        if route not in ("/chat", "/tenant-chat", "/sample-data", "/ordered-items", "/supplies", "/damage"):
+        if route not in ("/chat", "/tenant-chat", "/sample-data", "/ordered-items",
+                         "/supplies", "/damage", "/owner-login", "/owner-access", "/owners"):
             self._json(404, {"error": "Not found"})
             return
         try:
@@ -84,6 +88,47 @@ class HealthHandler(BaseHTTPRequestHandler):
 
         # Behind Railway's proxy, the real client IP is in the forwarded header.
         ip = (self.headers.get("X-Forwarded-For") or self.client_address[0] or "unknown").split(",")[0].strip()
+
+        if route == "/owner-login":
+            # Public: this IS the login. Deliberately returns the same
+            # message for unknown email and wrong password, so it cannot be
+            # used to discover which owners have portal access.
+            result = owner_login(payload.get("email", ""), payload.get("password", ""))
+            if not result:
+                self._json(401, {"error": "Invalid email or password"})
+                return
+            self._json(200, result)
+            return
+
+        if route == "/owners":
+            token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
+            company_id = validate_session(token)
+            if not company_id:
+                self._json(401, {"error": "Unauthorized"})
+                return
+            try:
+                action = payload.get("action")
+                if action == "assign":
+                    result = assign_property(company_id, payload.get("propertyId", ""), payload.get("ownerId", ""))
+                else:
+                    result = create_owner(company_id, payload)
+            except Exception:
+                traceback.print_exc()
+                self._json(500, {"error": "Could not save that"})
+                return
+            self._json(200 if result.get("ok") else 400, result)
+            return
+
+        if route == "/owner-access":
+            # Manager-side, scoped to their own company.
+            token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
+            company_id = validate_session(token)
+            if not company_id:
+                self._json(401, {"error": "Unauthorized"})
+                return
+            result = owner_set_password(company_id, payload.get("ownerId", ""), payload.get("password", ""))
+            self._json(200 if result.get("ok") else 400, result)
+            return
 
         if route in ("/supplies", "/damage"):
             token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
@@ -169,6 +214,52 @@ class HealthHandler(BaseHTTPRequestHandler):
                 self._json(401, {"error": "Unauthorized"})
                 return
             self._json(200, result)
+            return
+
+        if self.path.split("?")[0] == "/owners":
+            company_id = validate_session(self.headers.get("Authorization", "").replace("Bearer ", "").strip())
+            if not company_id:
+                self._json(401, {"error": "Unauthorized"})
+                return
+            try:
+                rows = list_owners(company_id)
+                for r in rows:
+                    r["id"] = str(r["id"])
+                self._json(200, {"owners": rows})
+            except Exception:
+                traceback.print_exc()
+                self._json(500, {"error": "Could not load owners"})
+            return
+
+        if self.path.split("?")[0] == "/owner-dashboard":
+            # Owner sessions are a separate principal from operator sessions
+            # and never interchangeable.
+            owner_id = owner_validate(self.headers.get("Authorization", "").replace("Bearer ", "").strip())
+            if not owner_id:
+                self._json(401, {"error": "Unauthorized"})
+                return
+            try:
+                data = owner_dashboard(owner_id)
+                def clean(o):
+                    if isinstance(o, list):
+                        return [clean(x) for x in o]
+                    if isinstance(o, dict):
+                        out = {}
+                        for k, v in o.items():
+                            if hasattr(v, "isoformat"):
+                                out[k] = v.isoformat()
+                            elif hasattr(v, "quantize"):
+                                out[k] = float(v)
+                            elif isinstance(v, (list, dict)):
+                                out[k] = clean(v)
+                            else:
+                                out[k] = str(v) if k in ("id",) else v
+                        return out
+                    return o
+                self._json(200, clean(data))
+            except Exception:
+                traceback.print_exc()
+                self._json(500, {"error": "Could not load your dashboard"})
             return
 
         if self.path.split("?")[0] in ("/supplies", "/damage"):

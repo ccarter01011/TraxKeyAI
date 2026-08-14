@@ -1,0 +1,6 @@
+{
+  "name": "traxkey-owner-portal",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": { "start": "npx --yes serve . -l ${PORT:-3000}" }
+}

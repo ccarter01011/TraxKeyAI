@@ -428,3 +428,32 @@ The payoff is one insight that needs both halves of TraxKey:
 A procurement tool knows the item is late. A property tool knows the turn is
 due. Only a system holding both knows the late item is *why* the unit will
 not be ready.
+
+---
+
+## Owner portal
+
+The fifth auth principal. Read-only, scoped one level tighter than everywhere
+else in the platform: not to a company, but to one owner *inside* a company.
+Two owners paying the same manager must never see each other's properties.
+
+1. Manager adds an owner and assigns properties to them (Owners page).
+2. Manager sets a password to enable access. Off by default, exactly like
+   vendors, so an owner never has portal access until the manager decides.
+3. Owner signs in at the owner portal (separate domain, separate session
+   table, `owner_sessions`, never shared with users/vendors/admins/residents).
+4. They see: occupancy, maintenance spend over the last 12 months, recent
+   work with vendor names, and any unit currently mid-turn. All queries join
+   through `properties.owner_id`, never through `company_id` alone, which is
+   what keeps two owners of the same manager apart.
+
+**Deliberately read-only.** An owner can see, not act. Approving spend,
+editing a lease, or messaging a tenant is what the manager is paid to do.
+
+**Deliberately withheld:** resident names and contact details. That
+relationship belongs to the manager, not the owner.
+
+Verified before shipping: two owners in the same company see completely
+disjoint property lists (zero overlap), a wrong password is rejected, a
+forged token is rejected, and enabling access for an owner in a different
+company is refused by the SQL itself, not just the application layer.

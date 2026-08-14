@@ -268,6 +268,10 @@ export default function DashboardPage() {
             blurb="Invite each resident or short-term guest with their own reporting link."
           />
           <Tile
+            to="/owners" title="Owners"
+            blurb="If you manage for other people, give them a read-only view of their own properties."
+          />
+          <Tile
             to="/leases" title="Leases"
             blurb="Terms, rent, and renewal dates. Flagged 90 days before they end."
             badge={c.expiring ? `${c.expiring} need a decision` : null}
