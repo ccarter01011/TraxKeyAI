@@ -361,3 +361,70 @@ contacted residents at all; that copy now says what the system actually does.
 Addresses on reserved documentation domains (`example.com` and friends) are
 skipped, the seeded demo data uses them and mailing them every pass would
 bounce and cost real sender reputation.
+
+---
+
+## Unified calendar
+
+Rows are units, columns are days, which is the multi-calendar shape every
+STR platform uses. An operator scans down a column to see one day across the
+whole portfolio.
+
+What no competitor's calendar does is put long-term units on the same grid,
+because their products only know about bookings. Here:
+
+- **Short-term rows** draw guest bookings from synced Airbnb/Vrbo feeds.
+  Owner blocks are kept and shown grey rather than filtered out, an operator
+  needs to know *why* a night is unavailable, not just that it is.
+- **Long-term rows** draw the active lease as one continuous bar with a
+  marker on its end date.
+- **Turn deadlines** appear as an amber dot on the day the unit must be ready.
+
+A booking covers check-in up to but not including checkout, because that is
+how nights work: a guest leaving on the 5th does not occupy the night of the
+5th, and that night is sellable.
+
+Served by `agents/calendar_view.py` (`GET /calendar`), one query per concern
+assembled in Python. A single join across bookings, turns and leases would
+multiply rows against each other.
+
+---
+
+## Portfolio Insights
+
+Five detectors, all deterministic SQL, no LLM anywhere:
+
+| Detector | Fires when |
+|---|---|
+| Late item blocking a turn | An ordered item is past its expected date and its turn has a deadline |
+| Under-average rent | An active lease is 10%+ below the portfolio average for that bedroom count, ending within 120 days |
+| Vendor slowdown | Response time grew 1.4x against a baseline at least 21 days old |
+| Repeat issue | 3+ requests of the same trade on one unit in 180 days |
+| Same-day turn pressure | Same-day turnarounds finish late more often than multi-day ones |
+
+The thresholds exist so a bad week is not mistaken for a trend. Showing
+nothing is better than showing a pattern that is not real.
+
+**"Under-average", never "under-market".** We have no market data. The honest
+claim is that a unit is below the operator's own average for that size, which
+is still actionable at renewal.
+
+**An insight is an observation, never an action.** Nothing in `insights.py`
+writes to a table the coordinator reads, and nothing changes a setting. It
+can say a vendor has slowed down; it will never switch vendors.
+
+---
+
+## Ordered items
+
+The narrow half of TraxSail's PO tracking: an item, an expected date, and
+what it blocks. Not procurement, no terms, approvals, catalogue or invoices.
+
+The payoff is one insight that needs both halves of TraxKey:
+
+> "Vinyl plank flooring is 5 days late from FloorSource, and the turn at Oak
+> Block Unit 4B is due in 2 days."
+
+A procurement tool knows the item is late. A property tool knows the turn is
+due. Only a system holding both knows the late item is *why* the unit will
+not be ready.

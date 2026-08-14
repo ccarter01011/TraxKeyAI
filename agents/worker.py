@@ -21,6 +21,8 @@ from lease_agent import run_lease_agent
 from lead_followup import run_lead_followup
 from resident_notify import run_resident_notifications
 from sample_data import seed as seed_sample, remove as remove_sample, has_sample
+from calendar_view import get_calendar
+from insights import get_insights, snapshot_vendor_performance
 from concierge import validate_session
 from concierge import get_briefing
 from admin_concierge import get_admin_briefing
@@ -126,6 +128,32 @@ class HealthHandler(BaseHTTPRequestHandler):
             self._json(200, result)
             return
 
+        if self.path.split("?")[0] == "/insights":
+            token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
+            company_id = validate_session(token)
+            if not company_id:
+                self._json(401, {"error": "Unauthorized"})
+                return
+            try:
+                self._json(200, get_insights(company_id))
+            except Exception:
+                traceback.print_exc()
+                self._json(500, {"error": "Could not load insights"})
+            return
+
+        if self.path.split("?")[0] == "/calendar":
+            token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
+            company_id = validate_session(token)
+            if not company_id:
+                self._json(401, {"error": "Unauthorized"})
+                return
+            try:
+                self._json(200, get_calendar(company_id))
+            except Exception:
+                traceback.print_exc()
+                self._json(500, {"error": "Could not load the calendar"})
+            return
+
         if self.path.split("?")[0] == "/concierge":
             token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
             try:
@@ -202,6 +230,12 @@ if __name__ == "__main__":
                 traceback.print_exc()
             try:
                 run_lead_followup()
+            except Exception:
+                traceback.print_exc()
+            # Append-only daily snapshot. Idempotent per day, so running it
+            # hourly is harmless and it survives a worker restart.
+            try:
+                snapshot_vendor_performance()
             except Exception:
                 traceback.print_exc()
             # Set even on failure, so a persistently broken feed can't turn

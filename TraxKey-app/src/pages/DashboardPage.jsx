@@ -227,6 +227,10 @@ export default function DashboardPage() {
             prime position for years. Daily work belongs at the top. */}
         <Section label="Daily operations" hint="what you touch most">
           <Tile
+            to="/calendar" title="Calendar"
+            blurb="Every unit on one timeline. Guest bookings, owner blocks, leases, and turn deadlines together."
+          />
+          <Tile
             to="/activity" title="AI Activity"
             blurb="Every request and every step the AI Coordinator took on it."
             badge={c.needsYou ? `${c.needsYou} need you` : null}
@@ -247,6 +251,10 @@ export default function DashboardPage() {
         </Section>
 
         <Section label="Portfolio records" hint="changes now and then">
+          <Tile
+            to="/insights" title="Insights"
+            blurb="Patterns in your own data: vendors slowing down, units that keep breaking, rents below your average."
+          />
           <Tile
             to="/properties" title="Properties &amp; units"
             blurb="Your properties and units, what TraxKey AI's agents monitor and act on."
