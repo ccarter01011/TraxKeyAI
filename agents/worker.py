@@ -23,6 +23,9 @@ from resident_notify import run_resident_notifications
 from sample_data import seed as seed_sample, remove as remove_sample, has_sample
 from calendar_view import get_calendar
 from insights import get_insights, snapshot_vendor_performance
+from ordered_items import list_items, create as create_item, set_status as set_item_status
+from str_ops import (list_supplies, upsert_supply, delete_supply,
+                     list_damage, record_damage, set_claim_status)
 from concierge import validate_session
 from concierge import get_briefing
 from admin_concierge import get_admin_briefing
@@ -66,7 +69,7 @@ class HealthHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         route = self.path.split("?")[0]
-        if route not in ("/chat", "/tenant-chat", "/sample-data"):
+        if route not in ("/chat", "/tenant-chat", "/sample-data", "/ordered-items", "/supplies", "/damage"):
             self._json(404, {"error": "Not found"})
             return
         try:
@@ -81,6 +84,46 @@ class HealthHandler(BaseHTTPRequestHandler):
 
         # Behind Railway's proxy, the real client IP is in the forwarded header.
         ip = (self.headers.get("X-Forwarded-For") or self.client_address[0] or "unknown").split(",")[0].strip()
+
+        if route in ("/supplies", "/damage"):
+            token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
+            company_id = validate_session(token)
+            if not company_id:
+                self._json(401, {"error": "Unauthorized"})
+                return
+            try:
+                if route == "/supplies":
+                    result = (delete_supply(company_id, payload.get("supplyId", ""))
+                              if payload.get("action") == "delete"
+                              else upsert_supply(company_id, payload))
+                else:
+                    result = (set_claim_status(company_id, payload.get("damageId", ""), payload.get("status", ""))
+                              if payload.get("action") == "status"
+                              else record_damage(company_id, payload))
+            except Exception:
+                traceback.print_exc()
+                self._json(500, {"error": "Could not save that"})
+                return
+            self._json(200 if result.get("ok") else 400, result)
+            return
+
+        if route == "/ordered-items":
+            token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
+            company_id = validate_session(token)
+            if not company_id:
+                self._json(401, {"error": "Unauthorized"})
+                return
+            try:
+                if payload.get("action") == "status":
+                    result = set_item_status(company_id, payload.get("itemId", ""), payload.get("status", ""))
+                else:
+                    result = create_item(company_id, payload)
+            except Exception:
+                traceback.print_exc()
+                self._json(500, {"error": "Could not update that item"})
+                return
+            self._json(200 if result.get("ok") else 400, result)
+            return
 
         if route == "/sample-data":
             # Session-scoped: sample data can only ever be created or removed
@@ -126,6 +169,53 @@ class HealthHandler(BaseHTTPRequestHandler):
                 self._json(401, {"error": "Unauthorized"})
                 return
             self._json(200, result)
+            return
+
+        if self.path.split("?")[0] in ("/supplies", "/damage"):
+            token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
+            company_id = validate_session(token)
+            if not company_id:
+                self._json(401, {"error": "Unauthorized"})
+                return
+            try:
+                rows = (list_supplies(company_id) if self.path.split("?")[0] == "/supplies"
+                        else list_damage(company_id))
+                for r in rows:
+                    for k, v in list(r.items()):
+                        if hasattr(v, "isoformat"):
+                            r[k] = v.isoformat()
+                    r["id"] = str(r["id"])
+                    if r.get("unit_id"):
+                        r["unit_id"] = str(r["unit_id"])
+                    if r.get("estimated_cost") is not None:
+                        r["estimated_cost"] = float(r["estimated_cost"])
+                self._json(200, {"rows": rows})
+            except Exception:
+                traceback.print_exc()
+                self._json(500, {"error": "Could not load"})
+            return
+
+        if self.path.split("?")[0] == "/ordered-items":
+            token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
+            company_id = validate_session(token)
+            if not company_id:
+                self._json(401, {"error": "Unauthorized"})
+                return
+            try:
+                items = list_items(company_id)
+                for i in items:
+                    for k, v in list(i.items()):
+                        if hasattr(v, "isoformat"):
+                            i[k] = v.isoformat()
+                        elif hasattr(v, "hex") and k == "id":
+                            i[k] = str(v)
+                    i["id"] = str(i["id"])
+                    if i.get("cost") is not None:
+                        i["cost"] = float(i["cost"])
+                self._json(200, {"items": items})
+            except Exception:
+                traceback.print_exc()
+                self._json(500, {"error": "Could not load ordered items"})
             return
 
         if self.path.split("?")[0] == "/insights":

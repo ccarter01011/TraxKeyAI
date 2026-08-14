@@ -243,6 +243,10 @@ export default function DashboardPage() {
             tone={c.dueToday ? 'urgent' : 'attention'}
           />
           <Tile
+            to="/orders" title="Orders"
+            blurb="Parts and materials a job is waiting on. Flagged when late, and when late means a turn will slip."
+          />
+          <Tile
             to="/inspections" title="Inspections"
             blurb="Move-in and move-out condition records, and what changed between them."
             badge={c.openInspections ? `${c.openInspections} in progress` : null}
@@ -276,6 +280,11 @@ export default function DashboardPage() {
             to="/vendors" title="Vendors"
             blurb="The network the AI dispatches to, ranked by their real job history."
           />
+          <Tile
+            to="/str-ops" title="Supplies &amp; damage"
+            blurb="Consumables per unit with reorder levels, and checkout damage tied to the stay it happened during."
+          />
+
           <Tile
             to="/calendars" title="Booking calendars"
             blurb="Sync Airbnb or Vrbo so the AI knows when a guest is actually in the unit."

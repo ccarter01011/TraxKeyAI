@@ -86,3 +86,62 @@ def blocking_insights(company_id):
                 "action": "Chase the supplier, or plan the turn around it.",
             })
         return out
+
+
+def create(company_id, body):
+    """Add an ordered item. Tenant-scoped: unit and turn must belong to the
+    caller's company, checked in SQL rather than trusted from the client."""
+    desc = (body.get("description") or "").strip()
+    if not desc:
+        return {"ok": False, "error": "Describe what was ordered."}
+
+    with db() as conn, conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO traxkey.ordered_items
+              (company_id, description, supplier, reference, cost, expected_on, unit_id, turn_id, notes)
+            SELECT %(c)s, %(desc)s,
+                   NULLIF(%(sup)s, ''), NULLIF(%(ref)s, ''),
+                   NULLIF(%(cost)s, '')::numeric,
+                   NULLIF(%(exp)s, '')::date,
+                   u.id, t.id,
+                   NULLIF(%(notes)s, '')
+            FROM (SELECT 1) x
+            LEFT JOIN traxkey.units u
+              ON u.id = NULLIF(%(unit)s, '')::uuid
+             AND EXISTS (SELECT 1 FROM traxkey.properties p
+                          WHERE p.id = u.property_id AND p.company_id = %(c)s)
+            LEFT JOIN traxkey.turns t
+              ON t.id = NULLIF(%(turn)s, '')::uuid AND t.company_id = %(c)s
+            RETURNING id
+            """,
+            {"c": company_id, "desc": desc,
+             "sup": (body.get("supplier") or "").strip(),
+             "ref": (body.get("reference") or "").strip(),
+             "cost": str(body.get("cost") or "").strip(),
+             "exp": (body.get("expectedOn") or "").strip(),
+             "unit": (body.get("unitId") or "").strip(),
+             "turn": (body.get("turnId") or "").strip(),
+             "notes": (body.get("notes") or "").strip()},
+        )
+        row = cur.fetchone()
+    return {"ok": True, "id": str(row["id"])} if row else {"ok": False, "error": "Could not save that."}
+
+
+def set_status(company_id, item_id, status):
+    if status not in ("received", "cancelled", "ordered"):
+        return {"ok": False, "error": "Unknown status."}
+    with db() as conn, conn.cursor() as cur:
+        cur.execute(
+            """
+            UPDATE traxkey.ordered_items
+            SET status = %s,
+                received_on = CASE WHEN %s = 'received' THEN CURRENT_DATE ELSE NULL END,
+                updated_at = now()
+            WHERE id = %s::uuid AND company_id = %s
+            RETURNING id
+            """,
+            (status, status, item_id, company_id),
+        )
+        row = cur.fetchone()
+    return {"ok": True} if row else {"ok": False, "error": "Not found."}

@@ -17,6 +17,8 @@ import BusinessMemoryPage from './pages/BusinessMemoryPage.jsx';
 import InspectionsPage from './pages/InspectionsPage.jsx';
 import CalendarPage from './pages/CalendarPage.jsx';
 import InsightsPage from './pages/InsightsPage.jsx';
+import OrderedItemsPage from './pages/OrderedItemsPage.jsx';
+import StrOpsPage from './pages/StrOpsPage.jsx';
 import AdminLoginPage from './pages/AdminLoginPage.jsx';
 import AdminDashboardPage from './pages/AdminDashboardPage.jsx';
 import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx';
@@ -50,6 +52,8 @@ function App() {
           <Route path="/inspections" element={<RequireAuth><InspectionsPage /></RequireAuth>} />
           <Route path="/calendar" element={<RequireAuth><CalendarPage /></RequireAuth>} />
           <Route path="/insights" element={<RequireAuth><InsightsPage /></RequireAuth>} />
+          <Route path="/orders" element={<RequireAuth><OrderedItemsPage /></RequireAuth>} />
+          <Route path="/str-ops" element={<RequireAuth><StrOpsPage /></RequireAuth>} />
           <Route path="/admin/login" element={<AdminLoginPage />} />
           <Route path="/admin" element={<AdminDashboardPage />} />
           <Route path="/activity" element={<RequireAuth><ActivityPage /></RequireAuth>} />

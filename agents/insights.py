@@ -20,6 +20,7 @@ setting, and nothing here writes to a table the coordinator reads.
 
 from db import db
 from ordered_items import blocking_insights
+from str_ops import low_supply_insights
 
 # A vendor whose response time grew by at least this much, against a
 # baseline at least this old, is worth flagging. Below this it is noise.
@@ -196,6 +197,7 @@ def get_insights(company_id):
     with db() as conn, conn.cursor() as cur:
         found = (
             blocking_insights(company_id)
+            + low_supply_insights(company_id)
             + _vendor_slowdowns(cur, company_id)
             + _under_market_leases(cur, company_id)
             + _repeat_offenders(cur, company_id)
