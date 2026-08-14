@@ -268,3 +268,80 @@ def assign_property(company_id, property_id, owner_id):
     if (owner_id or "").strip() and not row["owner_id"]:
         return {"ok": False, "error": "That owner was not found."}
     return {"ok": True}
+
+
+# ------------------------------------------------------------ password reset
+
+RESET_TOKEN_HOURS = 1
+
+
+def request_reset(email):
+    """Always returns ok, whether or not the email matches an owner. That is
+    deliberate: a different response for 'not found' vs 'found' would let
+    someone enumerate which emails have portal access."""
+    email = (email or "").strip().lower()
+    if not email:
+        return {"ok": True}
+    with db() as conn, conn.cursor() as cur:
+        cur.execute(
+            "SELECT id, name FROM traxkey.owners WHERE lower(email) = %s AND portal_enabled",
+            (email,),
+        )
+        row = cur.fetchone()
+        if not row:
+            return {"ok": True}
+
+        token = secrets.token_hex(24)
+        cur.execute(
+            """
+            UPDATE traxkey.owners
+            SET reset_token = %s, reset_token_expires_at = %s
+            WHERE id = %s
+            """,
+            (token, datetime.now(timezone.utc) + timedelta(hours=RESET_TOKEN_HOURS), row["id"]),
+        )
+    return {"ok": True, "token": token, "name": row["name"], "email": email}
+
+
+def reset_password(token, new_password):
+    if not new_password or len(new_password) < 8:
+        return {"ok": False, "error": "Use at least 8 characters."}
+    with db() as conn, conn.cursor() as cur:
+        cur.execute(
+            """
+            UPDATE traxkey.owners
+            SET password_hash = crypt(%s, gen_salt('bf')),
+                reset_token = NULL, reset_token_expires_at = NULL
+            WHERE reset_token = %s AND reset_token_expires_at > now()
+            RETURNING id
+            """,
+            (new_password, token),
+        )
+        row = cur.fetchone()
+    if not row:
+        return {"ok": False, "error": "That reset link is invalid or has expired."}
+    return {"ok": True}
+
+
+def send_reset_email(name, email, token):
+    import os
+    import requests
+
+    api_key = os.environ.get("RESEND_API_KEY")
+    if not api_key:
+        return
+    from_addr = os.environ.get("NOTIFY_FROM_ADDRESS", "dispatch@notify.traxkey.ai")
+    first = (name or "").split(" ")[0] or "there"
+    html = f"""<div style="font-family: Arial, sans-serif; font-size:14px; color:#1e293b;">
+<p>Hi {first},</p>
+<p>Click below to reset your TraxKey owner portal password. This link expires in 1 hour.</p>
+<p><a href="https://owners.traxkey.ai/?reset={token}">Reset password</a></p>
+<p style="font-size:11px;color:#94a3b8;margin-top:24px;">Didn't request this? You can ignore this email.</p>
+</div>"""
+    requests.post(
+        "https://api.resend.com/emails",
+        headers={"Authorization": f"Bearer {api_key}"},
+        json={"from": f"TraxKey AI <{from_addr}>", "to": email,
+              "subject": "Reset your TraxKey owner portal password", "html": html},
+        timeout=10,
+    )

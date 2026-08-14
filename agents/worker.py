@@ -28,7 +28,9 @@ from str_ops import (list_supplies, upsert_supply, delete_supply,
                      list_damage, record_damage, set_claim_status)
 from owner_portal import (login as owner_login, validate as owner_validate,
                           get_dashboard as owner_dashboard, set_password as owner_set_password,
-                          list_owners, create_owner, assign_property)
+                          list_owners, create_owner, assign_property,
+                          request_reset as owner_request_reset, reset_password as owner_reset_password,
+                          send_reset_email as owner_send_reset_email)
 from concierge import validate_session
 from concierge import get_briefing
 from admin_concierge import get_admin_briefing
@@ -73,7 +75,8 @@ class HealthHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         route = self.path.split("?")[0]
         if route not in ("/chat", "/tenant-chat", "/sample-data", "/ordered-items",
-                         "/supplies", "/damage", "/owner-login", "/owner-access", "/owners"):
+                         "/supplies", "/damage", "/owner-login", "/owner-access", "/owners",
+                         "/owner-forgot-password", "/owner-reset-password"):
             self._json(404, {"error": "Not found"})
             return
         try:
@@ -88,6 +91,21 @@ class HealthHandler(BaseHTTPRequestHandler):
 
         # Behind Railway's proxy, the real client IP is in the forwarded header.
         ip = (self.headers.get("X-Forwarded-For") or self.client_address[0] or "unknown").split(",")[0].strip()
+
+        if route == "/owner-forgot-password":
+            result = owner_request_reset(payload.get("email", ""))
+            if result.get("token"):
+                try:
+                    owner_send_reset_email(result.get("name"), result.get("email"), result["token"])
+                except Exception:
+                    traceback.print_exc()
+            self._json(200, {"ok": True})
+            return
+
+        if route == "/owner-reset-password":
+            result = owner_reset_password(payload.get("token", ""), payload.get("password", ""))
+            self._json(200 if result.get("ok") else 400, result)
+            return
 
         if route == "/owner-login":
             # Public: this IS the login. Deliberately returns the same

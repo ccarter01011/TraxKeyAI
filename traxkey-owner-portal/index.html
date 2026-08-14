@@ -29,6 +29,29 @@
       <input required id="password" type="password" placeholder="Password" class="w-full bg-slate-900 border border-white/10 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-teal-400" />
       <p id="login-error" class="hidden text-sm text-red-400"></p>
       <button id="login-btn" type="submit" class="w-full bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold py-3 rounded-xl transition">Sign in</button>
+      <button type="button" onclick="showForgot()" class="w-full text-xs text-slate-500 hover:text-slate-300 transition py-1">Forgot your password?</button>
+    </form>
+  </div>
+
+  <!-- FORGOT -->
+  <div id="forgot" class="hidden max-w-sm">
+    <h1 class="text-xl font-bold mb-2">Reset your password</h1>
+    <p class="text-sm text-slate-400 mb-6">We'll email you a link if that address has portal access.</p>
+    <form onsubmit="return doForgot(event)" class="space-y-3">
+      <input required id="forgot-email" type="email" placeholder="Email" class="w-full bg-slate-900 border border-white/10 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-teal-400" />
+      <button id="forgot-btn" type="submit" class="w-full bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold py-3 rounded-xl transition">Send reset link</button>
+      <button type="button" onclick="show('login')" class="w-full text-xs text-slate-500 hover:text-slate-300 transition py-1">Back to sign in</button>
+    </form>
+    <p id="forgot-msg" class="hidden text-sm text-teal-400 mt-3"></p>
+  </div>
+
+  <!-- RESET -->
+  <div id="reset" class="hidden max-w-sm">
+    <h1 class="text-xl font-bold mb-2">Choose a new password</h1>
+    <form onsubmit="return doReset(event)" class="space-y-3">
+      <input required minlength="8" id="reset-password" type="password" placeholder="New password (8+ characters)" class="w-full bg-slate-900 border border-white/10 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-teal-400" />
+      <p id="reset-error" class="hidden text-sm text-red-400"></p>
+      <button id="reset-btn" type="submit" class="w-full bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold py-3 rounded-xl transition">Set password</button>
     </form>
   </div>
 
@@ -78,8 +101,48 @@ var API = 'https://langgraph-production-42ef.up.railway.app';
 var KEY = 'tk_owner_token';
 
 function show(id) {
-  ['login','dash'].forEach(function (x) { document.getElementById(x).classList.add('hidden'); });
+  ['login','forgot','reset','dash'].forEach(function (x) { document.getElementById(x).classList.add('hidden'); });
   document.getElementById(id).classList.remove('hidden');
+}
+function showForgot() { show('forgot'); }
+
+async function doForgot(e) {
+  e.preventDefault();
+  var btn = document.getElementById('forgot-btn');
+  btn.disabled = true; btn.textContent = 'Sending…';
+  try {
+    await fetch(API + '/owner-forgot-password', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: document.getElementById('forgot-email').value })
+    });
+  } catch (ex) {}
+  document.getElementById('forgot-msg').textContent = 'If that email has portal access, a reset link is on its way.';
+  document.getElementById('forgot-msg').classList.remove('hidden');
+  btn.disabled = false; btn.textContent = 'Send reset link';
+  return false;
+}
+
+async function doReset(e) {
+  e.preventDefault();
+  var btn = document.getElementById('reset-btn');
+  var err = document.getElementById('reset-error');
+  err.classList.add('hidden');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  var params = new URLSearchParams(window.location.search);
+  try {
+    var res = await fetch(API + '/owner-reset-password', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: params.get('reset'), password: document.getElementById('reset-password').value })
+    });
+    var j = await res.json().catch(function () { return {}; });
+    if (!res.ok) throw new Error(j.error || 'Could not reset your password');
+    window.history.replaceState({}, '', window.location.pathname);
+    show('login');
+  } catch (ex) {
+    err.textContent = ex.message; err.classList.remove('hidden');
+    btn.disabled = false; btn.textContent = 'Set password';
+  }
+  return false;
 }
 
 function money(n) { return '$' + Math.round(Number(n || 0)).toLocaleString(); }
@@ -112,6 +175,8 @@ async function doLogin(e) {
 function logout() { localStorage.removeItem(KEY); show('login'); }
 
 async function load() {
+  var params = new URLSearchParams(window.location.search);
+  if (params.get('reset')) { show('reset'); return; }
   var token = localStorage.getItem(KEY);
   if (!token) { show('login'); return; }
   var res = await fetch(API + '/owner-dashboard', { headers: { Authorization: 'Bearer ' + token } });
