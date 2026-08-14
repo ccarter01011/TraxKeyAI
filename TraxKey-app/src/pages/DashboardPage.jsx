@@ -75,6 +75,11 @@ export default function DashboardPage() {
           <p className="text-sm text-slate-500 dark:text-slate-400">Terms, rent, and renewal dates. TraxKey flags every lease 90 days before it ends.</p>
         </Link>
 
+        <Link to="/inspections" className="block bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl p-6 hover:border-teal-400/50 dark:hover:border-teal-400/30 transition mb-4">
+          <p className="font-bold mb-1">Inspections →</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Move-in and move-out condition records. See exactly what changed between them.</p>
+        </Link>
+
         <Link to="/business-memory" className="block bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl p-6 hover:border-teal-400/50 dark:hover:border-teal-400/30 transition mb-4">
           <p className="font-bold mb-1">Business Memory →</p>
           <p className="text-sm text-slate-500 dark:text-slate-400">Rules the AI follows: approval limits, quiet hours, preferred vendors, scoped as broad or narrow as you need.</p>

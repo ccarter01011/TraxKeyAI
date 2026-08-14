@@ -1,0 +1,868 @@
+{
+  "name": "TraxKey-17-Inspections",
+  "nodes": [
+    {
+      "id": "traxkey-get-inspections",
+      "name": "Inspections (Webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        -320,
+        32
+      ],
+      "typeVersion": 2,
+      "webhookId": "traxkey-get-inspections",
+      "parameters": {
+        "path": "traxkey-get-inspections",
+        "options": {
+          "allowedOrigins": "*"
+        },
+        "httpMethod": "GET",
+        "responseMode": "responseNode"
+      }
+    },
+    {
+      "id": "validate-session-(inspections)",
+      "name": "Validate Session (Inspections)",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        -96,
+        32
+      ],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "parameters": {
+        "query": "SELECT company_id FROM traxkey.sessions WHERE token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\") }}' AND expires_at > now();",
+        "options": {},
+        "operation": "executeQuery"
+      }
+    },
+    {
+      "id": "session-valid?-(inspections)",
+      "name": "Session Valid? (Inspections)",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        128,
+        32
+      ],
+      "typeVersion": 2,
+      "parameters": {
+        "options": {},
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c1",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json.company_id }}",
+              "rightValue": ""
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "respond:-inspections-unauthorized",
+      "name": "Respond: Inspections Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        352,
+        182
+      ],
+      "typeVersion": 1,
+      "parameters": {
+        "options": {
+          "responseCode": 401
+        },
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"Unauthorized\" }"
+      }
+    },
+    {
+      "id": "get-inspections",
+      "name": "Get Inspections",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        352,
+        32
+      ],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "parameters": {
+        "query": "SELECT i.id, i.inspection_type, i.status, i.notes, i.completed_at, i.created_at,\n  i.unit_id, i.lease_id,\n  u.unit_number, p.name AS property_name,\n  COALESCE(\n    json_agg(json_build_object(\n      'id', it.id, 'area', it.area, 'item', it.item, 'condition', it.condition,\n      'notes', it.notes, 'beyond_normal_wear', it.beyond_normal_wear\n    ) ORDER BY it.area, it.item) FILTER (WHERE it.id IS NOT NULL), '[]'\n  ) AS items\nFROM traxkey.inspections i\nJOIN traxkey.units u ON u.id = i.unit_id\nJOIN traxkey.properties p ON p.id = u.property_id\nLEFT JOIN traxkey.inspection_items it ON it.inspection_id = i.id\nWHERE i.company_id = '{{ $json.company_id }}'\nGROUP BY i.id, u.unit_number, p.name\nORDER BY i.created_at DESC\nLIMIT 100;",
+        "options": {},
+        "operation": "executeQuery"
+      }
+    },
+    {
+      "id": "respond:-inspections",
+      "name": "Respond: Inspections",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        576,
+        32
+      ],
+      "typeVersion": 1,
+      "parameters": {
+        "options": {
+          "responseCode": 200
+        },
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($input.all().map(i => i.json).filter(r => r.id)) }}"
+      }
+    },
+    {
+      "id": "traxkey-start-inspection",
+      "name": "Start Inspection (Webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        -320,
+        320
+      ],
+      "typeVersion": 2,
+      "webhookId": "traxkey-start-inspection",
+      "parameters": {
+        "path": "traxkey-start-inspection",
+        "options": {
+          "allowedOrigins": "*"
+        },
+        "httpMethod": "POST",
+        "responseMode": "responseNode"
+      }
+    },
+    {
+      "id": "validate-session-(start-inspection)",
+      "name": "Validate Session (Start Inspection)",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        -96,
+        320
+      ],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "parameters": {
+        "query": "SELECT company_id FROM traxkey.sessions WHERE token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\") }}' AND expires_at > now();",
+        "options": {},
+        "operation": "executeQuery"
+      }
+    },
+    {
+      "id": "session-valid?-(start-inspection)",
+      "name": "Session Valid? (Start Inspection)",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        128,
+        320
+      ],
+      "typeVersion": 2,
+      "parameters": {
+        "options": {},
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c1",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json.company_id }}",
+              "rightValue": ""
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "respond:-start-inspection-unauthorized",
+      "name": "Respond: Start Inspection Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        352,
+        470
+      ],
+      "typeVersion": 1,
+      "parameters": {
+        "options": {
+          "responseCode": 401
+        },
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"Unauthorized\" }"
+      }
+    },
+    {
+      "id": "insert-inspection",
+      "name": "Insert Inspection",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        352,
+        320
+      ],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "parameters": {
+        "query": "INSERT INTO traxkey.inspections (company_id, unit_id, inspection_type, lease_id, turn_id, notes)\nSELECT '{{ $json.company_id }}'::uuid,\n  '{{ $(\"Start Inspection (Webhook)\").first().json.body.unitId }}'::uuid,\n  '{{ $(\"Start Inspection (Webhook)\").first().json.body.inspectionType }}',\n  NULLIF('{{ $(\"Start Inspection (Webhook)\").first().json.body.leaseId || \"\" }}', '')::uuid,\n  NULLIF('{{ $(\"Start Inspection (Webhook)\").first().json.body.turnId || \"\" }}', '')::uuid,\n  NULLIF('{{ (String($(\"Start Inspection (Webhook)\").first().json.body.notes || \"\")).replace(/'/g, \"''\") }}', '')\nWHERE '{{ $(\"Start Inspection (Webhook)\").first().json.body.inspectionType }}' IN ('move_in','move_out','periodic','turn')\n  AND EXISTS (\n    SELECT 1 FROM traxkey.units u JOIN traxkey.properties p ON p.id = u.property_id\n    WHERE u.id = '{{ $(\"Start Inspection (Webhook)\").first().json.body.unitId }}'::uuid AND p.company_id = '{{ $json.company_id }}'::uuid\n  )\nRETURNING id;",
+        "options": {},
+        "operation": "executeQuery"
+      }
+    },
+    {
+      "id": "inspection-started?",
+      "name": "Inspection Started?",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        576,
+        320
+      ],
+      "typeVersion": 2,
+      "parameters": {
+        "options": {},
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c1",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json.id }}",
+              "rightValue": ""
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "respond:-inspection-not-started",
+      "name": "Respond: Inspection Not Started",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        800,
+        470
+      ],
+      "typeVersion": 1,
+      "parameters": {
+        "options": {
+          "responseCode": 400
+        },
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"Could not start that inspection. Check the unit and type.\" }"
+      }
+    },
+    {
+      "id": "respond:-inspection-started",
+      "name": "Respond: Inspection Started",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        800,
+        250
+      ],
+      "typeVersion": 1,
+      "parameters": {
+        "options": {
+          "responseCode": 200
+        },
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, inspectionId: $json.id }) }}"
+      }
+    },
+    {
+      "id": "traxkey-add-inspection-item",
+      "name": "Add Item (Webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        -320,
+        640
+      ],
+      "typeVersion": 2,
+      "webhookId": "traxkey-add-inspection-item",
+      "parameters": {
+        "path": "traxkey-add-inspection-item",
+        "options": {
+          "allowedOrigins": "*"
+        },
+        "httpMethod": "POST",
+        "responseMode": "responseNode"
+      }
+    },
+    {
+      "id": "validate-session-(add-item)",
+      "name": "Validate Session (Add Item)",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        -96,
+        640
+      ],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "parameters": {
+        "query": "SELECT company_id FROM traxkey.sessions WHERE token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\") }}' AND expires_at > now();",
+        "options": {},
+        "operation": "executeQuery"
+      }
+    },
+    {
+      "id": "session-valid?-(add-item)",
+      "name": "Session Valid? (Add Item)",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        128,
+        640
+      ],
+      "typeVersion": 2,
+      "parameters": {
+        "options": {},
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c1",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json.company_id }}",
+              "rightValue": ""
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "respond:-add-item-unauthorized",
+      "name": "Respond: Add Item Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        352,
+        790
+      ],
+      "typeVersion": 1,
+      "parameters": {
+        "options": {
+          "responseCode": 401
+        },
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"Unauthorized\" }"
+      }
+    },
+    {
+      "id": "insert-item",
+      "name": "Insert Item",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        352,
+        640
+      ],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "parameters": {
+        "query": "INSERT INTO traxkey.inspection_items (inspection_id, area, item, condition, notes, beyond_normal_wear)\nSELECT '{{ $(\"Add Item (Webhook)\").first().json.body.inspectionId }}'::uuid,\n  '{{ (String($(\"Add Item (Webhook)\").first().json.body.area || \"\")).replace(/'/g, \"''\") }}',\n  '{{ (String($(\"Add Item (Webhook)\").first().json.body.item || \"\")).replace(/'/g, \"''\") }}',\n  '{{ $(\"Add Item (Webhook)\").first().json.body.condition }}',\n  NULLIF('{{ (String($(\"Add Item (Webhook)\").first().json.body.notes || \"\")).replace(/'/g, \"''\") }}', ''),\n  {{ $(\"Add Item (Webhook)\").first().json.body.beyondNormalWear === true ? 'true' : ($(\"Add Item (Webhook)\").first().json.body.beyondNormalWear === false ? 'false' : 'NULL') }}\nWHERE '{{ $(\"Add Item (Webhook)\").first().json.body.condition }}' IN ('good','fair','poor','damaged','missing')\n  AND '{{ $(\"Add Item (Webhook)\").first().json.body.area || \"\" }}' <> '' AND '{{ $(\"Add Item (Webhook)\").first().json.body.item || \"\" }}' <> ''\n  AND EXISTS (\n    SELECT 1 FROM traxkey.inspections i\n    WHERE i.id = '{{ $(\"Add Item (Webhook)\").first().json.body.inspectionId }}'::uuid AND i.company_id = '{{ $json.company_id }}'::uuid\n  )\nRETURNING id;",
+        "options": {},
+        "operation": "executeQuery"
+      }
+    },
+    {
+      "id": "item-added?",
+      "name": "Item Added?",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        576,
+        640
+      ],
+      "typeVersion": 2,
+      "parameters": {
+        "options": {},
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c1",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json.id }}",
+              "rightValue": ""
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "respond:-item-not-added",
+      "name": "Respond: Item Not Added",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        800,
+        790
+      ],
+      "typeVersion": 1,
+      "parameters": {
+        "options": {
+          "responseCode": 400
+        },
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"Could not add that item.\" }"
+      }
+    },
+    {
+      "id": "respond:-item-added",
+      "name": "Respond: Item Added",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        800,
+        570
+      ],
+      "typeVersion": 1,
+      "parameters": {
+        "options": {
+          "responseCode": 200
+        },
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, itemId: $json.id }) }}"
+      }
+    },
+    {
+      "id": "traxkey-complete-inspection",
+      "name": "Complete Inspection (Webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        -320,
+        960
+      ],
+      "typeVersion": 2,
+      "webhookId": "traxkey-complete-inspection",
+      "parameters": {
+        "path": "traxkey-complete-inspection",
+        "options": {
+          "allowedOrigins": "*"
+        },
+        "httpMethod": "POST",
+        "responseMode": "responseNode"
+      }
+    },
+    {
+      "id": "validate-session-(complete-inspection)",
+      "name": "Validate Session (Complete Inspection)",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        -96,
+        960
+      ],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "parameters": {
+        "query": "SELECT company_id FROM traxkey.sessions WHERE token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\") }}' AND expires_at > now();",
+        "options": {},
+        "operation": "executeQuery"
+      }
+    },
+    {
+      "id": "session-valid?-(complete-inspection)",
+      "name": "Session Valid? (Complete Inspection)",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        128,
+        960
+      ],
+      "typeVersion": 2,
+      "parameters": {
+        "options": {},
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c1",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json.company_id }}",
+              "rightValue": ""
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "respond:-complete-inspection-unauthorized",
+      "name": "Respond: Complete Inspection Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        352,
+        1110
+      ],
+      "typeVersion": 1,
+      "parameters": {
+        "options": {
+          "responseCode": 401
+        },
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"Unauthorized\" }"
+      }
+    },
+    {
+      "id": "mark-complete",
+      "name": "Mark Complete",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        352,
+        960
+      ],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "parameters": {
+        "query": "UPDATE traxkey.inspections\nSET status = 'completed', completed_at = now()\nWHERE id = '{{ $(\"Complete Inspection (Webhook)\").first().json.body.inspectionId }}'::uuid\n  AND company_id = '{{ $json.company_id }}'::uuid\nRETURNING id;",
+        "options": {},
+        "operation": "executeQuery"
+      }
+    },
+    {
+      "id": "respond:-inspection-completed",
+      "name": "Respond: Inspection Completed",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        576,
+        960
+      ],
+      "typeVersion": 1,
+      "parameters": {
+        "options": {
+          "responseCode": 200
+        },
+        "respondWith": "json",
+        "responseBody": "={ \"success\": true }"
+      }
+    }
+  ],
+  "connections": {
+    "Inspections (Webhook)": {
+      "main": [
+        [
+          {
+            "node": "Validate Session (Inspections)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Session (Inspections)": {
+      "main": [
+        [
+          {
+            "node": "Session Valid? (Inspections)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Session Valid? (Inspections)": {
+      "main": [
+        [
+          {
+            "node": "Get Inspections",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Inspections Unauthorized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Inspections": {
+      "main": [
+        [
+          {
+            "node": "Respond: Inspections",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start Inspection (Webhook)": {
+      "main": [
+        [
+          {
+            "node": "Validate Session (Start Inspection)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Session (Start Inspection)": {
+      "main": [
+        [
+          {
+            "node": "Session Valid? (Start Inspection)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Session Valid? (Start Inspection)": {
+      "main": [
+        [
+          {
+            "node": "Insert Inspection",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Start Inspection Unauthorized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Inspection": {
+      "main": [
+        [
+          {
+            "node": "Inspection Started?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inspection Started?": {
+      "main": [
+        [
+          {
+            "node": "Respond: Inspection Started",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Inspection Not Started",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Item (Webhook)": {
+      "main": [
+        [
+          {
+            "node": "Validate Session (Add Item)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Session (Add Item)": {
+      "main": [
+        [
+          {
+            "node": "Session Valid? (Add Item)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Session Valid? (Add Item)": {
+      "main": [
+        [
+          {
+            "node": "Insert Item",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Add Item Unauthorized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Item": {
+      "main": [
+        [
+          {
+            "node": "Item Added?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Item Added?": {
+      "main": [
+        [
+          {
+            "node": "Respond: Item Added",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Item Not Added",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Complete Inspection (Webhook)": {
+      "main": [
+        [
+          {
+            "node": "Validate Session (Complete Inspection)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Session (Complete Inspection)": {
+      "main": [
+        [
+          {
+            "node": "Session Valid? (Complete Inspection)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Session Valid? (Complete Inspection)": {
+      "main": [
+        [
+          {
+            "node": "Mark Complete",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Complete Inspection Unauthorized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Complete": {
+      "main": [
+        [
+          {
+            "node": "Respond: Inspection Completed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {}
+}

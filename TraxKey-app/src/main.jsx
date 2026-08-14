@@ -14,6 +14,7 @@ import CalendarsPage from './pages/CalendarsPage.jsx';
 import TurnsPage from './pages/TurnsPage.jsx';
 import LeasesPage from './pages/LeasesPage.jsx';
 import BusinessMemoryPage from './pages/BusinessMemoryPage.jsx';
+import InspectionsPage from './pages/InspectionsPage.jsx';
 import AdminLoginPage from './pages/AdminLoginPage.jsx';
 import AdminDashboardPage from './pages/AdminDashboardPage.jsx';
 import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx';
@@ -44,6 +45,7 @@ function App() {
           <Route path="/turns" element={<RequireAuth><TurnsPage /></RequireAuth>} />
           <Route path="/leases" element={<RequireAuth><LeasesPage /></RequireAuth>} />
           <Route path="/business-memory" element={<RequireAuth><BusinessMemoryPage /></RequireAuth>} />
+          <Route path="/inspections" element={<RequireAuth><InspectionsPage /></RequireAuth>} />
           <Route path="/admin/login" element={<AdminLoginPage />} />
           <Route path="/admin" element={<AdminDashboardPage />} />
           <Route path="/activity" element={<RequireAuth><ActivityPage /></RequireAuth>} />

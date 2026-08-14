@@ -30,7 +30,10 @@ approval where money or reputation is at stake.
 | 8 | **Owner Relations** | ❌ | Both |
 | 9 | **Supply & Inventory** | ❌ | Short-term |
 | 10 | **Leasing / Applications** | ❌ | Long-term |
-| 11 | **Business Memory & Insights** | ⏭️ next, 2026-08-14 | Both |
+| 11 | **Business Memory** | ✅ built 2026-08-14 | Both |
+| 12 | **Inspections** | 🔨 building now | Both |
+| 13 | **Stripe subscriptions** | ⏭️ next | Both |
+| 14 | **Tenant logins (LTR only)** | ⏭️ planned | Long-term |
 
 ---
 
@@ -161,6 +164,53 @@ silently. "I noticed you always approve HVAC over threshold, want me to
 raise the limit?" is acceptable **only as a question**. Anything that
 quietly changes the system's own risk posture is out, that is exactly the
 class of thing that fails silently and destroys trust in one incident.
+
+---
+
+## Stripe subscriptions — NEXT AFTER INSPECTIONS
+
+Same pattern as TraxSail AI. Today `plan` and `plan_status` are columns
+nobody writes to and the admin dashboard's MRR figure is explicitly labelled
+"estimated from plan tier, no billing integration yet." That label is honest,
+but it means there is no way to actually take money.
+
+Scope:
+- Stripe Checkout for the four tiers (Free 1 unit, Starter $99, Growth $249,
+  Pro $549).
+- Webhook to sync `plan` / `plan_status` on
+  `checkout.session.completed`, `customer.subscription.updated`,
+  `customer.subscription.deleted`, `invoice.payment_failed`.
+- Customer portal link for self-serve card and cancellation changes, rather
+  than building that UI.
+- Unit-count enforcement at the tier boundary. Currently unenforced, a free
+  account can add 50 units.
+
+**Constraint:** never store card details. Stripe Checkout and the hosted
+customer portal only. Same reasoning as excluding rent collection and trust
+accounting, that class of data is not worth the liability for what it buys.
+
+---
+
+## Tenant logins — planned, LTR only
+
+Today residents and guests have no login at all, only a token link
+(`tenant.traxkey.ai/?token=...`). That was a deliberate choice and it stays
+correct for short-term guests: nobody staying three nights creates an
+account to report a broken lamp, and forcing one costs real reports.
+
+For long-term tenants it is the wrong answer. A tenant on a twelve month
+lease has a genuine reason to sign in: their request history, their lease
+documents, their renewal offer, notices sent to them.
+
+So the split is:
+- **STR guests:** token link only, unchanged. No account, no password.
+- **LTR tenants (a resident with a `lease_id`):** optional account.
+
+Needs: `residents.password_hash`, a `resident_sessions` table (a fourth
+auth principal, never sharing a session store with users/vendors/admins),
+signup-from-invite, login, password reset, and portal pages for history and
+documents. Token links keep working either way, an account is an upgrade,
+never a prerequisite for reporting a problem.
 
 ---
 

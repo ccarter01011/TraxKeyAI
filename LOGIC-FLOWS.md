@@ -286,3 +286,35 @@ weighs as a suggestion. Verified end-to-end against real dispatch for all
 four rule types on 2026-08-14: threshold override, preferred vendor beating
 a better-ranked competitor, forced approval on an otherwise-auto-approved
 job, and quiet hours blocking an otherwise-auto-dispatched cleaning job.
+
+---
+
+## Inspection flow
+
+1. Operator starts an inspection on a unit: move-in, move-out, periodic, or
+   as part of a turn.
+2. They add each area and item with a condition (good / fair / poor /
+   damaged / missing). The items are the operator's own, not a fixed
+   checklist, because a studio and a four bedroom house do not have the same
+   rooms and an STR turn checks different things than an annual move-out.
+3. Mark complete.
+4. Once a unit has a completed move-in **and** a completed move-out,
+   `agents/inspection_compare.py` reports the delta: for each area+item in
+   both, how many steps the condition dropped, worst first. Improvements are
+   ignored. Items that appear only at move-out are listed separately as "not
+   recorded at move-in" rather than silently treated as damage, because that
+   is usually something missed at move-in and the operator should see it.
+
+**The hard line:** TraxKey records condition and reports what changed. It
+never decides whether a change is beyond normal wear, and never computes
+what may be withheld from a deposit. Those are governed by state law with
+itemisation and timing rules that vary by jurisdiction, and a wrong call is
+a real legal liability for the operator. `beyond_normal_wear` exists on an
+item but is only ever set by a person. Same reasoning that keeps trust
+accounting and rent collection out of the product: evidence, not
+adjudication.
+
+**No LLM anywhere in this flow.** A model comparing two photos and declaring
+"damage beyond normal wear" would be wrong often enough to matter and would
+be producing a conclusion with legal weight. Condition deltas are arithmetic
+on what a human recorded.
