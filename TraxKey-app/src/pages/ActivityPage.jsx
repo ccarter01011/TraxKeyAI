@@ -150,7 +150,7 @@ export default function ActivityPage() {
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 px-6 py-8">
       <div className="max-w-3xl mx-auto">
-        <Link to="/" className="text-xs text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white">← Dashboard</Link>
+        <Link to="/" className="text-xs text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white">← Operator Dashboard</Link>
         <div className="mt-2 mb-6">
           <p className="text-xs text-teal-600 dark:text-teal-400 font-semibold uppercase tracking-wide mb-1">AI Activity</p>
           <h1 className="text-2xl font-bold inline-flex items-center gap-2">

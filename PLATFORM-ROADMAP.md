@@ -34,6 +34,8 @@ approval where money or reputation is at stake.
 | 12 | **Inspections** | 🔨 building now | Both |
 | 13 | **Stripe subscriptions** | ⏭️ next | Both |
 | 14 | **Tenant logins (LTR only)** | ⏭️ planned | Long-term |
+| 15 | **Resident & Guest Comms (email)** | ✅ built 2026-08-14 | Both |
+| 16 | **SMS notifications** | ⏭️ next week 2026-08-21 | Both |
 
 ---
 
@@ -211,6 +213,25 @@ auth principal, never sharing a session store with users/vendors/admins),
 signup-from-invite, login, password reset, and portal pages for history and
 documents. Token links keep working either way, an account is an upgrade,
 never a prerequisite for reporting a problem.
+
+---
+
+## SMS notifications — NEXT WEEK (targeted 2026-08-21)
+
+Resident and guest email updates shipped 2026-08-14 (`agents/resident_notify.py`).
+SMS is the same three moments over a second channel.
+
+`resident_notifications` already records `channel`, and its UNIQUE constraint
+is `(request_id, notification_type, channel)`, so SMS can be added without
+touching the dedupe logic or re-sending anything already emailed.
+
+Needs: Twilio credentials (the user already has an account from the Elevated
+Skin Studio project), a `residents.sms_opt_in` flag, and per-message
+truncation since the email bodies are too long for SMS.
+
+**Constraint:** SMS to a resident who never opted in is a legal problem in
+several jurisdictions, not just an annoyance. Opt-in must be explicit and
+recorded, and every message needs a STOP path.
 
 ---
 

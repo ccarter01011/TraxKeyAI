@@ -136,7 +136,7 @@ export default function DashboardPage() {
       <div className="max-w-3xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <p className="text-xs text-teal-600 dark:text-teal-400 font-semibold uppercase tracking-wide mb-1">Dashboard</p>
+            <p className="text-xs text-teal-600 dark:text-teal-400 font-semibold uppercase tracking-wide mb-1">Operator Dashboard</p>
             <h1 className="text-2xl font-bold">Welcome, {user?.name || 'there'}</h1>
           </div>
           <div className="flex items-center gap-3">

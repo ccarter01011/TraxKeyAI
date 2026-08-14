@@ -19,6 +19,7 @@ from readiness import run_readiness_checks
 from review_risk import run_review_risk_checks
 from lease_agent import run_lease_agent
 from lead_followup import run_lead_followup
+from resident_notify import run_resident_notifications
 from concierge import get_briefing
 from admin_concierge import get_admin_briefing
 from sales_chat import answer as sales_answer
@@ -142,6 +143,13 @@ if __name__ == "__main__":
             run_batch()
         except Exception:
             # Never let one bad request kill the whole loop, log and keep going.
+            traceback.print_exc()
+
+        # On the fast loop, not the hourly one: a resident waiting to hear
+        # that someone is coming should not wait an extra hour for it.
+        try:
+            run_resident_notifications()
+        except Exception:
             traceback.print_exc()
 
         now = time.monotonic()

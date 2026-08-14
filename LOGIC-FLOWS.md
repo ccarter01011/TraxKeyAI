@@ -318,3 +318,46 @@ adjudication.
 "damage beyond normal wear" would be wrong often enough to matter and would
 be producing a conclusion with legal weight. Condition deltas are arithmetic
 on what a human recorded.
+
+---
+
+## Resident & guest communication flow
+
+Runs on the fast loop (every 15 min), not the hourly one, because someone
+waiting to hear that a plumber is coming should not wait an extra hour.
+
+1. `agents/resident_notify.py` finds requests whose **current status** has
+   earned a notification the resident has not been sent:
+
+   | Status | Notification |
+   |---|---|
+   | submitted, triaged | **received** |
+   | assigned, scheduled, in_progress | **dispatched** |
+   | completed, closed | **completed** |
+
+2. Sends it by email (Resend), then writes a `resident_notifications` row.
+   The UNIQUE constraint on `(request_id, notification_type, channel)` is
+   what makes this safe on a polling loop, without it every pass would
+   re-email everyone.
+3. On a send failure nothing is logged, so the next pass retries. A late
+   email beats a resident who never hears back.
+
+**Keyed on current status, not on transitions.** A request that goes from
+submitted to scheduled between two passes gets only the "someone's been
+assigned" note, never a pointless "we got it" thirty seconds beforehand.
+
+**What is deliberately never sent:**
+- Approval pauses. "Your landlord is deciding whether to spend money on this"
+  is the operator's business and invites a conversation the resident cannot
+  resolve.
+- Any cost, quoted or final. That is between operator and vendor.
+- Vendor phone numbers. The operator owns that relationship.
+
+**Who, never when.** There is no appointment scheduling in this system, so
+any specific timing would be invented. The tenant portal previously promised
+"we'll text you with updates, including who's coming and when" while nothing
+contacted residents at all; that copy now says what the system actually does.
+
+Addresses on reserved documentation domains (`example.com` and friends) are
+skipped, the seeded demo data uses them and mailing them every pass would
+bounce and cost real sender reputation.
