@@ -7,7 +7,35 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
-<style>* { font-family: 'Inter', sans-serif; }</style>
+<style>
+* { font-family: 'Inter', sans-serif; }
+
+/* Same wave the operator dashboard uses while the AI is thinking. */
+@keyframes tk-wave {
+  0%, 60%, 100% { transform: translateY(0); opacity: .55; }
+  30% { transform: translateY(-3px); opacity: 1; }
+}
+.tk-wave-letter { display: inline-block; animation: tk-wave 1.2s ease-in-out infinite; }
+
+@keyframes tk-orb-spin { to { transform: rotate(360deg); } }
+@keyframes tk-orb-breathe { 0%,100% { opacity:.45 } 50% { opacity:.8 } }
+.tk-orb { position: relative; border-radius: 9999px; display: inline-block; flex-shrink: 0; }
+.tk-orb::before {
+  content: ''; position: absolute; inset: -4px; border-radius: 9999px;
+  background: conic-gradient(from 0deg, #2dd4bf, #38bdf8, #a78bfa, #2dd4bf);
+  filter: blur(6px); opacity: .55;
+  animation: tk-orb-spin 5s linear infinite, tk-orb-breathe 3s ease-in-out infinite;
+}
+.tk-orb--active::before { opacity: .95; animation-duration: 1.6s, 1.6s; }
+.tk-orb__core {
+  position: absolute; inset: 0; border-radius: 9999px;
+  background: radial-gradient(circle, rgba(15,23,42,.6), rgba(15,23,42,.2));
+  border: 1px solid rgba(255,255,255,.12);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tk-orb::before, .tk-wave-letter { animation: none; }
+}
+</style>
 </head>
 <body class="bg-slate-950 text-slate-100 antialiased min-h-screen">
 
@@ -32,7 +60,30 @@
   <!-- STEP 1: report form -->
   <div id="report-form" class="hidden">
     <h1 class="text-2xl font-bold mb-2">Report a maintenance issue</h1>
-    <p class="text-sm text-slate-400 mb-8">Describe what's wrong. We'll get someone on it, usually within hours.</p>
+    <p class="text-sm text-slate-400 mb-6">Describe what's wrong. We'll get someone on it, usually within hours.</p>
+
+    <!-- Assistant. Warm, not clinical: whoever is filling this in may be
+         cold, flooded, or locked out, and the operator's dashboard voice
+         would read as cold here. -->
+    <div id="tk-assist" class="hidden bg-gradient-to-r from-teal-500/10 to-sky-500/10 border border-teal-400/20 rounded-xl p-4 mb-6">
+      <div class="flex items-start gap-3">
+        <span id="tk-assist-orb" class="tk-orb" style="width:36px;height:36px"><span class="tk-orb__core"></span></span>
+        <div class="flex-1 min-w-0">
+          <p class="text-[11px] font-bold text-teal-400 uppercase tracking-wide mb-1">TraxKey AI</p>
+          <p id="tk-assist-text" class="text-sm text-slate-200 leading-relaxed"></p>
+          <div id="tk-assist-actions" class="hidden mt-3 flex flex-wrap gap-2">
+            <button type="button" onclick="tkAskHelp()" class="text-xs border border-white/15 hover:border-teal-400/50 rounded-full px-3 py-1.5 text-slate-300 hover:text-white transition">Help me describe it</button>
+            <button type="button" onclick="showHumanForm()" class="text-xs border border-white/15 hover:border-teal-400/50 rounded-full px-3 py-1.5 text-slate-300 hover:text-white transition">I'd rather talk to a person</button>
+          </div>
+          <div id="tk-assist-chat" class="hidden mt-3">
+            <div class="flex gap-2">
+              <input id="tk-assist-input" maxlength="400" placeholder="Ask me anything about this…" class="flex-1 bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-teal-400" />
+              <button type="button" onclick="tkAssistSend()" class="bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs px-3 rounded-lg transition">Ask</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <form id="maint-form" class="space-y-5" onsubmit="return submitRequest(event)">
 
@@ -81,14 +132,42 @@
     </form>
   </div>
 
+  <!-- STEP 1b: talk to a person instead. Two ways to land here: the resident
+       chose it, or the operator turned off automated handling for them, in
+       which case this is the only path and the form above is never shown. -->
+  <div id="human-form" class="hidden">
+    <h1 class="text-2xl font-bold mb-2">Get in touch with your property manager</h1>
+    <p id="human-intro" class="text-sm text-slate-400 mb-6"></p>
+
+    <form class="space-y-5" onsubmit="return submitHuman(event)">
+      <div>
+        <label class="block text-sm font-medium text-slate-300 mb-1.5">What's going on?</label>
+        <textarea id="hf-message" required rows="4" placeholder="Tell us what you need and we'll take it from here." class="w-full bg-slate-900 border border-white/10 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-teal-400"></textarea>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-sm font-medium text-slate-300 mb-1.5">Your name</label>
+          <input id="hf-name" required type="text" class="w-full bg-slate-900 border border-white/10 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-teal-400" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-300 mb-1.5">Phone or email</label>
+          <input id="hf-contact" required type="text" class="w-full bg-slate-900 border border-white/10 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-teal-400" />
+        </div>
+      </div>
+      <p id="hf-error" class="hidden text-sm text-red-400"></p>
+      <button id="hf-submit-btn" type="submit" class="w-full bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold py-3.5 rounded-xl transition active:scale-95 duration-150">Send to my property manager</button>
+      <button id="hf-back" type="button" onclick="showStep('report-form')" class="w-full text-xs text-slate-500 hover:text-slate-300 transition">← Back to the maintenance form</button>
+    </form>
+  </div>
+
   <!-- STEP 2: confirmation -->
   <div id="report-success" class="hidden text-center py-12">
     <div class="w-14 h-14 bg-teal-500/15 rounded-full flex items-center justify-center mx-auto mb-4">
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M8 12L11 15L16 9" stroke="#2dd4bf" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>
-    <h1 class="text-xl font-bold mb-2">Got it, we're on it</h1>
-    <p class="text-sm text-slate-400 mb-1">Your request is being reviewed right now.</p>
-    <p class="text-sm text-slate-400">We'll text you at the number you gave us with updates, including who's coming and when.</p>
+    <h1 id="success-headline" class="text-xl font-bold mb-2">Got it, we're on it</h1>
+    <p id="success-line1" class="text-sm text-slate-400 mb-1">Your request is being reviewed right now.</p>
+    <p id="success-line2" class="text-sm text-slate-400">We'll text you at the number you gave us with updates, including who's coming and when.</p>
     <p id="success-ref" class="text-xs text-slate-600 mt-6"></p>
   </div>
 </div>
@@ -123,8 +202,13 @@ const params = new URLSearchParams(window.location.search);
 const residentToken = params.get('token');
 const portalSlug = params.get('co');
 
+const TENANT_CONTEXT_ENDPOINT = 'https://main-production-b95e.up.railway.app/webhook/traxkey-tenant-context';
+const AGENT_BASE = 'https://langgraph-production-42ef.up.railway.app';
+
+let tenantContext = { companyName: null, contactEmail: null, requiresHumanReview: false };
+
 function showStep(id) {
-  ['need-code', 'report-form', 'report-success'].forEach(s => document.getElementById(s).classList.add('hidden'));
+  ['need-code', 'report-form', 'human-form', 'report-success'].forEach(s => document.getElementById(s).classList.add('hidden'));
   document.getElementById(id).classList.remove('hidden');
 }
 
@@ -132,13 +216,160 @@ if (residentToken) {
   document.getElementById('mf-address-field').classList.add('hidden');
   document.getElementById('mf-contact-fields').classList.add('hidden');
   showStep('report-form');
+  loadTenantContext();
 } else if (portalSlug) {
   document.getElementById('mf-address').setAttribute('required', 'required');
   document.getElementById('mf-name').setAttribute('required', 'required');
   document.getElementById('mf-phone').setAttribute('required', 'required');
   showStep('report-form');
+  loadTenantContext();
 } else {
   showStep('need-code');
+}
+
+// Wave the greeting letter by letter while the AI is still thinking, same
+// signal the operator dashboard uses.
+function waveInto(el, text) {
+  el.innerHTML = '';
+  text.split('').forEach(function (ch, i) {
+    const s = document.createElement('span');
+    s.className = 'tk-wave-letter';
+    s.style.animationDelay = (i * 0.04) + 's';
+    s.textContent = ch === ' ' ? ' ' : ch;
+    el.appendChild(s);
+  });
+}
+
+function typeInto(el, text, done) {
+  const orb = document.getElementById('tk-assist-orb');
+  orb.classList.add('tk-orb--active');
+  el.textContent = '';
+  const words = String(text).split(' ').filter(Boolean);
+  let i = 0;
+  const id = setInterval(function () {
+    i += 1;
+    el.textContent = words.slice(0, i).join(' ');
+    if (i >= words.length) {
+      clearInterval(id);
+      orb.classList.remove('tk-orb--active');
+      if (done) done();
+    }
+  }, 60);
+}
+
+async function loadTenantContext() {
+  const panel = document.getElementById('tk-assist');
+  const textEl = document.getElementById('tk-assist-text');
+  panel.classList.remove('hidden');
+  waveInto(textEl, 'One moment…');
+
+  try {
+    const res = await fetch(TENANT_CONTEXT_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: residentToken || '', portalSlug: portalSlug || '' })
+    });
+    if (res.ok) tenantContext = await res.json();
+  } catch (err) {
+    // Context is a nicety. If it fails the form still works, which is the
+    // thing that actually matters to someone with a leak.
+  }
+
+  const who = tenantContext.companyName ? tenantContext.companyName : 'your property manager';
+
+  // The operator turned off automated handling for this resident. Don't show
+  // them a form that will just be held, and don't explain why, that's between
+  // the resident and their property manager, not something software should
+  // narrate.
+  if (tenantContext.requiresHumanReview) {
+    document.getElementById('hf-back').classList.add('hidden');
+    document.getElementById('human-intro').textContent =
+      'Your request goes straight to the team at ' + who + '. Tell us what you need and someone will be in touch.';
+    showStep('human-form');
+    return;
+  }
+
+  typeInto(textEl,
+    "Hi, I'm the assistant for " + who + ". Tell me what's wrong in your own words and I'll make sure the right person gets sent out. If anything's unsafe, say so and I'll treat it as an emergency.",
+    function () { document.getElementById('tk-assist-actions').classList.remove('hidden'); }
+  );
+}
+
+function tkAskHelp() {
+  document.getElementById('tk-assist-chat').classList.remove('hidden');
+  document.getElementById('tk-assist-input').focus();
+}
+
+let tkAssistBusy = false;
+async function tkAssistSend() {
+  if (tkAssistBusy) return;
+  const input = document.getElementById('tk-assist-input');
+  const textEl = document.getElementById('tk-assist-text');
+  const q = input.value.trim();
+  if (!q) return;
+  input.value = '';
+  tkAssistBusy = true;
+  waveInto(textEl, 'Thinking…');
+  try {
+    const res = await fetch(AGENT_BASE + '/tenant-chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: q, companyName: tenantContext.companyName || '' })
+    });
+    const json = await res.json().catch(function () { return {}; });
+    typeInto(textEl, json.reply || "I couldn't reach my end just then. You can still fill in the form below, or ask for a person.");
+  } catch (err) {
+    typeInto(textEl, "I couldn't reach my end just then. You can still fill in the form below, or ask for a person.");
+  }
+  tkAssistBusy = false;
+}
+
+function showHumanForm() {
+  const who = tenantContext.companyName ? tenantContext.companyName : 'your property manager';
+  document.getElementById('human-intro').textContent =
+    'No problem. This goes straight to a person at ' + who + ', not the assistant.';
+  showStep('human-form');
+}
+
+async function submitHuman(e) {
+  e.preventDefault();
+  const errorEl = document.getElementById('hf-error');
+  const btn = document.getElementById('hf-submit-btn');
+  errorEl.classList.add('hidden');
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+
+  const message = document.getElementById('hf-message').value;
+  const name = document.getElementById('hf-name').value;
+  const contact = document.getElementById('hf-contact').value;
+
+  // Routed through the normal intake so it lands in the operator's queue
+  // like anything else. Prefixed so they can see at a glance it's a
+  // person-to-person request, not something the AI is handling.
+  const endpoint = residentToken ? RESIDENT_INTAKE_ENDPOINT : COMPANY_INTAKE_ENDPOINT;
+  const payload = residentToken
+    ? { token: residentToken, description: '[Resident asked for a person] ' + message + ' (Reach them at: ' + contact + ')', urgency: 'routine' }
+    : { portalSlug, address: document.getElementById('mf-address').value || 'not given',
+        description: '[Resident asked for a person] ' + message, urgency: 'routine', name: name, phone: contact };
+
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+    });
+    const json = await res.json().catch(function () { return {}; });
+    if (!res.ok || json.success === false) throw new Error(json.error || 'Could not send that.');
+    document.getElementById('success-headline').textContent = 'Sent, someone will be in touch';
+    document.getElementById('success-line1').textContent = 'Your message went to the team' + (tenantContext.companyName ? ' at ' + tenantContext.companyName : '') + '.';
+    document.getElementById('success-line2').textContent = 'They’ll reach out using the contact details you gave us.';
+    showStep('report-success');
+    document.getElementById('success-ref').textContent = json.requestId ? 'Reference: ' + json.requestId : '';
+  } catch (err) {
+    errorEl.textContent = err.message || 'Something went wrong. Please try again.';
+    errorEl.classList.remove('hidden');
+    btn.disabled = false;
+    btn.textContent = 'Send to my property manager';
+  }
+  return false;
 }
 
 function submitCode(e) {

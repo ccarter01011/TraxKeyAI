@@ -462,6 +462,169 @@
         "responseBody": "={ \"error\": \"This link isn't valid. Please check the link and try again.\" }"
       },
       "typeVersion": 1.1
+    },
+    {
+      "id": "tenant-context-webhook",
+      "name": "Tenant Context (Webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        -320,
+        900
+      ],
+      "typeVersion": 2,
+      "webhookId": "traxkey-tenant-context",
+      "parameters": {
+        "path": "traxkey-tenant-context",
+        "options": {
+          "allowedOrigins": "*"
+        },
+        "httpMethod": "POST",
+        "responseMode": "responseNode"
+      }
+    },
+    {
+      "id": "get-tenant-context",
+      "name": "Get Tenant Context",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        -96,
+        900
+      ],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "parameters": {
+        "operation": "executeQuery",
+        "options": {},
+        "query": "SELECT\n  COALESCE(r.requires_human_review, false) AS requires_human_review,\n  c.name AS company_name,\n  (SELECT u.email FROM traxkey.users u WHERE u.company_id = c.id ORDER BY u.created_at LIMIT 1) AS contact_email\nFROM traxkey.residents r\nJOIN traxkey.units u2 ON u2.id = r.unit_id\nJOIN traxkey.properties p ON p.id = u2.property_id\nJOIN traxkey.companies c ON c.id = p.company_id\nWHERE r.access_token = '{{ $json.body.token ? $json.body.token.replace(/[^a-zA-Z0-9]/g, \"\") : \"\" }}';"
+      }
+    },
+    {
+      "id": "get-company-context",
+      "name": "Get Company Context",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        -96,
+        1040
+      ],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "parameters": {
+        "operation": "executeQuery",
+        "options": {},
+        "query": "SELECT\n  false AS requires_human_review,\n  c.name AS company_name,\n  (SELECT u.email FROM traxkey.users u WHERE u.company_id = c.id ORDER BY u.created_at LIMIT 1) AS contact_email\nFROM traxkey.companies c\nWHERE c.portal_slug = '{{ $json.body.portalSlug ? $json.body.portalSlug.replace(/[^a-zA-Z0-9]/g, \"\") : \"\" }}';"
+      }
+    },
+    {
+      "id": "has-token",
+      "name": "Has Token?",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        -320,
+        970
+      ],
+      "typeVersion": 2,
+      "parameters": {
+        "options": {},
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c1",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json.body.token || \"\" }}",
+              "rightValue": ""
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "tenant-context-found",
+      "name": "Tenant Context Found?",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        128,
+        900
+      ],
+      "typeVersion": 2,
+      "parameters": {
+        "options": {},
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c1",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json.company_name }}",
+              "rightValue": ""
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "respond-tenant-context",
+      "name": "Respond: Tenant Context",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        352,
+        900
+      ],
+      "typeVersion": 1,
+      "parameters": {
+        "options": {
+          "responseCode": 200
+        },
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ requiresHumanReview: $json.requires_human_review, companyName: $json.company_name, contactEmail: $json.contact_email }) }}"
+      }
+    },
+    {
+      "id": "respond-tenant-context-notfound",
+      "name": "Respond: Tenant Context Not Found",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        352,
+        1050
+      ],
+      "typeVersion": 1,
+      "parameters": {
+        "options": {
+          "responseCode": 404
+        },
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"Not found\" }"
+      }
     }
   ],
   "connections": {
@@ -641,6 +804,75 @@
         [
           {
             "node": "Respond: Resident Intake OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tenant Context (Webhook)": {
+      "main": [
+        [
+          {
+            "node": "Has Token?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Token?": {
+      "main": [
+        [
+          {
+            "node": "Get Tenant Context",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Company Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Tenant Context": {
+      "main": [
+        [
+          {
+            "node": "Tenant Context Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Company Context": {
+      "main": [
+        [
+          {
+            "node": "Tenant Context Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tenant Context Found?": {
+      "main": [
+        [
+          {
+            "node": "Respond: Tenant Context",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Tenant Context Not Found",
             "type": "main",
             "index": 0
           }

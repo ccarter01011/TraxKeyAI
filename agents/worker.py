@@ -22,6 +22,7 @@ from lead_followup import run_lead_followup
 from concierge import get_briefing
 from admin_concierge import get_admin_briefing
 from sales_chat import answer as sales_answer
+from tenant_chat import answer as tenant_answer
 
 POLL_INTERVAL_SECONDS = int(os.environ.get("POLL_INTERVAL_SECONDS", "900"))  # 15 min default
 # Booking calendars change far less often than maintenance requests arrive,
@@ -59,7 +60,8 @@ class HealthHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_POST(self):
-        if self.path.split("?")[0] != "/chat":
+        route = self.path.split("?")[0]
+        if route not in ("/chat", "/tenant-chat"):
             self._json(404, {"error": "Not found"})
             return
         try:
@@ -74,7 +76,16 @@ class HealthHandler(BaseHTTPRequestHandler):
 
         # Behind Railway's proxy, the real client IP is in the forwarded header.
         ip = (self.headers.get("X-Forwarded-For") or self.client_address[0] or "unknown").split(",")[0].strip()
-        reply, err = sales_answer(payload.get("question", ""), payload.get("history"), ip)
+
+        if route == "/tenant-chat":
+            # Separate persona from the sales bot: warm, resident-facing, and
+            # far more constrained about what it may promise. See tenant_chat.py.
+            reply, err = tenant_answer(
+                payload.get("question", ""), payload.get("companyName"), ip
+            )
+        else:
+            reply, err = sales_answer(payload.get("question", ""), payload.get("history"), ip)
+
         if err:
             self._json(400, {"error": err})
             return
