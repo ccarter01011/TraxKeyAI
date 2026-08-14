@@ -29,7 +29,7 @@
         32
       ],
       "parameters": {
-        "query": "SELECT company_id FROM traxkey.sessions WHERE token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\") }}' AND expires_at > now();",
+        "query": "SELECT company_id FROM traxkey.sessions WHERE token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\").replace(/[^a-zA-Z0-9]/g, \"\") }}' AND expires_at > now();",
         "options": {},
         "operation": "executeQuery"
       },
@@ -352,7 +352,7 @@
         544
       ],
       "parameters": {
-        "query": "SELECT vendor_id FROM traxkey.vendor_sessions WHERE token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\") }}' AND expires_at > now();",
+        "query": "SELECT vendor_id FROM traxkey.vendor_sessions WHERE token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\").replace(/[^a-zA-Z0-9]/g, \"\") }}' AND expires_at > now();",
         "options": {},
         "operation": "executeQuery"
       },
@@ -482,7 +482,7 @@
         800
       ],
       "parameters": {
-        "query": "SELECT vendor_id FROM traxkey.vendor_sessions WHERE token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\") }}' AND expires_at > now();",
+        "query": "SELECT vendor_id FROM traxkey.vendor_sessions WHERE token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\").replace(/[^a-zA-Z0-9]/g, \"\") }}' AND expires_at > now();",
         "options": {},
         "operation": "executeQuery"
       },

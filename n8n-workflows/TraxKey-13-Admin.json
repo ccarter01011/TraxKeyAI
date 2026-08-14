@@ -171,7 +171,7 @@
         340
       ],
       "parameters": {
-        "query": "SELECT admin_id FROM traxkey.admin_sessions WHERE token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\") }}' AND expires_at > now();",
+        "query": "SELECT admin_id FROM traxkey.admin_sessions WHERE token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\").replace(/[^a-zA-Z0-9]/g, \"\") }}' AND expires_at > now();",
         "options": {},
         "operation": "executeQuery"
       },

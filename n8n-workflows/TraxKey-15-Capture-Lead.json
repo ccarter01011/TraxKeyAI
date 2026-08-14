@@ -39,8 +39,9 @@
       "parameters": {
         "operation": "executeQuery",
         "options": {},
-        "query": "INSERT INTO traxkey.leads (name, email, company, portfolio_size, message, source)\nSELECT\n  NULLIF('{{ (String($json.body.name || \"\")).replace(/'/g, \"''\") }}', ''),\n  NULLIF('{{ (String($json.body.email || \"\")).replace(/'/g, \"''\") }}', ''),\n  NULLIF('{{ (String($json.body.company || \"\")).replace(/'/g, \"''\") }}', ''),\n  NULLIF('{{ (String($json.body.portfolioSize || \"\")).replace(/'/g, \"''\") }}', ''),\n  NULLIF('{{ (String($json.body.message || \"\")).replace(/'/g, \"''\") }}', ''),\n  NULLIF('{{ (String($json.body.source || \"\")).replace(/'/g, \"''\") }}', '')\nWHERE '{{ (String($json.body.email || \"\")).replace(/'/g, \"''\") }}' <> ''\n  AND '{{ (String($json.body.name || \"\")).replace(/'/g, \"''\") }}' <> ''\nRETURNING id;"
-      }
+        "query": "INSERT INTO traxkey.leads (name, email, company, portfolio_size, message, source)\nSELECT\n  trim('{{ (String($json.body.name || \"\")).replace(/'/g, \"''\") }}'),\n  trim('{{ (String($json.body.email || \"\")).replace(/'/g, \"''\") }}'),\n  NULLIF('{{ (String($json.body.company || \"\")).replace(/'/g, \"''\") }}', ''),\n  NULLIF('{{ (String($json.body.portfolioSize || \"\")).replace(/'/g, \"''\") }}', ''),\n  NULLIF('{{ (String($json.body.message || \"\")).replace(/'/g, \"''\") }}', ''),\n  NULLIF('{{ (String($json.body.source || \"\")).replace(/'/g, \"''\") }}', '')\nRETURNING id;"
+      },
+      "onError": "continueRegularOutput"
     },
     {
       "id": "lead-saved",

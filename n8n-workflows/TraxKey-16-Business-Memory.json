@@ -37,7 +37,7 @@
       },
       "alwaysOutputData": true,
       "parameters": {
-        "query": "SELECT company_id FROM traxkey.sessions WHERE token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\") }}' AND expires_at > now();",
+        "query": "SELECT company_id FROM traxkey.sessions WHERE token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\").replace(/[^a-zA-Z0-9]/g, \"\") }}' AND expires_at > now();",
         "options": {},
         "operation": "executeQuery"
       }
@@ -167,7 +167,7 @@
       },
       "alwaysOutputData": true,
       "parameters": {
-        "query": "SELECT company_id FROM traxkey.sessions WHERE token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\") }}' AND expires_at > now();",
+        "query": "SELECT company_id FROM traxkey.sessions WHERE token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\").replace(/[^a-zA-Z0-9]/g, \"\") }}' AND expires_at > now();",
         "options": {},
         "operation": "executeQuery"
       }
@@ -239,7 +239,7 @@
       },
       "alwaysOutputData": true,
       "parameters": {
-        "query": "INSERT INTO traxkey.business_memory (company_id, rule_type, scope, scope_ref, value, note, created_by)\nSELECT '{{ $json.company_id }}'::uuid,\n  '{{ $(\"Set Rule (Webhook)\").first().json.body.ruleType }}',\n  '{{ $(\"Set Rule (Webhook)\").first().json.body.scope || \"global\" }}',\n  NULLIF('{{ ($(\"Set Rule (Webhook)\").first().json.body.scopeRef || \"\").replace(/'/g, \"''\") }}', ''),\n  '{{ (String($(\"Set Rule (Webhook)\").first().json.body.value || \"\")).replace(/'/g, \"''\") }}',\n  NULLIF('{{ (String($(\"Set Rule (Webhook)\").first().json.body.note || \"\")).replace(/'/g, \"''\") }}', ''),\n  NULL\nWHERE '{{ $(\"Set Rule (Webhook)\").first().json.body.ruleType }}' IN ('approval_threshold','always_require_approval','quiet_hours','preferred_vendor')\n  AND '{{ $(\"Set Rule (Webhook)\").first().json.body.value || \"\" }}' <> ''\n  AND ('{{ $(\"Set Rule (Webhook)\").first().json.body.scope || \"global\" }}' = 'global' OR '{{ ($(\"Set Rule (Webhook)\").first().json.body.scopeRef || \"\") }}' <> '')\nON CONFLICT (company_id, rule_type, scope, COALESCE(scope_ref, ''))\nDO UPDATE SET value = EXCLUDED.value, note = EXCLUDED.note, updated_at = now()\nRETURNING id;",
+        "query": "INSERT INTO traxkey.business_memory (company_id, rule_type, scope, scope_ref, value, note, created_by)\nSELECT '{{ $json.company_id }}'::uuid,\n  '{{ (String($(\"Set Rule (Webhook)\").first().json.body.ruleType || \"\")).replace(/[^a-z_]/g, \"\") }}',\n  '{{ (String($(\"Set Rule (Webhook)\").first().json.body.scope || \"global\")).replace(/[^a-z]/g, \"\") }}',\n  NULLIF('{{ (String($(\"Set Rule (Webhook)\").first().json.body.scopeRef || \"\")).replace(/'/g, \"''\") }}', ''),\n  trim('{{ (String($(\"Set Rule (Webhook)\").first().json.body.value || \"\")).replace(/'/g, \"''\") }}'),\n  NULLIF('{{ (String($(\"Set Rule (Webhook)\").first().json.body.note || \"\")).replace(/'/g, \"''\") }}', ''),\n  NULL\nWHERE '{{ (String($(\"Set Rule (Webhook)\").first().json.body.scope || \"global\")).replace(/[^a-z]/g, \"\") }}' = 'global'\n   OR NULLIF('{{ (String($(\"Set Rule (Webhook)\").first().json.body.scopeRef || \"\")).replace(/'/g, \"''\") }}', '') IS NOT NULL\nON CONFLICT (company_id, rule_type, scope, COALESCE(scope_ref, ''))\nDO UPDATE SET value = EXCLUDED.value, note = EXCLUDED.note, updated_at = now()\nRETURNING id;",
         "options": {},
         "operation": "executeQuery"
       }
@@ -347,7 +347,7 @@
       },
       "alwaysOutputData": true,
       "parameters": {
-        "query": "SELECT company_id FROM traxkey.sessions WHERE token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\") }}' AND expires_at > now();",
+        "query": "SELECT company_id FROM traxkey.sessions WHERE token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\").replace(/[^a-zA-Z0-9]/g, \"\") }}' AND expires_at > now();",
         "options": {},
         "operation": "executeQuery"
       }

@@ -29,7 +29,7 @@
         32
       ],
       "parameters": {
-        "query": "SELECT u.id AS user_id, s.company_id FROM traxkey.sessions s JOIN traxkey.users u ON u.id = s.user_id WHERE s.token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\") }}' AND s.expires_at > now();",
+        "query": "SELECT u.id AS user_id, s.company_id FROM traxkey.sessions s JOIN traxkey.users u ON u.id = s.user_id WHERE s.token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\").replace(/[^a-zA-Z0-9]/g, \"\") }}' AND s.expires_at > now();",
         "options": {},
         "operation": "executeQuery"
       },
