@@ -286,8 +286,8 @@ export default function DashboardPage() {
           />
 
           <Tile
-            to="/calendars" title="Booking calendars"
-            blurb="Sync Airbnb or Vrbo so the AI knows when a guest is actually in the unit."
+            to="/calendars" title="Connect Airbnb &amp; Vrbo"
+            blurb="Paste a calendar link once. This is setup, not the day-to-day calendar."
           />
           <Tile
             to="/business-memory" title="Business Memory"

@@ -81,6 +81,24 @@
       </div>
     </div>
 
+
+    <!-- CALENDAR -->
+    <div class="bg-slate-900 border border-white/5 rounded-2xl p-6 mb-6">
+      <div class="flex flex-wrap items-baseline justify-between gap-3 mb-1">
+        <h3 class="font-bold">One calendar, both kinds of rental</h3>
+        <div class="flex flex-wrap items-center gap-3 text-[11px] text-slate-400">
+          <span class="inline-flex items-center gap-1.5"><span class="w-3 h-2 rounded bg-sky-500/70"></span>Guest booking</span>
+          <span class="inline-flex items-center gap-1.5"><span class="w-3 h-2 rounded bg-slate-500/50"></span>Owner block</span>
+          <span class="inline-flex items-center gap-1.5"><span class="w-3 h-2 rounded bg-teal-500/60"></span>Lease</span>
+          <span class="inline-flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>Turn due</span>
+        </div>
+      </div>
+      <p class="text-xs text-slate-500 mb-5">Every other platform's calendar shows bookings only, because bookings are all they track. The teal rows are long-term leases on the same grid.</p>
+      <div class="overflow-x-auto">
+        <div id="cal" class="min-w-[700px]"></div>
+      </div>
+    </div>
+
     <!-- KPI ROW -->
     <div id="kpis" class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6"></div>
 
@@ -346,6 +364,56 @@ function lineChart(series, xLabels) {
     '<svg viewBox="0 0 ' + W + ' ' + H + '" class="w-full h-full" preserveAspectRatio="none">' +
     grid + paths + labels + '</svg>';
 }
+
+
+// Fourteen days across six units. Two long-term rows on the same grid as the
+// short-term ones, which is the only part of this screen a competitor could
+// not produce.
+var CAL_ROWS = [
+  { unit: "Oakview A",    kind: "LTR", lease: [0, 13] },
+  { unit: "Oakview B",    kind: "LTR", lease: [0, 9], leaseEnd: 9 },
+  { unit: "Lakeside",     kind: "STR", book: [[0,3],[5,9]], turn: [3, 9] },
+  { unit: "Riverside B",  kind: "STR", book: [[1,4],[8,13]], block: [[5,7]], turn: [4] },
+  { unit: "Riverside D",  kind: "STR", book: [[0,2],[2,6],[9,12]], turn: [2, 6] },
+  { unit: "Hillcrest",    kind: "STR", book: [[4,8]], turn: [8] }
+];
+function drawCal() {
+  var DAYS = 14, today = new Date();
+  var head = '<div class="flex"><div class="w-28 shrink-0"></div><div class="flex-1 flex">';
+  for (var d = 0; d < DAYS; d++) {
+    var dt = new Date(today); dt.setDate(dt.getDate() + d);
+    head += '<div class="flex-1 text-center text-[10px] leading-tight py-1 border-l border-white/5 ' +
+      (d === 0 ? 'text-teal-400 font-bold' : 'text-slate-500') + '">' +
+      dt.toLocaleDateString(undefined, { weekday: 'narrow' }) + '<br>' + dt.getDate() + '</div>';
+  }
+  head += '</div></div>';
+
+  var body = CAL_ROWS.map(function (r) {
+    var cells = '';
+    for (var d = 0; d < DAYS; d++) {
+      var fill = '';
+      if (r.lease && d >= r.lease[0] && d <= r.lease[1]) fill = 'bg-teal-500/45';
+      (r.book || []).forEach(function (b) { if (d >= b[0] && d < b[1]) fill = 'bg-sky-500/60'; });
+      (r.block || []).forEach(function (b) { if (d >= b[0] && d < b[1]) fill = 'bg-slate-500/40'; });
+      var turn = (r.turn || []).indexOf(d) > -1;
+      var lend = r.leaseEnd === d;
+      cells += '<div class="flex-1 h-8 border-l border-white/5 relative">' +
+        (fill ? '<div class="absolute inset-y-1.5 inset-x-0 ' + fill + '"></div>' : '') +
+        (turn ? '<div class="absolute inset-x-0 bottom-0.5 mx-auto w-1.5 h-1.5 rounded-full bg-amber-400"></div>' : '') +
+        (lend ? '<div class="absolute inset-y-0 right-0 w-0.5 bg-amber-400"></div>' : '') +
+        '</div>';
+    }
+    var badge = r.kind === 'STR'
+      ? '<span class="text-[9px] font-bold px-1 py-0.5 rounded bg-sky-500/15 text-sky-400">STR</span>'
+      : '<span class="text-[9px] font-bold px-1 py-0.5 rounded bg-teal-500/15 text-teal-400">LTR</span>';
+    return '<div class="flex border-t border-white/5"><div class="w-28 shrink-0 flex items-center gap-1.5 px-1 py-1">' +
+      '<span class="text-xs truncate">' + r.unit + '</span>' + badge + '</div>' +
+      '<div class="flex-1 flex">' + cells + '</div></div>';
+  }).join('');
+
+  document.getElementById('cal').innerHTML = head + body;
+}
+drawCal();
 
 showView('pm');
 </script>
