@@ -7,6 +7,10 @@ import ConciergeWidget from '../components/ConciergeWidget.jsx';
 
 const TENANT_PORTAL_BASE = 'https://tenant.traxkey.ai';
 
+// A lease inside this window needs a renewal decision. Matches
+// RENEWAL_WINDOW_DAYS in LeasesPage.
+const RENEWAL_WINDOW_DAYS = 90;
+
 function TenantPortalLink() {
   const [profile, setProfile] = useState(null);
   const [copied, setCopied] = useState(false);
@@ -26,21 +30,106 @@ function TenantPortalLink() {
   }
 
   return (
-    <div className="bg-teal-500/10 border border-teal-400/20 rounded-xl p-4 mb-6">
-      <p className="text-xs font-bold text-teal-600 dark:text-teal-300 uppercase tracking-wide mb-1">Fallback company code</p>
-      <p className="text-sm text-slate-700 dark:text-slate-300 mb-3">Prefer inviting residents individually, each gets their own link and TraxKey already knows their unit. This shared code is only a fallback for before residents are set up. <Link to="/residents" className="underline text-teal-600 dark:text-teal-300">Invite residents →</Link></p>
-      <div className="flex items-center gap-2">
-        <code className="flex-1 bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-xs text-teal-700 dark:text-teal-300 overflow-x-auto whitespace-nowrap">{link}</code>
-        <button onClick={copy} className="shrink-0 bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs px-3 py-2 rounded-lg transition">
-          {copied ? 'Copied' : 'Copy'}
-        </button>
+    <details className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-xl mb-6">
+      <summary className="cursor-pointer px-4 py-3 text-sm text-slate-600 dark:text-slate-300 select-none">
+        Fallback company code for residents
+      </summary>
+      <div className="px-4 pb-4">
+        <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
+          Prefer inviting residents individually, each gets their own link and TraxKey already
+          knows their unit. This shared code is only a fallback for before residents are set up.{' '}
+          <Link to="/residents" className="underline text-teal-600 dark:text-teal-300">Invite residents →</Link>
+        </p>
+        <div className="flex items-center gap-2">
+          <code className="flex-1 bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-xs text-teal-700 dark:text-teal-300 overflow-x-auto whitespace-nowrap">{link}</code>
+          <button onClick={copy} className="shrink-0 bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs px-3 py-2 rounded-lg transition">
+            {copied ? 'Copied' : 'Copy'}
+          </button>
+        </div>
       </div>
+    </details>
+  );
+}
+
+/** A nav tile that carries live state. The badge is the point: "Turns" tells
+ *  an operator nothing, "Turns, 1 due today" answers the question without a
+ *  click. Badge is omitted entirely when there is nothing to say, an empty
+ *  or zero badge is noise. */
+function Tile({ to, title, blurb, badge, tone = 'neutral' }) {
+  const toneCls = {
+    urgent: 'bg-red-500/15 text-red-600 dark:text-red-400',
+    attention: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
+    neutral: 'bg-slate-500/15 text-slate-600 dark:text-slate-400',
+  }[tone];
+
+  return (
+    <Link
+      to={to}
+      className="block bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl p-5 hover:border-teal-400/50 dark:hover:border-teal-400/30 transition"
+    >
+      <div className="flex items-start justify-between gap-3 mb-1">
+        <p className="font-bold">{title} →</p>
+        {badge && (
+          <span className={`shrink-0 text-[11px] font-bold px-2 py-0.5 rounded-full ${toneCls}`}>
+            {badge}
+          </span>
+        )}
+      </div>
+      <p className="text-sm text-slate-500 dark:text-slate-400">{blurb}</p>
+    </Link>
+  );
+}
+
+function Section({ label, hint, children }) {
+  return (
+    <div className="mb-8">
+      <div className="flex items-baseline gap-2 mb-3">
+        <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide">{label}</p>
+        <p className="text-xs text-slate-400 dark:text-slate-600">{hint}</p>
+      </div>
+      <div className="space-y-3">{children}</div>
     </div>
   );
 }
 
 export default function DashboardPage() {
   const { user, logout } = useAuth();
+  const [counts, setCounts] = useState(null);
+
+  // Reuses the endpoints each page already calls rather than adding a
+  // dashboard-summary workflow. Three extra reads on load, and zero new n8n
+  // workflows to import and keep in sync.
+  useEffect(() => {
+    Promise.all([
+      apiRequest('traxkey-get-turns').catch(() => []),
+      apiRequest('traxkey-get-leases').catch(() => []),
+      apiRequest('traxkey-get-inspections').catch(() => []),
+      apiRequest('traxkey-get-activity').catch(() => []),
+    ]).then(([turns, leases, inspections, activity]) => {
+      const openTurns = (turns || []).filter(t => t.id && t.status !== 'occupied');
+      const dueToday = openTurns.filter(
+        t => t.deadline_at && new Date(t.deadline_at) <= new Date(new Date().toDateString())
+      );
+      const expiring = (leases || []).filter(l => {
+        if (!l.id || l.status !== 'active' || !l.end_date) return false;
+        const days = Math.round((new Date(`${l.end_date}T00:00:00`) - new Date()) / 86400000);
+        return days <= RENEWAL_WINDOW_DAYS;
+      });
+      const openInspections = (inspections || []).filter(i => i.id && i.status === 'in_progress');
+      const needsYou = (activity || []).filter(
+        r => r.id && ['awaiting_approval', 'needs_vendor', 'needs_human_review'].includes(r.status)
+      );
+      setCounts({
+        openTurns: openTurns.length,
+        dueToday: dueToday.length,
+        expiring: expiring.length,
+        openInspections: openInspections.length,
+        needsYou: needsYou.length,
+      });
+    });
+  }, []);
+
+  const c = counts || {};
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 px-6 py-8">
@@ -58,58 +147,63 @@ export default function DashboardPage() {
 
         <ConciergeWidget />
 
-        <TenantPortalLink />
+        {/* Grouped by how often an operator touches each thing, not by
+            lifecycle stage. Lifecycle grouping (onboarding, setup,
+            operations) optimises for week one and then leaves dead weight in
+            prime position for years. Daily work belongs at the top. */}
+        <Section label="Daily operations" hint="what you touch most">
+          <Tile
+            to="/activity" title="AI Activity"
+            blurb="Every request and every step the AI Coordinator took on it."
+            badge={c.needsYou ? `${c.needsYou} need you` : null}
+            tone="urgent"
+          />
+          <Tile
+            to="/turns" title="Turns"
+            blurb="Vacant-to-ready tracking for move-out turnovers and cleaning turns."
+            badge={c.dueToday ? `${c.dueToday} due today` : c.openTurns ? `${c.openTurns} open` : null}
+            tone={c.dueToday ? 'urgent' : 'attention'}
+          />
+          <Tile
+            to="/inspections" title="Inspections"
+            blurb="Move-in and move-out condition records, and what changed between them."
+            badge={c.openInspections ? `${c.openInspections} in progress` : null}
+            tone="attention"
+          />
+        </Section>
 
-        <Link to="/properties" className="block bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl p-6 hover:border-teal-400/50 dark:hover:border-teal-400/30 transition mb-4">
-          <p className="font-bold mb-1">Properties &amp; units →</p>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Add your properties and units, this is what TraxKey AI's agents monitor and act on.</p>
-        </Link>
+        <Section label="Portfolio records" hint="changes now and then">
+          <Tile
+            to="/properties" title="Properties &amp; units"
+            blurb="Your properties and units, what TraxKey AI's agents monitor and act on."
+          />
+          <Tile
+            to="/residents" title="Residents &amp; guests"
+            blurb="Invite each resident or short-term guest with their own reporting link."
+          />
+          <Tile
+            to="/leases" title="Leases"
+            blurb="Terms, rent, and renewal dates. Flagged 90 days before they end."
+            badge={c.expiring ? `${c.expiring} need a decision` : null}
+            tone="attention"
+          />
+        </Section>
 
-        <Link to="/residents" className="block bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl p-6 hover:border-teal-400/50 dark:hover:border-teal-400/30 transition mb-4">
-          <p className="font-bold mb-1">Residents →</p>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Invite each resident (or short-term guest, set check-in/check-out dates) with their own maintenance-reporting link.</p>
-        </Link>
-
-        <Link to="/leases" className="block bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl p-6 hover:border-teal-400/50 dark:hover:border-teal-400/30 transition mb-4">
-          <p className="font-bold mb-1">Leases →</p>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Terms, rent, and renewal dates. TraxKey flags every lease 90 days before it ends.</p>
-        </Link>
-
-        <Link to="/inspections" className="block bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl p-6 hover:border-teal-400/50 dark:hover:border-teal-400/30 transition mb-4">
-          <p className="font-bold mb-1">Inspections →</p>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Move-in and move-out condition records. See exactly what changed between them.</p>
-        </Link>
-
-        <Link to="/business-memory" className="block bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl p-6 hover:border-teal-400/50 dark:hover:border-teal-400/30 transition mb-4">
-          <p className="font-bold mb-1">Business Memory →</p>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Rules the AI follows: approval limits, quiet hours, preferred vendors, scoped as broad or narrow as you need.</p>
-        </Link>
-
-        <Link to="/vendors" className="block bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl p-6 hover:border-teal-400/50 dark:hover:border-teal-400/30 transition mb-4">
-          <p className="font-bold mb-1">Vendors →</p>
-          <p className="text-sm text-slate-500 dark:text-slate-400">The vendor network the AI Maintenance Coordinator dispatches to.</p>
-        </Link>
-
-        <Link to="/turns" className="block bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl p-6 hover:border-teal-400/50 dark:hover:border-teal-400/30 transition mb-4">
-          <p className="font-bold mb-1">Turns →</p>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Vacant-to-ready tracking for move-out turnovers and short-term cleaning turns.</p>
-        </Link>
-
-        <Link to="/calendars" className="block bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl p-6 hover:border-teal-400/50 dark:hover:border-teal-400/30 transition mb-4">
-          <p className="font-bold mb-1">Booking calendars →</p>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Sync Airbnb or Vrbo so the AI knows when a guest is actually in the unit.</p>
-        </Link>
-
-        <Link to="/activity" className="block bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl p-6 hover:border-teal-400/50 dark:hover:border-teal-400/30 transition mb-4">
-          <p className="font-bold mb-1">AI Activity →</p>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Every maintenance request and every step the AI Coordinator took on it.</p>
-        </Link>
-
-        <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl p-6">
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            More AI specialists (Turnover, Resident Communication) land here next.
-          </p>
-        </div>
+        <Section label="Setup" hint="set once, revisit rarely">
+          <Tile
+            to="/vendors" title="Vendors"
+            blurb="The network the AI dispatches to, ranked by their real job history."
+          />
+          <Tile
+            to="/calendars" title="Booking calendars"
+            blurb="Sync Airbnb or Vrbo so the AI knows when a guest is actually in the unit."
+          />
+          <Tile
+            to="/business-memory" title="Business Memory"
+            blurb="Rules the AI follows: approval limits, quiet hours, preferred vendors."
+          />
+          <TenantPortalLink />
+        </Section>
       </div>
     </div>
   );
