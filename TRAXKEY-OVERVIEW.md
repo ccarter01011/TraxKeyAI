@@ -16,16 +16,37 @@ true.
 
 ## 1. What TraxKey AI is
 
-An AI operations platform for people who rent out property. It does the
-coordinating work instead of just recording it.
+A team of AI agents that run a rental portfolio's operations, 24 hours a
+day, across both long-term units and short-term rentals, in one system.
 
-"Platform" rather than "software" is deliberate and it is now accurate: this
-is not one tool, it is a set of specialised AI agents sharing one portfolio,
-one vendor network, and one set of rules.
+Not a single bot bolted onto a ticketing tool. **Seven specialised agents**,
+each owning one workflow end to end, coordinating maintenance, turnovers,
+leases, guest readiness, vendor performance, and the portfolio's own trends,
+around the clock, without waiting on business hours. Section 4 names all
+seven.
 
-Most property software is a filing cabinet. A tenant reports a broken heater,
-the software makes a ticket, and a human still has to read it, work out which
-trade it needs, decide who to call, and chase them. TraxKey does that part.
+Most property software is a filing cabinet: it records what happened and
+leaves a human to make every decision. TraxKey decides the ones that are
+safe to decide, and hands a human exactly the ones that need a human, with
+the reasoning attached. That is the difference between software that tracks
+your business and a platform that runs alongside it.
+
+### The pain points this replaces, not just maintenance
+
+- **A 10pm broken heater** that needs triage, a vendor call, an approval,
+  and a tenant update, done by a person, every time. (§2)
+- **A guest checkout at 11 and check-in at 4** that someone has to notice
+  and race to turn around. (§3, Turnover Coordinator)
+- **A lease that quietly expires** because nobody was watching the
+  calendar 90 days out. (§3, Lease Agent)
+- **A vendor who has gotten slower over six months** and nobody noticed
+  because nobody was comparing this month to March. (§4, Insights Agent)
+- **An owner who calls to ask how their property is doing** because they
+  have no way to check themselves. (§10, addresses table)
+- **A property manager who cannot tell if the business itself is
+  healthy** — which vendor is worth keeping, which unit is underpriced,
+  which turn pattern is costing them nights. TraxKey's Insights Agent
+  surfaces exactly this, unprompted, from the portfolio's own history.
 
 ---
 
@@ -51,6 +72,7 @@ all in their head.
 | A guest complains about something you did not know was broken | The calendar tells the AI someone is in the unit, so it escalates |
 | Finding out a unit was not ready when the guest arrives | Checked before arrival, flagged while there is still time |
 | Discovering at renewal that a unit has been under-rented for a year | Surfaced 90 days out, with the gap against your own average |
+| Not knowing which vendor is quietly getting worse, or which unit keeps breaking | The Insights Agent watches for it and tells you, unprompted |
 
 ### Why nobody has solved it for this operator
 
@@ -109,6 +131,7 @@ including the reason for each decision.
 | **Orders** | Parts and materials a job is waiting on, flagged when late, and when late means a turn will slip. Adapted from our own supply-chain product, TraxSail AI, which chases suppliers on purchase orders. |
 | **Supplies & damage** | Consumables per unit with reorder levels; checkout damage tied to the stay it happened during. |
 | **Vendor portal** | Vendors log in, see their jobs, mark them in progress. |
+| **Owner portal** | Owners you manage for see occupancy, spend, and activity for their own properties, read-only. Never see another owner's properties or any tenant's identity. |
 | **Tenant portal** | Residents and guests report problems, with a warm AI assistant and a "talk to a person" escape hatch. |
 | **Daily briefing** | A short read every morning: what is urgent, what is handled, what is waiting on a decision. |
 
@@ -291,6 +314,7 @@ current bottleneck is distribution, not features.
 | `traxkey.ai/demo` | Interactive dashboard demo, no signup |
 | `app.traxkey.ai` | Operator dashboard (the main product) |
 | `vendors.traxkey.ai` | Vendor portal, where contractors see and update their jobs |
+| `owners.traxkey.ai` *(DNS in progress)* | Owner portal: a read-only view of an owner's own properties, occupancy, 12-month spend, and recent work |
 | `app.traxkey.ai/admin` | Internal admin, our own metrics. Not customer facing |
 | `tenant.traxkey.ai` | Residents and guests report problems. No login |
 
@@ -317,7 +341,6 @@ never share a session, so a compromise in one cannot reach another.
 |---|---|
 | Text-message updates | Email works today. Text is what residents actually read. |
 | Inbound reply handling | Today TraxKey **sends** updates but does not read replies. Competitors auto-answer inbound guest messages; we do not yet. |
-| Owner portal | Owners are the property manager's customer, and there is no way to show them anything yet. |
 | Tenant logins for long-term residents | Request history, documents, renewal offers. Short-term guests keep the no-login link. |
 | Subscription billing | Plans exist; taking payment does not yet. |
 | Document storage | Leases, insurance, notices. Unglamorous and its absence is disqualifying. |
