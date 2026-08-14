@@ -20,6 +20,9 @@ from anthropic import Anthropic
 from langgraph.graph import StateGraph, END
 
 from db import db
+from business_memory import (
+    load_rules, effective_threshold, forces_approval, in_quiet_hours, preferred_vendor_id,
+)
 from ical_sync import get_occupancy
 
 anthropic_client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
@@ -47,6 +50,9 @@ class RequestState(TypedDict, total=False):
     requires_human_review: bool
     review_reason: Optional[str]
     final_status: str
+    property_id: Optional[str]
+    timezone: Optional[str]
+    rules: list
 
 
 def load_context(state: RequestState) -> RequestState:
@@ -54,11 +60,14 @@ def load_context(state: RequestState) -> RequestState:
         cur.execute(
             """
             SELECT mr.description, mr.company_id, mr.unit_id, c.cost_approval_threshold,
+                   c.timezone,
                    mr.category, mr.urgency, mr.responsibility,
+                   u.property_id,
                    COALESCE(r.requires_human_review, false) AS requires_human_review,
                    r.review_reason
             FROM traxkey.maintenance_requests mr
             JOIN traxkey.companies c ON c.id = mr.company_id
+            LEFT JOIN traxkey.units u ON u.id = mr.unit_id
             LEFT JOIN traxkey.residents r ON r.id = mr.resident_id
             WHERE mr.id = %s
             """,
@@ -82,6 +91,12 @@ def load_context(state: RequestState) -> RequestState:
         "occupancy": occupancy,
         "requires_human_review": row["requires_human_review"],
         "review_reason": row["review_reason"],
+        "property_id": str(row["property_id"]) if row["property_id"] else None,
+        "timezone": row["timezone"],
+        # Business Memory: the operator's own standing rules. Loaded once
+        # here, applied deterministically downstream. The LLM never sees
+        # them, they are not suggestions it weighs.
+        "rules": load_rules(str(row["company_id"])),
         # Set when something upstream (cleaner_assignment.py, so far) already
         # knows category/urgency/responsibility as plain facts, a cleaning
         # turn doesn't need an LLM to tell it the job is a cleaning job.
@@ -221,20 +236,48 @@ def hold_for_review(state: RequestState) -> RequestState:
 def find_vendor(state: RequestState) -> RequestState:
     """Deterministic: best vendor on file for this trade, ranked by real
     history, same reliability-scoring principle as TraxSail's supplier
-    score. No AI judgment on which vendor is "best"."""
-    with db() as conn, conn.cursor() as cur:
-        cur.execute(
-            """
-            SELECT v.id, vp.avg_cost, COALESCE(vp.jobs_completed, 0) AS jobs_completed
-            FROM traxkey.vendors v
-            LEFT JOIN traxkey.vendor_performance vp ON vp.vendor_id = v.id
-            WHERE v.company_id = %s AND v.trade = %s
-            ORDER BY COALESCE(vp.completion_rate, 0) DESC, COALESCE(vp.avg_rating, 0) DESC, COALESCE(vp.avg_cost, 999999) ASC
-            LIMIT 1
-            """,
-            (state["company_id"], state["category"]),
-        )
-        row = cur.fetchone()
+    score. No AI judgment on which vendor is "best".
+
+    A Business Memory preferred_vendor rule, if one applies, wins outright,
+    the operator's explicit instruction beats the ranking. If that vendor no
+    longer exists or no longer does this trade, it's ignored and ranking
+    proceeds normally rather than failing the request."""
+    trade = state["category"]
+    rules = state.get("rules", [])
+    pref_id, _pref_rule = preferred_vendor_id(
+        rules, trade=trade, property_id=state.get("property_id"), unit_id=state.get("unit_id")
+    )
+
+    row = None
+    used_preference = False
+    if pref_id:
+        with db() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT v.id, vp.avg_cost, COALESCE(vp.jobs_completed, 0) AS jobs_completed
+                FROM traxkey.vendors v
+                LEFT JOIN traxkey.vendor_performance vp ON vp.vendor_id = v.id
+                WHERE v.id = %s AND v.company_id = %s AND v.trade = %s
+                """,
+                (pref_id, state["company_id"], trade),
+            )
+            row = cur.fetchone()
+        used_preference = row is not None
+
+    if not row:
+        with db() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT v.id, vp.avg_cost, COALESCE(vp.jobs_completed, 0) AS jobs_completed
+                FROM traxkey.vendors v
+                LEFT JOIN traxkey.vendor_performance vp ON vp.vendor_id = v.id
+                WHERE v.company_id = %s AND v.trade = %s
+                ORDER BY COALESCE(vp.completion_rate, 0) DESC, COALESCE(vp.avg_rating, 0) DESC, COALESCE(vp.avg_cost, 999999) ASC
+                LIMIT 1
+                """,
+                (state["company_id"], trade),
+            )
+            row = cur.fetchone()
 
     if not row:
         with db() as conn, conn.cursor() as cur:
@@ -254,6 +297,13 @@ def find_vendor(state: RequestState) -> RequestState:
     known_cost = row["jobs_completed"] > 0 and row["avg_cost"] is not None
     quoted_cost = float(row["avg_cost"]) if known_cost else None
 
+    if used_preference:
+        with db() as conn, conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO traxkey.maintenance_events (request_id, event_type, content) VALUES (%s, 'vendor_matched', %s)",
+                (state["request_id"], f"Assigned to your preferred {trade} vendor, set in Business Memory."),
+            )
+
     return {**state, "vendor_id": str(row["id"]), "quoted_cost": quoted_cost, "known_cost": known_cost}
 
 
@@ -263,8 +313,28 @@ def check_approval(state: RequestState) -> RequestState:
     pauses for a human. Estimate only, not a real bid, until a vendor
     quote-request flow exists. An unknown cost (a vendor with no job
     history yet) always requires approval, never auto-dispatches on a
-    guess."""
-    requires_approval = (not state["known_cost"]) or (state["quoted_cost"] > state["cost_approval_threshold"])
+    guess.
+
+    Business Memory can only ever make this stricter, never looser than the
+    company default: a threshold override replaces the ceiling, but
+    always_require_approval and quiet_hours can only add a reason to pause,
+    never remove one. There is no rule type that widens the gate."""
+    rules = state.get("rules", [])
+    threshold, threshold_rule = effective_threshold(
+        rules, state["cost_approval_threshold"],
+        trade=state["category"], property_id=state.get("property_id"), unit_id=state.get("unit_id"),
+    )
+    forced_rule = forces_approval(
+        rules, trade=state["category"], property_id=state.get("property_id"), unit_id=state.get("unit_id")
+    )
+    quiet, quiet_rule = in_quiet_hours(rules, state.get("timezone"))
+
+    requires_approval = (
+        (not state["known_cost"])
+        or (state["quoted_cost"] > threshold)
+        or bool(forced_rule)
+        or quiet
+    )
 
     with db() as conn, conn.cursor() as cur:
         if requires_approval:
@@ -276,10 +346,16 @@ def check_approval(state: RequestState) -> RequestState:
                 """,
                 (state["vendor_id"], state["quoted_cost"], state["request_id"]),
             )
-            if state["known_cost"]:
-                reason = f"Estimated cost ${state['quoted_cost']:.0f} is over the ${state['cost_approval_threshold']:.0f} approval threshold."
-            else:
+            if forced_rule:
+                reason = f"Held for approval: {forced_rule.get('note') or 'your business rule requires approval on everything in this scope.'}"
+            elif quiet:
+                reason = f"Held for approval: outside your quiet hours ({quiet_rule['value']}), no auto-dispatch during this window."
+            elif not state["known_cost"]:
                 reason = "This vendor has no completed jobs on file yet, no cost history to auto-approve against."
+            elif threshold_rule:
+                reason = f"Estimated cost ${state['quoted_cost']:.0f} is over your ${threshold:.0f} limit for this ({threshold_rule['scope']}), set in Business Memory."
+            else:
+                reason = f"Estimated cost ${state['quoted_cost']:.0f} is over the ${threshold:.0f} approval threshold."
             cur.execute(
                 "INSERT INTO traxkey.maintenance_events (request_id, event_type, content) VALUES (%s, 'approval_needed', %s)",
                 (state["request_id"], reason),

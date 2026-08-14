@@ -1,0 +1,619 @@
+{
+  "name": "TraxKey-16-Business-Memory",
+  "nodes": [
+    {
+      "id": "traxkey-get-business-memory",
+      "name": "Rules (Webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        -320,
+        32
+      ],
+      "typeVersion": 2,
+      "webhookId": "traxkey-get-business-memory",
+      "parameters": {
+        "path": "traxkey-get-business-memory",
+        "options": {
+          "allowedOrigins": "*"
+        },
+        "httpMethod": "GET",
+        "responseMode": "responseNode"
+      }
+    },
+    {
+      "id": "validate-session-(rules)",
+      "name": "Validate Session (Rules)",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        -96,
+        32
+      ],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "parameters": {
+        "query": "SELECT company_id FROM traxkey.sessions WHERE token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\") }}' AND expires_at > now();",
+        "options": {},
+        "operation": "executeQuery"
+      }
+    },
+    {
+      "id": "session-valid?-(rules)",
+      "name": "Session Valid? (Rules)",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        128,
+        32
+      ],
+      "typeVersion": 2,
+      "parameters": {
+        "options": {},
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c1",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json.company_id }}",
+              "rightValue": ""
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "respond:-rules-unauthorized",
+      "name": "Respond: Rules Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        352,
+        182
+      ],
+      "typeVersion": 1,
+      "parameters": {
+        "options": {
+          "responseCode": 401
+        },
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"Unauthorized\" }"
+      }
+    },
+    {
+      "id": "get-rules",
+      "name": "Get Rules",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        352,
+        32
+      ],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "parameters": {
+        "query": "SELECT id, rule_type, scope, scope_ref, value, note, created_at\nFROM traxkey.business_memory\nWHERE company_id = '{{ $json.company_id }}'\nORDER BY rule_type, scope, created_at;",
+        "options": {},
+        "operation": "executeQuery"
+      }
+    },
+    {
+      "id": "respond:-rules",
+      "name": "Respond: Rules",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        576,
+        32
+      ],
+      "typeVersion": 1,
+      "parameters": {
+        "options": {
+          "responseCode": 200
+        },
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($input.all().map(i => i.json).filter(r => r.id)) }}"
+      }
+    },
+    {
+      "id": "traxkey-set-business-memory",
+      "name": "Set Rule (Webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        -320,
+        320
+      ],
+      "typeVersion": 2,
+      "webhookId": "traxkey-set-business-memory",
+      "parameters": {
+        "path": "traxkey-set-business-memory",
+        "options": {
+          "allowedOrigins": "*"
+        },
+        "httpMethod": "POST",
+        "responseMode": "responseNode"
+      }
+    },
+    {
+      "id": "validate-session-(set-rule)",
+      "name": "Validate Session (Set Rule)",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        -96,
+        320
+      ],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "parameters": {
+        "query": "SELECT company_id FROM traxkey.sessions WHERE token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\") }}' AND expires_at > now();",
+        "options": {},
+        "operation": "executeQuery"
+      }
+    },
+    {
+      "id": "session-valid?-(set-rule)",
+      "name": "Session Valid? (Set Rule)",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        128,
+        320
+      ],
+      "typeVersion": 2,
+      "parameters": {
+        "options": {},
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c1",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json.company_id }}",
+              "rightValue": ""
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "respond:-set-rule-unauthorized",
+      "name": "Respond: Set Rule Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        352,
+        470
+      ],
+      "typeVersion": 1,
+      "parameters": {
+        "options": {
+          "responseCode": 401
+        },
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"Unauthorized\" }"
+      }
+    },
+    {
+      "id": "upsert-rule",
+      "name": "Upsert Rule",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        352,
+        320
+      ],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "parameters": {
+        "query": "INSERT INTO traxkey.business_memory (company_id, rule_type, scope, scope_ref, value, note, created_by)\nSELECT '{{ $json.company_id }}'::uuid,\n  '{{ $(\"Set Rule (Webhook)\").first().json.body.ruleType }}',\n  '{{ $(\"Set Rule (Webhook)\").first().json.body.scope || \"global\" }}',\n  NULLIF('{{ ($(\"Set Rule (Webhook)\").first().json.body.scopeRef || \"\").replace(/'/g, \"''\") }}', ''),\n  '{{ (String($(\"Set Rule (Webhook)\").first().json.body.value || \"\")).replace(/'/g, \"''\") }}',\n  NULLIF('{{ (String($(\"Set Rule (Webhook)\").first().json.body.note || \"\")).replace(/'/g, \"''\") }}', ''),\n  NULL\nWHERE '{{ $(\"Set Rule (Webhook)\").first().json.body.ruleType }}' IN ('approval_threshold','always_require_approval','quiet_hours','preferred_vendor')\n  AND '{{ $(\"Set Rule (Webhook)\").first().json.body.value || \"\" }}' <> ''\n  AND ('{{ $(\"Set Rule (Webhook)\").first().json.body.scope || \"global\" }}' = 'global' OR '{{ ($(\"Set Rule (Webhook)\").first().json.body.scopeRef || \"\") }}' <> '')\nON CONFLICT (company_id, rule_type, scope, COALESCE(scope_ref, ''))\nDO UPDATE SET value = EXCLUDED.value, note = EXCLUDED.note, updated_at = now()\nRETURNING id;",
+        "options": {},
+        "operation": "executeQuery"
+      }
+    },
+    {
+      "id": "rule-saved?",
+      "name": "Rule Saved?",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        576,
+        320
+      ],
+      "typeVersion": 2,
+      "parameters": {
+        "options": {},
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c1",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json.id }}",
+              "rightValue": ""
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "respond:-rule-not-saved",
+      "name": "Respond: Rule Not Saved",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        800,
+        470
+      ],
+      "typeVersion": 1,
+      "parameters": {
+        "options": {
+          "responseCode": 400
+        },
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"Could not save that rule. Check the rule type, scope, and value.\" }"
+      }
+    },
+    {
+      "id": "respond:-rule-saved",
+      "name": "Respond: Rule Saved",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        800,
+        250
+      ],
+      "typeVersion": 1,
+      "parameters": {
+        "options": {
+          "responseCode": 200
+        },
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, id: $json.id }) }}"
+      }
+    },
+    {
+      "id": "traxkey-delete-business-memory",
+      "name": "Delete Rule (Webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        -320,
+        640
+      ],
+      "typeVersion": 2,
+      "webhookId": "traxkey-delete-business-memory",
+      "parameters": {
+        "path": "traxkey-delete-business-memory",
+        "options": {
+          "allowedOrigins": "*"
+        },
+        "httpMethod": "POST",
+        "responseMode": "responseNode"
+      }
+    },
+    {
+      "id": "validate-session-(delete-rule)",
+      "name": "Validate Session (Delete Rule)",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        -96,
+        640
+      ],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "parameters": {
+        "query": "SELECT company_id FROM traxkey.sessions WHERE token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\") }}' AND expires_at > now();",
+        "options": {},
+        "operation": "executeQuery"
+      }
+    },
+    {
+      "id": "session-valid?-(delete-rule)",
+      "name": "Session Valid? (Delete Rule)",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        128,
+        640
+      ],
+      "typeVersion": 2,
+      "parameters": {
+        "options": {},
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c1",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json.company_id }}",
+              "rightValue": ""
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "respond:-delete-rule-unauthorized",
+      "name": "Respond: Delete Rule Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        352,
+        790
+      ],
+      "typeVersion": 1,
+      "parameters": {
+        "options": {
+          "responseCode": 401
+        },
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"Unauthorized\" }"
+      }
+    },
+    {
+      "id": "remove-rule",
+      "name": "Remove Rule",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        352,
+        640
+      ],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "parameters": {
+        "query": "DELETE FROM traxkey.business_memory\nWHERE id = '{{ $(\"Delete Rule (Webhook)\").first().json.body.ruleId }}'::uuid AND company_id = '{{ $json.company_id }}'::uuid\nRETURNING id;",
+        "options": {},
+        "operation": "executeQuery"
+      }
+    },
+    {
+      "id": "respond:-rule-deleted",
+      "name": "Respond: Rule Deleted",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        576,
+        640
+      ],
+      "typeVersion": 1,
+      "parameters": {
+        "options": {
+          "responseCode": 200
+        },
+        "respondWith": "json",
+        "responseBody": "={ \"success\": true }"
+      }
+    }
+  ],
+  "connections": {
+    "Rules (Webhook)": {
+      "main": [
+        [
+          {
+            "node": "Validate Session (Rules)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Session (Rules)": {
+      "main": [
+        [
+          {
+            "node": "Session Valid? (Rules)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Session Valid? (Rules)": {
+      "main": [
+        [
+          {
+            "node": "Get Rules",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Rules Unauthorized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Rules": {
+      "main": [
+        [
+          {
+            "node": "Respond: Rules",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Rule (Webhook)": {
+      "main": [
+        [
+          {
+            "node": "Validate Session (Set Rule)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Session (Set Rule)": {
+      "main": [
+        [
+          {
+            "node": "Session Valid? (Set Rule)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Session Valid? (Set Rule)": {
+      "main": [
+        [
+          {
+            "node": "Upsert Rule",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Set Rule Unauthorized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Rule": {
+      "main": [
+        [
+          {
+            "node": "Rule Saved?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rule Saved?": {
+      "main": [
+        [
+          {
+            "node": "Respond: Rule Saved",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Rule Not Saved",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete Rule (Webhook)": {
+      "main": [
+        [
+          {
+            "node": "Validate Session (Delete Rule)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Session (Delete Rule)": {
+      "main": [
+        [
+          {
+            "node": "Session Valid? (Delete Rule)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Session Valid? (Delete Rule)": {
+      "main": [
+        [
+          {
+            "node": "Remove Rule",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Delete Rule Unauthorized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove Rule": {
+      "main": [
+        [
+          {
+            "node": "Respond: Rule Deleted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {}
+}
