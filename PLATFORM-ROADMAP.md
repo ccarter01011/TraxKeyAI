@@ -313,3 +313,27 @@ evaluation, not by how interesting it is to build.
 The highest-value single conversation is still with the operator who gave
 the "not base level" feedback: ask which three of these would have changed
 their answer. That would cut this list roughly in half.
+
+---
+
+## Deploy tasks (not features)
+
+Small things that are built but not reachable, or configured wrong.
+
+### Vendor portal has no domain
+`traxkey-vendor-portal/` is built and its four n8n endpoints work, but
+`vendor.traxkey.ai` does not resolve. Needs a Railway service with that root
+directory and a DNS record, the same setup as `tenant.traxkey.ai`. Until
+then the vendor login flow exists with nowhere to log in from.
+
+### 00 Email Alert workflow is misconfigured
+Three problems, and the first one means error alerts are silently failing:
+
+1. `from` is `alertalert@notify.traxkey.ai`, a malformed address with a
+   doubled word. Should be `alerts@notify.traxkey.ai`.
+2. `to` is `support@traxkey.ai`, but `traxkey.ai` has no MX records, so that
+   mailbox cannot receive anything. Decision taken 2026-08-14: set up MX on
+   traxkey.ai (Google Workspace or similar) rather than point alerts at a
+   personal inbox. Alerts stay dark until that is done.
+3. `subject` still reads "Supply chain platform error", left over from the
+   TraxSail template this was cloned from.
