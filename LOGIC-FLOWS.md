@@ -247,3 +247,42 @@ remembered to log it.
 
 No separate cleaner engine exists. This is the same maintenance coordinator,
 pointed at a pre-classified job instead of free text.
+
+---
+
+## Business Memory flow
+
+1. Operator opens Business Memory, picks a rule type (approval threshold
+   override, always require approval, quiet hours, or preferred vendor),
+   scopes it (everywhere, one trade, one property, or one unit), and saves.
+2. Every request that reaches `graph.py`'s `load_context` loads every active
+   rule for the company in one query.
+3. `find_vendor` checks for a `preferred_vendor` rule first. If one applies
+   and that vendor still exists and still does the trade, it wins outright,
+   no ranking. If the vendor was deleted or changed trades, the rule is
+   ignored and normal ranking runs, the request never fails over a stale
+   reference.
+4. `check_approval` resolves `approval_threshold`, `always_require_approval`,
+   and `quiet_hours` for this request's trade/property/unit. Precedence,
+   most specific wins:
+
+   ```
+   unit  >  property  >  trade  >  global  >  company default
+   ```
+
+5. Every rule can only make the gate **stricter** than the company default,
+   never looser. There is no rule type that widens auto-dispatch.
+6. Whichever rule fires writes an honest reason into the same
+   `maintenance_events` log every other decision uses, e.g. *"Estimated
+   cost $480 is over your $200 limit for this (trade), set in Business
+   Memory"* or *"Held for approval: outside your quiet hours
+   (20:00-07:00)"*. That reason surfaces directly in the dashboard's task
+   modal, the actual place the operator is already looking, not a separate
+   summary that could drift from what really happened.
+
+**No LLM ever sees these rules.** They are Python-level overrides applied
+before and after the one AI call in the graph, not something the model
+weighs as a suggestion. Verified end-to-end against real dispatch for all
+four rule types on 2026-08-14: threshold override, preferred vendor beating
+a better-ranked competitor, forced approval on an otherwise-auto-approved
+job, and quiet hours blocking an otherwise-auto-dispatched cleaning job.
