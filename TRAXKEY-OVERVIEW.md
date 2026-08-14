@@ -290,7 +290,7 @@ current bottleneck is distribution, not features.
 | `traxkey.ai/short-term-rentals` | Short-term operator landing page |
 | `traxkey.ai/demo` | Interactive dashboard demo, no signup |
 | `app.traxkey.ai` | Operator dashboard (the main product) |
-| `app.traxkey.ai/vendor` | Vendor portal, where contractors see and update their jobs |
+| *(vendor portal, domain to confirm)* | Vendor portal, where contractors see and update their jobs. Built and working; its public address is not yet documented here. |
 | `app.traxkey.ai/admin` | Internal admin, our own metrics. Not customer facing |
 | `tenant.traxkey.ai` | Residents and guests report problems. No login |
 
