@@ -101,26 +101,26 @@ an LTR tool with no calendars.
 
 ## Proposed changes to traxkey.ai
 
-Ordered by expected impact.
+Ordered by expected impact. **All seven built 2026-08-14.**
 
-### 1. Re-lead on the mixed portfolio, demote the AI
+### 1. ✅ Re-lead on the mixed portfolio, demote the AI
 Current hero leans on the AI team of specialists. Every competitor now says
 that. Lead instead on the one thing that is checkably true and unavailable
 elsewhere: long-term and short-term in one system. Keep the AI as *how* it
 works, not *what* it is.
 
-### 2. A "Who this is for" section, Buildium-style
+### 2. ✅ A "Who this is for" section, Buildium-style
 Three cards: **Long-term only / Short-term only / Both**. The third is the
 hero card and says plainly that this is the one nobody else serves. Doubles
 as honest qualification, an STR-only operator should know Hostaway is more
 mature at STR-only work.
 
-### 3. Put the demo on the homepage
+### 3. ✅ Put the demo on the homepage
 `/demo` is good but nobody clicks a nav item to find it. Lodgify embeds it
 above the fold. Move an interactive slice of it into the homepage, keep the
 full page behind "see the whole dashboard".
 
-### 4. Replace invented proof with real proof
+### 4. ✅ Replace invented proof with real proof
 We have no customers, so we cannot run Hostaway's numbers, and inventing
 them is out. What we *can* show honestly:
 - The audit trail. "Every decision, logged with its reasoning" is a
@@ -128,18 +128,18 @@ them is out. What we *can* show honestly:
 - Time-to-first-value: "Add a unit, share a link, watch it handle the first
   request." Buildium's sample-data trial is the model.
 
-### 5. Steal the sample-data trial
+### 5. ✅ Steal the sample-data trial
 Buildium's best idea. A new account is an empty dashboard, which is the
 worst possible first impression of an AI product that needs data to be
 interesting. Offer "explore with sample data" on signup, seeded from the
 same demo portfolio the marketing page uses.
 
-### 6. Tier by portfolio size, visibly
+### 6. ✅ Tier by portfolio size, visibly
 Guesty names its tiers by listing count so a visitor self-selects instantly.
 Ours are Free/Starter/Growth/Pro with unit counts in the fine print. Put the
 unit range in the tier name.
 
-### 7. Onboarding as a feature
+### 7. ✅ Onboarding as a feature
 Lodgify sells "a real human sets you up". At our size that is a genuine
 advantage, not a cost. Say it.
 

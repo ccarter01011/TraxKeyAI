@@ -20,6 +20,8 @@ from review_risk import run_review_risk_checks
 from lease_agent import run_lease_agent
 from lead_followup import run_lead_followup
 from resident_notify import run_resident_notifications
+from sample_data import seed as seed_sample, remove as remove_sample, has_sample
+from concierge import validate_session
 from concierge import get_briefing
 from admin_concierge import get_admin_briefing
 from sales_chat import answer as sales_answer
@@ -62,7 +64,7 @@ class HealthHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         route = self.path.split("?")[0]
-        if route not in ("/chat", "/tenant-chat"):
+        if route not in ("/chat", "/tenant-chat", "/sample-data"):
             self._json(404, {"error": "Not found"})
             return
         try:
@@ -77,6 +79,23 @@ class HealthHandler(BaseHTTPRequestHandler):
 
         # Behind Railway's proxy, the real client IP is in the forwarded header.
         ip = (self.headers.get("X-Forwarded-For") or self.client_address[0] or "unknown").split(",")[0].strip()
+
+        if route == "/sample-data":
+            # Session-scoped: sample data can only ever be created or removed
+            # inside the caller's own company.
+            token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
+            company_id = validate_session(token)
+            if not company_id:
+                self._json(401, {"error": "Unauthorized"})
+                return
+            try:
+                result = remove_sample(company_id) if payload.get("action") == "remove" else seed_sample(company_id)
+            except Exception:
+                traceback.print_exc()
+                self._json(500, {"error": "Could not update sample data"})
+                return
+            self._json(200 if result.get("ok") else 400, result)
+            return
 
         if route == "/tenant-chat":
             # Separate persona from the sales bot: warm, resident-facing, and

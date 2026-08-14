@@ -10,6 +10,72 @@ const TENANT_PORTAL_BASE = 'https://tenant.traxkey.ai';
 // A lease inside this window needs a renewal decision. Matches
 // RENEWAL_WINDOW_DAYS in LeasesPage.
 const RENEWAL_WINDOW_DAYS = 90;
+const AGENT_BASE = 'https://langgraph-production-42ef.up.railway.app';
+
+/** A new account is an empty dashboard, which is the worst first impression
+ *  for a product whose value is the AI noticing things: with nothing to
+ *  notice, it looks broken. Borrowed from Buildium's sample-data trial. */
+function SampleData({ isEmpty, hasSample, onChanged }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  async function call(action) {
+    setBusy(true); setError('');
+    try {
+      const res = await fetch(`${AGENT_BASE}/sample-data`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('tk_token')}`,
+        },
+        body: JSON.stringify({ action }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || 'That did not work');
+      onChanged();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (hasSample) {
+    return (
+      <div className="flex items-center justify-between gap-3 bg-amber-500/10 border border-amber-400/20 rounded-xl px-4 py-3 mb-6">
+        <p className="text-xs text-amber-700 dark:text-amber-400">
+          You're looking at sample data. Remove it whenever you're ready to add your own.
+        </p>
+        <button onClick={() => call('remove')} disabled={busy}
+          className="shrink-0 text-xs font-bold text-amber-700 dark:text-amber-400 hover:underline disabled:opacity-50">
+          {busy ? 'Removing…' : 'Remove sample data'}
+        </button>
+      </div>
+    );
+  }
+
+  if (!isEmpty) return null;
+
+  return (
+    <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl p-6 mb-6 text-center">
+      <p className="font-bold mb-1">Nothing here yet</p>
+      <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+        Add your first property, or load a sample portfolio to see how TraxKey handles a real day.
+        It's a mix of long-term and short-term, and you can remove it in one click.
+      </p>
+      <div className="flex items-center justify-center gap-3">
+        <Link to="/properties" className="bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-sm px-4 py-2.5 rounded-lg transition">
+          Add a property
+        </Link>
+        <button onClick={() => call('seed')} disabled={busy}
+          className="border border-slate-300 dark:border-white/15 hover:border-teal-400/50 text-sm font-bold px-4 py-2.5 rounded-lg transition disabled:opacity-50">
+          {busy ? 'Loading…' : 'Load sample data'}
+        </button>
+      </div>
+      {error && <p className="text-xs text-red-500 mt-3">{error}</p>}
+    </div>
+  );
+}
 
 function TenantPortalLink() {
   const [profile, setProfile] = useState(null);
@@ -99,13 +165,15 @@ export default function DashboardPage() {
   // Reuses the endpoints each page already calls rather than adding a
   // dashboard-summary workflow. Three extra reads on load, and zero new n8n
   // workflows to import and keep in sync.
-  useEffect(() => {
+  function load() {
     Promise.all([
+      apiRequest('traxkey-get-properties').catch(() => []),
       apiRequest('traxkey-get-turns').catch(() => []),
       apiRequest('traxkey-get-leases').catch(() => []),
       apiRequest('traxkey-get-inspections').catch(() => []),
       apiRequest('traxkey-get-activity').catch(() => []),
-    ]).then(([turns, leases, inspections, activity]) => {
+    ]).then(([properties, turns, leases, inspections, activity]) => {
+      const props = (properties || []).filter(p => p.id);
       const openTurns = (turns || []).filter(t => t.id && t.status !== 'occupied');
       const dueToday = openTurns.filter(
         t => t.deadline_at && new Date(t.deadline_at) <= new Date(new Date().toDateString())
@@ -120,6 +188,8 @@ export default function DashboardPage() {
         r => r.id && ['awaiting_approval', 'needs_vendor', 'needs_human_review'].includes(r.status)
       );
       setCounts({
+        isEmpty: props.length === 0,
+        hasSample: props.some(p => (p.name || '').startsWith('Sample: ')),
         openTurns: openTurns.length,
         dueToday: dueToday.length,
         expiring: expiring.length,
@@ -127,7 +197,9 @@ export default function DashboardPage() {
         needsYou: needsYou.length,
       });
     });
-  }, []);
+  }
+
+  useEffect(() => { load(); }, []);
 
   const c = counts || {};
 
@@ -146,6 +218,8 @@ export default function DashboardPage() {
         </div>
 
         <ConciergeWidget />
+
+        <SampleData isEmpty={c.isEmpty} hasSample={c.hasSample} onChanged={load} />
 
         {/* Grouped by how often an operator touches each thing, not by
             lifecycle stage. Lifecycle grouping (onboarding, setup,
