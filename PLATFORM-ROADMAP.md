@@ -320,11 +320,15 @@ their answer. That would cut this list roughly in half.
 
 Small things that are built but not reachable, or configured wrong.
 
-### Vendor portal has no domain
-`traxkey-vendor-portal/` is built and its four n8n endpoints work, but
-`vendor.traxkey.ai` does not resolve. Needs a Railway service with that root
-directory and a DNS record, the same setup as `tenant.traxkey.ai`. Until
-then the vendor login flow exists with nowhere to log in from.
+### ~~Vendor portal has no domain~~ — RESOLVED, it was already live
+Wrong on my part twice: I guessed `vendor.traxkey.ai` (singular), which does
+not resolve. The real address is **`vendors.traxkey.ai`** (plural), which was
+already deployed on Railway and serving. Verified 2026-08-14: HTTP 200, the
+served page matches the local file, bad credentials return a clean 401, and
+both the login and the jobs endpoint reject an SQL-injection probe.
+
+Lesson: check DNS for the obvious variants before recording something as
+undeployed.
 
 ### 00 Email Alert workflow is misconfigured
 Three problems, and the first one means error alerts are silently failing:
