@@ -3,12 +3,13 @@
 *Written for someone who has not seen the code.*
 
 **Live Google Doc:**
-https://docs.google.com/document/d/1C-edfI_rqhZMVP2mdbyl234Oev-2BfVJQlZTaLs0Djs/edit
-(v2 — the earlier v1 Doc is superseded and can be deleted)
+https://docs.google.com/document/d/1izpAojw_YfwRrnt_NedNG0mUiIYUq_16EKdAPC_WazY/edit
+(v3 — v1 and v2 are superseded and can be deleted)
 
-This markdown file is the source. When it changes, update the Doc to match,
-otherwise the version handed to an investor drifts from the version that is
-true.
+This markdown file is the source. There is no way to update a Doc's content
+in place (Drive's update tool only changes title/location, not the body),
+so a material change here means a NEW Doc and a new link, not an edit to
+the old one. Update this link when that happens.
 
 **Last updated:** 14 August 2026
 
