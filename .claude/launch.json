@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "traxkey-marketing",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "-y",
+        "serve",
+        "traxkey-marketing-site",
+        "-l",
+        "4177"
+      ],
+      "port": 4177
+    }
+  ]
+}

@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>See the dashboard | TraxKey AI</title>
+<meta name="description" content="A working look at the TraxKey AI operator dashboard for long-term rentals and short-term rentals, with the reporting a mixed portfolio actually needs." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+* { font-family: 'Inter', sans-serif; }
+@keyframes tk-orb-spin { to { transform: rotate(360deg); } }
+@keyframes tk-orb-breathe { 0%,100% { opacity:.45 } 50% { opacity:.85 } }
+.tk-orb { position: relative; border-radius: 9999px; display: inline-block; flex-shrink: 0; width: 40px; height: 40px; }
+.tk-orb::before {
+  content: ''; position: absolute; inset: -5px; border-radius: 9999px;
+  background: conic-gradient(from 0deg, #2dd4bf, #38bdf8, #a78bfa, #2dd4bf);
+  filter: blur(8px); opacity: .9;
+  animation: tk-orb-spin 1.8s linear infinite, tk-orb-breathe 1.8s ease-in-out infinite;
+}
+.tk-orb__core {
+  position: absolute; inset: 0; border-radius: 9999px;
+  background: radial-gradient(circle, rgba(15,23,42,.65), rgba(15,23,42,.2));
+  border: 1px solid rgba(255,255,255,.12);
+}
+.tk-caret::after { content:'▍'; margin-left:1px; opacity:.7; animation: tk-orb-breathe 1s ease-in-out infinite; }
+.glow-card { box-shadow: 0 0 40px -12px rgba(45,212,191,.25); }
+@media (prefers-reduced-motion: reduce) { .tk-orb::before, .tk-caret::after { animation: none; } }
+</style>
+</head>
+<body class="bg-slate-950 text-slate-100 antialiased">
+
+<header class="border-b border-white/5 sticky top-0 bg-slate-950/90 backdrop-blur z-40">
+  <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+    <a href="/" class="flex items-center gap-2">
+      <div class="w-8 h-8 rounded-lg bg-teal-500/15 border border-teal-500/30 flex items-center justify-center">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3L4 9V21H20V9L12 3Z" stroke="#2dd4bf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <span class="font-extrabold text-lg tracking-tight">TraxKey <span class="text-teal-400">AI</span></span>
+    </a>
+    <div class="flex items-center gap-5 text-sm">
+      <a href="/short-term-rentals" class="text-slate-300 hover:text-white transition hidden sm:block">Short-term rentals</a>
+      <a href="https://app.traxkey.ai/signup" class="bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold px-4 py-2 rounded-lg transition">Start free</a>
+    </div>
+  </div>
+</header>
+
+<section class="pt-16 pb-8 px-6">
+  <div class="max-w-6xl mx-auto text-center">
+    <p class="text-teal-400 font-semibold text-sm mb-3 tracking-wide uppercase">The dashboard</p>
+    <h1 class="text-3xl md:text-5xl font-bold mb-4 tracking-tight">One portfolio. Both kinds of rental.</h1>
+    <p class="text-slate-400 max-w-2xl mx-auto mb-8">
+      Most tools make you pick a side. If you run long-term units and short-term units,
+      you end up with two systems that can't see each other. This is what it looks like when they can.
+    </p>
+
+    <div class="inline-flex items-center bg-slate-900 border border-white/10 rounded-xl p-1 gap-1">
+      <button id="tab-pm" onclick="showView('pm')" class="px-5 py-2.5 rounded-lg text-sm font-bold transition bg-teal-500 text-slate-950">
+        Long-term rentals
+      </button>
+      <button id="tab-str" onclick="showView('str')" class="px-5 py-2.5 rounded-lg text-sm font-bold transition text-slate-400 hover:text-white">
+        Short-term rentals
+      </button>
+    </div>
+  </div>
+</section>
+
+<section class="pb-16 px-6">
+  <div class="max-w-6xl mx-auto">
+
+    <!-- CONCIERGE -->
+    <div class="bg-gradient-to-r from-teal-500/10 to-sky-500/10 border border-teal-400/20 rounded-2xl p-6 mb-6 glow-card">
+      <div class="flex items-start gap-4">
+        <span class="tk-orb"><span class="tk-orb__core"></span></span>
+        <div class="flex-1 min-w-0">
+          <p class="text-xs font-bold text-teal-300 uppercase tracking-wide mb-2">TraxKey AI</p>
+          <p id="brief-lead" class="text-sm md:text-base text-slate-100 leading-relaxed tk-caret"></p>
+          <ul id="brief-todos" class="mt-3 space-y-1"></ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- KPI ROW -->
+    <div id="kpis" class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6"></div>
+
+    <div class="grid lg:grid-cols-3 gap-6">
+      <!-- MAIN COLUMN -->
+      <div class="lg:col-span-2 space-y-6">
+        <!-- TREND -->
+        <div class="bg-slate-900 border border-white/5 rounded-2xl p-6">
+          <div class="flex items-baseline justify-between mb-1">
+            <h3 id="chart-title" class="font-bold"></h3>
+            <span id="chart-note" class="text-xs text-slate-500"></span>
+          </div>
+          <p id="chart-sub" class="text-xs text-slate-500 mb-5"></p>
+          <div id="chart" class="h-44"></div>
+        </div>
+
+        <!-- WORK QUEUE -->
+        <div class="bg-slate-900 border border-white/5 rounded-2xl p-6">
+          <h3 class="font-bold mb-1">What the AI did today</h3>
+          <p class="text-xs text-slate-500 mb-4">Every decision logged, with the reasoning behind it.</p>
+          <div id="queue" class="space-y-2"></div>
+        </div>
+      </div>
+
+      <!-- SIDE COLUMN -->
+      <div class="space-y-6">
+        <div class="bg-slate-900 border border-white/5 rounded-2xl p-6">
+          <h3 class="font-bold mb-1">Vendor reliability</h3>
+          <p class="text-xs text-slate-500 mb-4">Ranked on real job history, not a guess.</p>
+          <div id="vendors" class="space-y-3"></div>
+        </div>
+        <div id="side-panel" class="bg-slate-900 border border-white/5 rounded-2xl p-6"></div>
+      </div>
+    </div>
+
+    <p class="text-xs text-slate-500 text-center mt-8">
+      Sample data for a fictional portfolio, shown so you can see the shape of it before signing up.
+      These are not customer results.
+    </p>
+  </div>
+</section>
+
+<section class="py-20 px-6 border-t border-white/5">
+  <div class="max-w-2xl mx-auto text-center">
+    <h2 class="text-2xl md:text-3xl font-bold mb-4">Your first unit is free</h2>
+    <p class="text-slate-400 mb-8">No card. Add a property, invite a resident, and watch it handle the first request.</p>
+    <a href="https://app.traxkey.ai/signup" class="inline-block bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold px-8 py-3.5 rounded-xl transition">Start free →</a>
+  </div>
+</section>
+
+<footer class="border-t border-white/5 py-10 px-6">
+  <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-slate-500">
+    <span>© 2026 TraxKey AI</span>
+    <div class="flex gap-6">
+      <a href="/" class="hover:text-white transition">Home</a>
+      <a href="/short-term-rentals" class="hover:text-white transition">Short-term rentals</a>
+      <a href="mailto:hello@traxkey.ai" class="hover:text-white transition">Contact</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+// Two portfolios, deliberately different shapes. The long-term view is about
+// tenancy and cost control over months; the short-term view is about hours
+// and guest experience. Showing the same metrics twice would undercut the
+// whole point of the page.
+var DATA = {
+  pm: {
+    lead: "Two things need you this morning. Everything else is moving on its own.",
+    todos: [
+      "Approve the $610 water heater replacement at Maple Street, it's over your $500 limit.",
+      "No locksmith on file, the Riverside deadbolt has been waiting two days.",
+      "Unit 12's lease ends in 34 days and the renewal offer hasn't gone out."
+    ],
+    kpis: [
+      { label: "Occupancy", value: "94%", sub: "32 of 34 units", tone: "teal" },
+      { label: "Avg days to resolve", value: "1.8", sub: "down from 4.2", tone: "green" },
+      { label: "Handled without you", value: "78%", sub: "of all requests", tone: "teal" },
+      { label: "Renewals due", value: "5", sub: "next 90 days", tone: "amber" }
+    ],
+    chartTitle: "Maintenance spend vs last year",
+    chartSub: "Same portfolio, same season. Catching issues earlier costs less than fixing them late.",
+    chartNote: "6 months",
+    series: [
+      { label: "This year", color: "#2dd4bf", points: [4200, 3800, 3100, 3400, 2900, 2600] },
+      { label: "Last year", color: "#475569", points: [4600, 4900, 4400, 5100, 4700, 4900] }
+    ],
+    xLabels: ["Mar","Apr","May","Jun","Jul","Aug"],
+    queue: [
+      { tone: "teal", title: "Dishwasher not draining, Unit 7B", meta: "Diagnosed appliance · matched Ace Appliance · dispatched", time: "6:12am" },
+      { tone: "amber", title: "Water heater replacement, Maple Street", meta: "$610 estimate is over your $500 limit · waiting on you", time: "7:40am" },
+      { tone: "teal", title: "Hallway smoke detector chirping", meta: "Routine · dispatched to BrightSpark Electric", time: "8:05am" },
+      { tone: "red", title: "Front door deadbolt, Riverside A", meta: "No locksmith on file for this trade", time: "2 days" }
+    ],
+    vendors: [
+      { name: "BrightSpark Electric", trade: "Electrical", score: 98, jobs: 41 },
+      { name: "Reliable Plumbing", trade: "Plumbing", score: 93, jobs: 67 },
+      { name: "CoolBreeze HVAC", trade: "HVAC", score: 74, jobs: 22 }
+    ],
+    sideTitle: "Lease renewals",
+    side: [
+      { label: "Unit 12, ends in 34 days", value: "$300 under market", tone: "amber" },
+      { label: "Unit 4B, ends in 61 days", value: "Offer sent", tone: "teal" },
+      { label: "Maple Street, ends in 88 days", value: "Not started", tone: "slate" }
+    ]
+  },
+  str: {
+    lead: "Riverside D is a same-day turnaround and the cleaner hasn't confirmed. That's the one that matters.",
+    todos: [
+      "Guest checks in at Riverside D in 6 hours, cleaning is still marked in progress.",
+      "Hillcrest had a maintenance issue during the stay that closed unresolved, worth a message before they review.",
+      "Two nights open at Riverside B next week, nothing booked."
+    ],
+    kpis: [
+      { label: "Occupancy", value: "87%", sub: "next 30 days", tone: "teal" },
+      { label: "Turns today", value: "3", sub: "1 same-day", tone: "amber" },
+      { label: "Avg turn time", value: "4.1h", sub: "checkout to ready", tone: "green" },
+      { label: "Review risk", value: "1", sub: "needs outreach", tone: "red" }
+    ],
+    chartTitle: "Occupancy and turn pressure",
+    chartSub: "Booked nights against how many turns each week demands. The spikes are where things break.",
+    chartNote: "6 weeks",
+    series: [
+      { label: "Occupancy %", color: "#2dd4bf", points: [72, 78, 85, 91, 87, 94] },
+      { label: "Turns", color: "#f59e0b", points: [40, 55, 60, 85, 70, 90] }
+    ],
+    xLabels: ["W1","W2","W3","W4","W5","W6"],
+    queue: [
+      { tone: "amber", title: "Riverside D, same-day turnaround", meta: "Guest out 10am, next in 4pm · cleaner assigned automatically", time: "10:02am" },
+      { tone: "teal", title: "Hillcrest checkout detected", meta: "Cleaning turn opened from the calendar · Fresh Start assigned", time: "11:15am" },
+      { tone: "teal", title: "AC not cooling, Riverside B", meta: "Guest in unit · escalated to urgent · dispatched same hour", time: "1:20pm" },
+      { tone: "red", title: "Hillcrest review risk", meta: "Issue open at checkout · outreach suggested", time: "3:44pm" }
+    ],
+    vendors: [
+      { name: "Fresh Start Cleaning", trade: "Cleaning", score: 96, jobs: 128 },
+      { name: "Reliable Plumbing", trade: "Plumbing", score: 93, jobs: 67 },
+      { name: "CoolBreeze HVAC", trade: "HVAC", score: 74, jobs: 22 }
+    ],
+    sideTitle: "Next 72 hours",
+    side: [
+      { label: "Riverside D, check-in 4pm", value: "Not ready", tone: "red" },
+      { label: "Hillcrest, check-in tomorrow", value: "Ready", tone: "teal" },
+      { label: "Riverside B, check-in Thu", value: "Turn scheduled", tone: "amber" }
+    ]
+  }
+};
+
+var TONE = {
+  teal: "text-teal-400", green: "text-green-400", amber: "text-amber-400",
+  red: "text-red-400", slate: "text-slate-400"
+};
+var DOT = {
+  teal: "bg-teal-400", green: "bg-green-400", amber: "bg-amber-400",
+  red: "bg-red-400", slate: "bg-slate-500"
+};
+
+var typingTimer = null;
+
+function showView(key) {
+  var d = DATA[key];
+
+  document.getElementById('tab-pm').className = 'px-5 py-2.5 rounded-lg text-sm font-bold transition ' +
+    (key === 'pm' ? 'bg-teal-500 text-slate-950' : 'text-slate-400 hover:text-white');
+  document.getElementById('tab-str').className = 'px-5 py-2.5 rounded-lg text-sm font-bold transition ' +
+    (key === 'str' ? 'bg-teal-500 text-slate-950' : 'text-slate-400 hover:text-white');
+
+  // Briefing types word by word so it reads as written live, not pasted.
+  var lead = document.getElementById('brief-lead');
+  var todos = document.getElementById('brief-todos');
+  if (typingTimer) clearInterval(typingTimer);
+  lead.textContent = ''; todos.innerHTML = '';
+  lead.classList.add('tk-caret');
+  var words = d.lead.split(' ');
+  var i = 0;
+  typingTimer = setInterval(function () {
+    i++; lead.textContent = words.slice(0, i).join(' ');
+    if (i >= words.length) {
+      clearInterval(typingTimer);
+      lead.classList.remove('tk-caret');
+      d.todos.forEach(function (t, n) {
+        setTimeout(function () {
+          var li = document.createElement('li');
+          li.className = 'flex items-start gap-2 text-sm text-slate-300';
+          li.innerHTML = '<span class="shrink-0 mt-1.5 w-1 h-1 rounded-full bg-teal-400"></span><span>' + t + '</span>';
+          todos.appendChild(li);
+        }, n * 180);
+      });
+    }
+  }, 55);
+
+  document.getElementById('kpis').innerHTML = d.kpis.map(function (k) {
+    return '<div class="bg-slate-900 border border-white/5 rounded-2xl p-5">' +
+      '<p class="text-xs uppercase tracking-wide text-slate-500 mb-1">' + k.label + '</p>' +
+      '<p class="text-3xl font-bold ' + TONE[k.tone] + '">' + k.value + '</p>' +
+      '<p class="text-xs text-slate-500 mt-1">' + k.sub + '</p></div>';
+  }).join('');
+
+  document.getElementById('chart-title').textContent = d.chartTitle;
+  document.getElementById('chart-sub').textContent = d.chartSub;
+  document.getElementById('chart-note').textContent = d.chartNote;
+  document.getElementById('chart').innerHTML = lineChart(d.series, d.xLabels);
+
+  document.getElementById('queue').innerHTML = d.queue.map(function (q) {
+    return '<div class="flex items-start gap-3 bg-slate-950/50 rounded-xl px-4 py-3">' +
+      '<span class="shrink-0 mt-1.5 w-1.5 h-1.5 rounded-full ' + DOT[q.tone] + '"></span>' +
+      '<div class="flex-1 min-w-0"><p class="text-sm font-medium">' + q.title + '</p>' +
+      '<p class="text-xs text-slate-500 mt-0.5">' + q.meta + '</p></div>' +
+      '<span class="shrink-0 text-xs text-slate-600">' + q.time + '</span></div>';
+  }).join('');
+
+  document.getElementById('vendors').innerHTML = d.vendors.map(function (v) {
+    var bar = v.score >= 90 ? 'bg-teal-400' : v.score >= 80 ? 'bg-amber-400' : 'bg-red-400';
+    return '<div><div class="flex items-baseline justify-between mb-1">' +
+      '<span class="text-sm">' + v.name + '</span>' +
+      '<span class="text-xs text-slate-500">' + v.score + '%</span></div>' +
+      '<div class="h-1.5 bg-slate-800 rounded-full overflow-hidden">' +
+      '<div class="h-full ' + bar + ' rounded-full" style="width:' + v.score + '%"></div></div>' +
+      '<p class="text-xs text-slate-600 mt-1">' + v.trade + ' · ' + v.jobs + ' jobs</p></div>';
+  }).join('');
+
+  document.getElementById('side-panel').innerHTML =
+    '<h3 class="font-bold mb-4">' + d.sideTitle + '</h3>' +
+    d.side.map(function (s) {
+      return '<div class="flex items-center justify-between gap-3 py-2 border-b border-white/5 last:border-0">' +
+        '<span class="text-sm text-slate-300">' + s.label + '</span>' +
+        '<span class="text-xs font-bold ' + TONE[s.tone] + '">' + s.value + '</span></div>';
+    }).join('');
+}
+
+// Hand-rolled SVG rather than a chart library: this page must stay fast and
+// self-contained, and two series over six points does not justify a dependency.
+function lineChart(series, xLabels) {
+  var W = 560, H = 170, PAD = 28;
+  var all = series.reduce(function (a, s) { return a.concat(s.points); }, []);
+  var max = Math.max.apply(null, all) * 1.1, min = 0;
+  function x(i, n) { return PAD + (i * (W - PAD * 2)) / (n - 1); }
+  function y(v) { return H - PAD - ((v - min) / (max - min)) * (H - PAD * 2); }
+
+  var grid = '';
+  for (var g = 0; g <= 3; g++) {
+    var gy = PAD + (g * (H - PAD * 2)) / 3;
+    grid += '<line x1="' + PAD + '" y1="' + gy + '" x2="' + (W - PAD) + '" y2="' + gy + '" stroke="#1e293b" stroke-width="1"/>';
+  }
+
+  var paths = series.map(function (s) {
+    var pts = s.points.map(function (p, i) { return x(i, s.points.length) + ',' + y(p); }).join(' ');
+    var dots = s.points.map(function (p, i) {
+      return '<circle cx="' + x(i, s.points.length) + '" cy="' + y(p) + '" r="3" fill="' + s.color + '"/>';
+    }).join('');
+    return '<polyline points="' + pts + '" fill="none" stroke="' + s.color + '" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>' + dots;
+  }).join('');
+
+  var labels = xLabels.map(function (l, i) {
+    return '<text x="' + x(i, xLabels.length) + '" y="' + (H - 6) + '" fill="#475569" font-size="10" text-anchor="middle">' + l + '</text>';
+  }).join('');
+
+  var legend = series.map(function (s, i) {
+    return '<span class="inline-flex items-center gap-1.5 text-xs text-slate-400 mr-4">' +
+      '<span class="w-3 h-0.5 rounded-full" style="background:' + s.color + '"></span>' + s.label + '</span>';
+  }).join('');
+
+  return '<div class="mb-2">' + legend + '</div>' +
+    '<svg viewBox="0 0 ' + W + ' ' + H + '" class="w-full h-full" preserveAspectRatio="none">' +
+    grid + paths + labels + '</svg>';
+}
+
+showView('pm');
+</script>
+
+</body>
+</html>
