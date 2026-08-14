@@ -1,7 +1,13 @@
 # TraxKey AI — Product Overview
 
-*Written for someone who has not seen the code. Paste into Google Docs and
-the headings, tables and lists carry over intact.*
+*Written for someone who has not seen the code.*
+
+**Live Google Doc:**
+https://docs.google.com/document/d/1voRMCvqoEiHzrxmCg3RP_rd5AQqBxnpkHEc4xzu2Apc/edit
+
+This markdown file is the source. When it changes, update the Doc to match,
+otherwise the version handed to an investor drifts from the version that is
+true.
 
 **Last updated:** 14 August 2026
 
