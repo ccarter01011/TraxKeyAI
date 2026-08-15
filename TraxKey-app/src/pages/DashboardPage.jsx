@@ -287,6 +287,13 @@ export default function DashboardPage() {
           />
         </Section>
 
+        <Section label="Analytics & Reporting" hint="how the business is doing, not what needs you today">
+          <Tile
+            to="/analytics" title="Occupancy, activity &amp; financials"
+            blurb="Occupancy trend, rental activity rollups, spend by property and vendor, and owner statements."
+          />
+        </Section>
+
         <Section label="Setup" hint="set once, revisit rarely">
           <Tile
             to="/vendors" title="Vendors"

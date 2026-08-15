@@ -35,6 +35,7 @@ from invoices import (list_customers, list_invoices, ar_summary, create_customer
 from invoice_chase import run_invoice_chase
 from imports import (preview_invoices, commit_invoices, preview_items, commit_items,
                      export_invoices, export_items, TEMPLATES)
+from analytics import occupancy_summary, rental_activity_summary, financial_summary, owner_statements
 from str_ops import (list_supplies, upsert_supply, delete_supply,
                      list_damage, record_damage, set_claim_status)
 from owner_portal import (login as owner_login, validate as owner_validate,
@@ -489,6 +490,29 @@ class HealthHandler(BaseHTTPRequestHandler):
             except Exception:
                 traceback.print_exc()
                 self._json(500, {"error": "Could not build that export"})
+            return
+
+        if self.path.split("?")[0] == "/analytics":
+            token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
+            company_id = validate_session(token)
+            if not company_id:
+                self._json(401, {"error": "Unauthorized"})
+                return
+            q = parse_qs(urlparse(self.path).query)
+            try:
+                days = int((q.get("days") or ["90"])[0])
+            except ValueError:
+                days = 90
+            try:
+                self._json(200, _plain({
+                    "occupancy": occupancy_summary(company_id),
+                    "rentalActivity": rental_activity_summary(company_id, days),
+                    "financial": financial_summary(company_id, days),
+                    "ownerStatements": owner_statements(company_id, min(days, 90)),
+                }))
+            except Exception:
+                traceback.print_exc()
+                self._json(500, {"error": "Could not load analytics"})
             return
 
         if self.path.split("?")[0] == "/invoices":
