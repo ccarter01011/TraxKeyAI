@@ -1,5 +1,8 @@
 langgraph>=0.2.0
 psycopg[binary]>=3.1
-anthropic>=0.34.0
+# Floor raised for concierge_chat.py: adaptive thinking and output_config.effort
+# do not exist in the old 0.34 line, and a stale cached wheel would fail at the
+# first request rather than at install time.
+anthropic>=0.121.0
 requests>=2.31.0
 icalendar>=5.0.0

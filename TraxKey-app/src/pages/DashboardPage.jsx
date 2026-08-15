@@ -300,6 +300,10 @@ export default function DashboardPage() {
             blurb="Occupancy trend, rental activity rollups, spend by property and vendor, and owner statements."
           />
           <Tile
+            to="/ask" title="Ask about your portfolio"
+            blurb="Plain-language questions across long-term and short-term together: what earns least, what costs most, whether a lease is worth renewing."
+          />
+          <Tile
             to="/pricing" title="Direct booking &amp; pricing (test)"
             blurb="A reservation system outside Airbnb and Vrbo, with nightly rate suggestions. Prototype: no revenue-management vendor is connected yet."
           />

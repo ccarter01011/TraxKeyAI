@@ -56,6 +56,7 @@ from owner_portal import (login as owner_login, validate as owner_validate,
                           send_reset_email as owner_send_reset_email)
 from concierge import validate_session
 from concierge import get_briefing
+from concierge_chat import answer as portfolio_answer
 from admin_concierge import get_admin_briefing, validate_admin
 from sales_chat import answer as sales_answer
 from tenant_chat import answer as tenant_answer
@@ -123,7 +124,7 @@ class HealthHandler(BaseHTTPRequestHandler):
                          "/pricing", "/reservations", "/pricing-test-data",
                          "/rental-mode", "/amenities", "/amenity-issue", "/amenity-notify",
                          "/buyouts", "/tenant-amenities", "/tenant-amenity-issue",
-                         "/pricelabs"):
+                         "/pricelabs", "/portfolio-chat"):
             self._json(404, {"error": "Not found"})
             return
         try:
@@ -392,6 +393,23 @@ class HealthHandler(BaseHTTPRequestHandler):
                 self._json(500, {"error": "Could not do that"})
                 return
             self._json(200 if result.get("ok") else 400, result)
+            return
+
+        if route == "/portfolio-chat":
+            # The token goes straight through to portfolio_answer, which does its
+            # own session lookup. company_id never rides in the payload, so a
+            # client cannot ask about a portfolio it doesn't hold.
+            token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
+            reply, err = portfolio_answer(token, payload.get("question", ""),
+                                          payload.get("history"))
+            if err == "unauthorized":
+                self._json(401, {"error": "Unauthorized"})
+            elif err == "empty":
+                self._json(400, {"error": "Ask a question first"})
+            elif err:
+                self._json(500, {"error": "Could not answer that"})
+            else:
+                self._json(200, {"reply": reply})
             return
 
         if route == "/pricelabs":
