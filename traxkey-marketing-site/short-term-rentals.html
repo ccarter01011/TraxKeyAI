@@ -92,7 +92,10 @@ html.light .bg-gradient-to-r.from-teal-300.to-sky-400 {
 }
 
 /* The dot pattern and glow are tuned for a dark ground. */
-html.light .dot-pattern { opacity: .5; }
+/* White dots at 8% opacity are invisible on the dark page but paint a dull
+   grey wash across the whole hero on white, exactly what "muted" was.
+   Recolour to a dark dot instead of just dimming a white one. */
+html.light .dot-pattern { background-image: radial-gradient(rgba(15,23,42,0.10) 1px, transparent 1px) !important; }
 html.light .glow-card {
   box-shadow: 0 4px 20px -6px rgba(13,148,136,.18), 0 1px 3px rgba(15,23,42,.06) !important;
 }
@@ -118,8 +121,21 @@ html.light .text-red-400 { color: #dc2626 !important; }
 html.light .text-green-400 { color: #15803d !important; }
 
 /* Hero gradient wash reads as grey haze on light; warm it slightly. */
-html.light .from-teal-500\/10 { --tw-gradient-from: rgba(20,184,166,.10) !important; }
-html.light .to-sky-500\/10 { --tw-gradient-to: rgba(14,165,233,.10) !important; }
+/* Every low-alpha teal/sky class was tuned for a dark ground: 10-15%
+   white-adjacent overlays that read as a subtle glow there paint as a dull
+   grey wash on white. Raise opacity so the brand tint actually shows. */
+html.light .bg-teal-500\/10 { background-color: rgba(20,184,166,.12) !important; }
+html.light .from-teal-500\/10 { --tw-gradient-from: rgba(20,184,166,.14) !important; }
+html.light .to-sky-500\/10 { --tw-gradient-to: rgba(14,165,233,.14) !important; }
+html.light .from-teal-500\/15 { --tw-gradient-from: rgba(20,184,166,.16) !important; }
+html.light .from-teal-500\/40,
+html.light .via-sky-500\/40,
+html.light .to-purple-500\/40 {
+  --tw-gradient-from: rgba(20,184,166,.5) !important;
+  --tw-gradient-via: rgba(14,165,233,.5) !important;
+  --tw-gradient-to: rgba(168,85,247,.5) !important;
+}
+html.light .to-slate-900 { --tw-gradient-to: #ffffff !important; }
 </style>
 </head>
 <body class="bg-slate-950 text-slate-100 antialiased min-h-screen">
