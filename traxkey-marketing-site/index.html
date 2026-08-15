@@ -359,8 +359,8 @@ function toggleMobileNav() {
       <div class="bg-slate-900 border border-white/5 rounded-2xl p-6">
         <p class="text-xs uppercase tracking-wide text-slate-500 mb-2">Long-term only</p>
         <h3 class="font-bold mb-3">You manage rentals, no short-term</h3>
-        <p class="text-sm text-slate-400 mb-4">You get the maintenance coordinator, leases, renewals, inspections, and vendor scoring. What you won't get is trust accounting or rent collection, which we deliberately don't build.</p>
-        <p class="text-sm text-slate-500">If you need accounting today, AppFolio or Buildium is the right answer.</p>
+        <p class="text-sm text-slate-400 mb-4">You get the maintenance coordinator, leases, renewals, inspections, vendor scoring, and invoice/AR tracking with automatic reminders. What you won't get is trust accounting or rent collection, which we deliberately don't build.</p>
+        <p class="text-sm text-slate-500">If you need payment processing today, AppFolio or Buildium is the right answer.</p>
       </div>
     </div>
 
@@ -454,6 +454,12 @@ var FEATURES = {
     ["Insights", "Vendors slowing down, units that keep breaking, rents below your own average."],
     ["Daily briefing", "A short read every morning: what's urgent, what's handled, what needs a decision."],
     ["The AI obeys, never rewrites", "It can suggest raising a limit. It cannot raise one."]
+  ],
+  Money: [
+    ["Invoice and AR tracking", "What you're owed, aged 1-30, 31-60, 60+. TraxKey never processes a payment or holds funds, this is visibility and reminders, not a ledger."],
+    ["Automatic reminders", "Reminder, then a firmer one with you copied, then it stops and hands it to you. Same ladder as the vendor chase, applied to a slow-paying customer or a slow-shipping supplier."],
+    ["Per-invoice control", "CC address and an on/off switch per customer, overridable per invoice. Importing old invoices doesn't email everyone in your history by default."],
+    ["CSV import and export", "Bring in what's already in your spreadsheet or QuickBooks. Preview shows exactly what will be created before anything is saved. Export any time, in full."]
   ]
 };
 function showFeat(key) {
@@ -469,7 +475,7 @@ function showFeat(key) {
 showFeat('Maintenance');
 
 var PICKS = {
-  ltr: "Leases, renewals, inspections and the maintenance coordinator. What you won't get is trust accounting or rent collection, we deliberately don't build those. If you need accounting today, AppFolio or Buildium is the right answer.",
+  ltr: "Leases, renewals, inspections, the maintenance coordinator, and invoice/AR tracking with automatic reminders. What you won't get is trust accounting or rent collection, we deliberately don't process payments. If you need that today, AppFolio or Buildium is the right answer.",
   both: "This is the one nobody else serves. Short-term platforms have no leases. Property management software has no booking calendars. You're currently paying for two subscriptions and doing the joining by hand.",
   str: "Calendars, turns, cleaners, supplies and maintenance. Being straight: Breezeway and Hostaway have deeper turnover tooling than us. Worth a look if maintenance is your weak spot, or if you also run long-term units."
 };

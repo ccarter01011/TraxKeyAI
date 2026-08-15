@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import FlowHelp from '../components/FlowHelp.jsx';
+import ImportExport from '../components/ImportExport.jsx';
 
 const AGENT_BASE = 'https://langgraph-production-42ef.up.railway.app';
 const hdrs = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('tk_token')}` });
@@ -223,6 +224,10 @@ export default function InvoicesPage() {
             </h1>
           </div>
           <AddInvoice customers={customers} onCreated={load} />
+        </div>
+
+        <div className="mb-4">
+          <ImportExport kind="invoices" onImported={load} />
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">

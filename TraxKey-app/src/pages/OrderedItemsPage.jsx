@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiRequest } from '../lib/api.js';
 import FlowHelp from '../components/FlowHelp.jsx';
+import ImportExport from '../components/ImportExport.jsx';
 
 const AGENT_BASE = 'https://langgraph-production-42ef.up.railway.app';
 
@@ -225,6 +226,10 @@ export default function OrderedItemsPage() {
             </h1>
           </div>
           <AddForm units={units} onCreated={load} />
+        </div>
+
+        <div className="mb-4">
+          <ImportExport kind="orders" onImported={load} />
         </div>
 
         {error && <p className="text-sm text-red-500 mb-4">{error}</p>}

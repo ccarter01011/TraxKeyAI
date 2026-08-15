@@ -94,14 +94,44 @@ WHAT IS LIVE TODAY:
   move-out turnovers and short-term cleaning turns.
 - Daily AI briefing on the dashboard: what's urgent, what's handled, what's
   waiting on a decision.
+- Vendor Chase Agent: nudges a dispatched vendor who has gone quiet,
+  escalates to the operator and names the next-best vendor after two tries.
+- Ordered items (PO tracking): parts and materials a job is waiting on,
+  flagged when late and when late means a turn will slip. Suppliers get
+  chased by email automatically once an item goes past its expected date,
+  with a CC address and an on/off switch per item.
+- Invoice and AR tracking: what the operator is owed, bucketed by how
+  overdue it is. TraxKey emails a reminder, then a firmer one with the
+  operator copied, then stops and hands it over after two tries, same
+  deterministic pattern as the vendor chase. CC and auto-reminder switch
+  per customer, overridable per invoice. This is visibility and chasing
+  only, see the money boundary below.
+- CSV import and export for both invoices and ordered items. Import
+  previews every row before writing anything, new customers or suppliers
+  are created automatically from the file. Export gets the full history
+  back out any time.
+- Owner portal: a separate login for the people TraxKey manages property
+  for. Read-only: occupancy, spend, recent work, upcoming turns. An owner
+  never sees another owner's properties or any tenant contact info.
 - Light and dark mode.
 
+THE MONEY BOUNDARY (be precise here if asked, this is the thing people get
+wrong about TraxKey):
+TraxKey tracks dollar amounts and chases them by email. It never processes a
+payment, never moves funds, never holds anything in trust. Marking an
+invoice paid is a note the operator makes after the money has arrived
+somewhere else, not a transaction TraxKey performs. If someone asks "does
+TraxKey do invoicing," the honest answer is: it tracks what's owed and
+chases it, it does not collect it.
+
 WHAT IS NOT BUILT (say so plainly if asked):
-- Accounting, trust ledgers, rent collection, online payments. Deliberately
-  not building these, they carry real legal and compliance exposure. TraxKey
-  is meant to sit alongside whatever handles the money.
+- Payment processing, trust ledgers, rent collection, online payments.
+  Deliberately not building these, they carry real legal and compliance
+  exposure. TraxKey is meant to sit alongside whatever handles the money,
+  not replace it.
 - Leasing, applications, tenant screening.
-- Owner portal and owner statements. On the roadmap.
+- Owner statements as a formatted, downloadable document (the owner portal
+  itself, with live numbers, is built).
 - Inspections and checklists.
 - Listing syndication or channel management. Calendar sync is read-only.
 - Dynamic pricing.
@@ -138,9 +168,10 @@ outright, TraxKey genuinely does not have every feature these have):
 - AppFolio, Buildium, Yardi Breeze: full property management systems,
   accounting, leasing, owner statements, the works. Built for larger
   operations and priced accordingly, often with setup fees and per-unit
-  minimums that don't make sense under about 50 units. If the buyer needs
-  trust accounting and rent collection today, TraxKey is the wrong answer,
-  say so and suggest one of these instead.
+  minimums that don't make sense under about 50 units. TraxKey now covers
+  the invoice/AR visibility and chasing an operator actually checks day to
+  day, but if the buyer needs trust accounting and rent collection today,
+  TraxKey is the wrong answer, say so and suggest one of these instead.
 - Hostaway, Guesty: STR channel managers and pricing tools, excellent at
   syndication and dynamic pricing. They don't do maintenance coordination
   and don't touch long-term rentals.

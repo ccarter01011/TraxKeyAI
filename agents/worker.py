@@ -9,6 +9,8 @@ import os
 import time
 import threading
 import traceback
+from datetime import datetime
+from urllib.parse import parse_qs, urlparse
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
 from graph import run_batch
@@ -31,6 +33,8 @@ from invoices import (list_customers, list_invoices, ar_summary, create_customer
                       set_customer_prefs, create_invoice, set_invoice_status,
                       set_invoice_prefs)
 from invoice_chase import run_invoice_chase
+from imports import (preview_invoices, commit_invoices, preview_items, commit_items,
+                     export_invoices, export_items, TEMPLATES)
 from str_ops import (list_supplies, upsert_supply, delete_supply,
                      list_damage, record_damage, set_claim_status)
 from owner_portal import (login as owner_login, validate as owner_validate,
@@ -102,7 +106,7 @@ class HealthHandler(BaseHTTPRequestHandler):
         if route not in ("/chat", "/tenant-chat", "/sample-data", "/ordered-items",
                          "/supplies", "/damage", "/owner-login", "/owner-access", "/owners",
                          "/owner-forgot-password", "/owner-reset-password", "/suggestions",
-                         "/invoices", "/invoice-customers"):
+                         "/invoices", "/invoice-customers", "/import"):
             self._json(404, {"error": "Not found"})
             return
         try:
@@ -251,6 +255,32 @@ class HealthHandler(BaseHTTPRequestHandler):
             except Exception:
                 traceback.print_exc()
                 self._json(500, {"error": "Could not update that customer"})
+                return
+            self._json(200 if result.get("ok") else 400, result)
+            return
+
+        if route == "/import":
+            token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
+            company_id = validate_session(token)
+            if not company_id:
+                self._json(401, {"error": "Unauthorized"})
+                return
+            kind = payload.get("kind")
+            if kind not in ("invoices", "orders"):
+                self._json(400, {"error": "Unknown import kind"})
+                return
+            try:
+                csv_text = payload.get("csv") or ""
+                auto = bool(payload.get("autoEmailEnabled", False))
+                if payload.get("action") == "commit":
+                    result = (commit_invoices(company_id, csv_text, auto) if kind == "invoices"
+                              else commit_items(company_id, csv_text, auto))
+                else:
+                    result = (preview_invoices(company_id, csv_text) if kind == "invoices"
+                              else preview_items(company_id, csv_text))
+            except Exception:
+                traceback.print_exc()
+                self._json(500, {"error": "Could not read that file"})
                 return
             self._json(200 if result.get("ok") else 400, result)
             return
@@ -430,6 +460,35 @@ class HealthHandler(BaseHTTPRequestHandler):
             except Exception:
                 traceback.print_exc()
                 self._json(500, {"error": "Could not load ordered items"})
+            return
+
+        if self.path.split("?")[0] == "/export":
+            token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
+            company_id = validate_session(token)
+            if not company_id:
+                self._json(401, {"error": "Unauthorized"})
+                return
+            q = parse_qs(urlparse(self.path).query)
+            kind = (q.get("kind") or [""])[0]
+            today = datetime.now().strftime("%Y-%m-%d")
+            try:
+                if (q.get("template") or [""])[0] == "1":
+                    if kind not in TEMPLATES:
+                        self._json(400, {"error": "Unknown template"})
+                        return
+                    self._json(200, {"csv": TEMPLATES[kind], "filename": f"traxkey-{kind}-template.csv"})
+                    return
+                if kind == "invoices":
+                    self._json(200, {"csv": export_invoices(company_id),
+                                     "filename": f"traxkey-invoices-{today}.csv"})
+                elif kind == "orders":
+                    self._json(200, {"csv": export_items(company_id),
+                                     "filename": f"traxkey-orders-{today}.csv"})
+                else:
+                    self._json(400, {"error": "Unknown export kind"})
+            except Exception:
+                traceback.print_exc()
+                self._json(500, {"error": "Could not build that export"})
             return
 
         if self.path.split("?")[0] == "/invoices":

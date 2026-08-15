@@ -162,6 +162,35 @@ requires approval, regardless of estimate. An unknown cost is not a cheap
 cost. (This was a real bug we caught and fixed, a $0 default estimate would
 have auto-dispatched every new vendor's first job.)
 
+### 6. Invoice and PO chasing without touching money — LIVE
+**The claim:** TraxKey tracks what a supplier owes you (a late part) and what
+a customer owes you (an open invoice), and chases both by email on the same
+deterministic ladder it uses to chase a silent vendor: reminder, firmer
+reminder with the operator copied, then stop and hand it over. Per-invoice
+and per-supplier CC address and an on/off switch, overridable at the item or
+inherited from the customer/supplier default.
+
+**Why it matters:** the operator's actual pain isn't "I need a ledger," it's
+"I keep forgetting to follow up." Every property tool either ignores this
+(Property Meld, Vendoroo) or bundles it into full accounting nobody under 50
+units wants to run (AppFolio, Buildium, Yardi Breeze). TraxKey does the
+followup without the accounting.
+
+**Where the line is drawn, deliberately:** TraxKey shows the amount and
+chases it. It never processes a payment, never holds funds, never touches a
+trust account. Marking an invoice paid is a note the operator makes after
+the money moves somewhere else. This is the same "AI decides what's safe to
+decide, hands a human what needs a human" logic the whole platform runs on —
+tracking and reminding is safe to automate, moving money is not.
+
+**CSV import and export**, both directions: an operator's invoices and POs
+almost always already exist in a spreadsheet or QuickBooks before they ever
+touch TraxKey. Import previews every row before writing anything — what will
+be created, what already exists, what's broken and why — so nobody discovers
+a bad import after the fact. New customers/suppliers are created inline.
+Export gets the full history back out as CSV any time; a tool that traps
+your data is a tool people hesitate to adopt.
+
 ---
 
 ## Full feature inventory
@@ -188,22 +217,27 @@ have auto-dispatched every new vendor's first job.)
 | Properties, units, residents, vendors | data entry |
 | Light/dark theme | |
 | Password reset | |
-
-### Built but not yet exercised
-| Feature | Status |
-|---|---|
-| Owner records | table exists, no owner portal or reporting yet |
+| Vendor Chase Agent | nudges a silent dispatched vendor, escalates after two tries |
+| Ordered items (PO tracking) | late-part detection, feeds turn-blocking insights, per-item supplier email/CC/auto-chase |
+| Invoice / AR tracking | amounts, due dates, aging buckets, per-customer or per-invoice CC/auto-chase |
+| Invoice + PO chase agent | reminder ladder for overdue invoices and late supplier orders, hourly |
+| CSV import (invoices, orders) | preview-then-commit, creates new customers/suppliers inline |
+| CSV export (invoices, orders) | full history, any time |
+| Owner portal | separate login, read-only, scoped per-owner even within one company |
+| Suggestion box | in-app feature requests, admin triage |
 
 ### Not built (be honest about these in sales conversations)
-- Accounting / trust ledger — **deliberately not building**, legal and
-  compliance exposure, integrate instead
-- Rent collection / online payments
+- Payment processing / rent collection / trust accounting — **deliberately
+  not building**, legal and compliance exposure. Invoice and PO amounts are
+  tracked and chased, but no payment is ever processed and no funds are ever
+  held by TraxKey.
 - Leasing, applications, tenant screening
-- Owner portal and owner statements
+- Owner statements as a formatted document (the owner portal itself is live)
 - Inspections and checklists
 - Listing syndication, channel management (beyond read-only iCal)
 - Dynamic pricing
-- Cleaning/turnover scheduling — Breezeway and Turno own this space
+- Cleaning/turnover scheduling as a standalone product — Breezeway and Turno
+  own this space
 - Document storage, e-signature
 - SMS notifications (email only today)
 
