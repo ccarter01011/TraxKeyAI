@@ -23,6 +23,7 @@ from resident_notify import run_resident_notifications
 from sample_data import seed as seed_sample, remove as remove_sample, has_sample
 from calendar_view import get_calendar
 from insights import get_insights, snapshot_vendor_performance
+from vendor_chase import run_vendor_chase
 from ordered_items import list_items, create as create_item, set_status as set_item_status
 from str_ops import (list_supplies, upsert_supply, delete_supply,
                      list_damage, record_damage, set_claim_status)
@@ -389,6 +390,14 @@ if __name__ == "__main__":
             run_batch()
         except Exception:
             # Never let one bad request kill the whole loop, log and keep going.
+            traceback.print_exc()
+
+        # On the fast loop deliberately: an emergency vendor going quiet for
+        # two hours needs catching within the hour, not at the next hourly
+        # sweep. The query is indexed and skips anything not yet due.
+        try:
+            run_vendor_chase()
+        except Exception:
             traceback.print_exc()
 
         # On the fast loop, not the hourly one: a resident waiting to hear

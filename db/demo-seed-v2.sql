@@ -52,7 +52,7 @@ BEGIN
 
   -- ================================================================ VENDORS
   INSERT INTO traxkey.vendors (id, company_id, name, trade, contact_phone, contact_email)
-  VALUES (gen_random_uuid(), cid, 'Fresh Start Cleaning Co', 'cleaning', '512-555-0148', 'dispatch@freshstartatx.com')
+  VALUES (gen_random_uuid(), cid, 'Fresh Start Cleaning Co', 'cleaning', '512-555-0148', 'dispatch@freshstart.example')
   RETURNING id INTO v_cleaning;
 
   INSERT INTO traxkey.vendor_performance (vendor_id, jobs_completed, avg_response_hours, avg_cost, completion_rate, avg_rating) VALUES

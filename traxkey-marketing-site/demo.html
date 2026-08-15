@@ -28,31 +28,38 @@
 .glow-card { box-shadow: 0 0 40px -12px rgba(45,212,191,.25); }
 @media (prefers-reduced-motion: reduce) { .tk-orb::before, .tk-caret::after { animation: none; } }
 /* --- Light theme override -----------------------------------------------
-   This site was built dark-first with hardcoded Tailwind colour classes, so
-   the cheapest correct way to add a light mode is an override layer keyed
-   off html.light rather than rewriting every utility class to a dark:
-   variant across three pages. The mapping below covers every colour class
-   actually in use (audited, not guessed). !important is needed because
-   Tailwind's utilities have equal specificity.                            */
-html.light { color-scheme: light; }
-html.light body { background-color: #ffffff; color: #0f172a; }
+   Dark-first site, so this is an override layer keyed off html.light rather
+   than rewriting every utility to a dark: variant across three pages.
 
-html.light .bg-slate-950,
-html.light .bg-slate-950\/95 { background-color: #ffffff !important; }
-/* The sticky nav sits at 70% opacity over the page; on white that needs to
-   be a light translucent surface, not a dark one. */
+   Key decision: the page is light GREY and the cards are WHITE, not a white
+   page with near-white cards. The first version did the latter and every
+   surface dissolved into the background, which is what "dull and muted"
+   was. Cards need to sit above the page, not blend into it.            */
+html.light { color-scheme: light; }
+html.light body { background-color: #f1f5f9; color: #0f172a; }
+
+/* Page-level surfaces: the light grey ground. */
+html.light .bg-slate-950 { background-color: #f1f5f9 !important; }
+html.light .bg-slate-950\/95 { background-color: #f1f5f9 !important; }
 html.light .bg-slate-950\/70,
-html.light .bg-slate-950\/90 { background-color: rgba(255,255,255,.85) !important; }
+html.light .bg-slate-950\/90 { background-color: rgba(248,250,252,.88) !important; }
+
+/* Cards lift off the page: white, real border, soft shadow. */
+html.light .bg-slate-900,
+html.light .bg-slate-900\/40,
+html.light .bg-slate-900\/60,
+html.light .bg-slate-900\/80 {
+  background-color: #ffffff !important;
+  box-shadow: 0 1px 3px rgba(15,23,42,.06), 0 1px 2px rgba(15,23,42,.04);
+}
+/* Inset panels inside a card go slightly grey so they still read as inset. */
 html.light .bg-slate-950\/60,
 html.light .bg-slate-950\/50,
-html.light .bg-slate-950\/40 { background-color: #f1f5f9 !important; }
-html.light .bg-slate-900,
-html.light .bg-slate-900\/60 { background-color: #f8fafc !important; }
-html.light .bg-slate-900\/40 { background-color: #f8fafc !important; }
-html.light .bg-slate-900\/80 { background-color: #f8fafc !important; }
+html.light .bg-slate-950\/40 { background-color: #f8fafc !important; }
 html.light .bg-slate-800 { background-color: #e2e8f0 !important; }
 html.light .bg-white\/5 { background-color: rgba(15,23,42,.04) !important; }
 
+/* Text. Body copy near-black, muted tiers still readable (all AA on white). */
 html.light .text-slate-100,
 html.light .text-slate-200,
 html.light .text-slate-300 { color: #1e293b !important; }
@@ -61,28 +68,50 @@ html.light .text-slate-500 { color: #64748b !important; }
 html.light .text-slate-600 { color: #94a3b8 !important; }
 html.light .text-white { color: #0f172a !important; }
 html.light .text-slate-950 { color: #0f172a !important; }
+html.light .hover\:text-white:hover { color: #0f172a !important; }
 
-html.light .border-white\/5 { border-color: rgba(15,23,42,.08) !important; }
-html.light .border-white\/10 { border-color: rgba(15,23,42,.12) !important; }
-html.light .border-white\/15 { border-color: rgba(15,23,42,.18) !important; }
+/* Borders need to be visible on light, not hairlines. */
+html.light .border-white\/5 { border-color: #e2e8f0 !important; }
+html.light .border-white\/10 { border-color: #cbd5e1 !important; }
+html.light .border-white\/15 { border-color: #cbd5e1 !important; }
 
-/* Teal stays the brand colour in both themes, but needs to darken on white
-   to stay readable. */
+/* Brand teal, darkened for contrast. teal-600 measured 3.74:1 on white,
+   under the 4.5 AA floor; teal-700 clears it at 5.47:1. */
 html.light .text-teal-300,
 html.light .text-teal-400 { color: #0f766e !important; }
 html.light .bg-gradient-to-r.from-teal-300.to-sky-400 {
   background-image: linear-gradient(to right, #0d9488, #0284c7) !important;
 }
-html.light .hover\:text-white:hover { color: #0f172a !important; }
 
-/* The dot pattern and glow are tuned for a dark ground; soften on light. */
-html.light .dot-pattern { opacity: .35; }
-html.light .glow-card { box-shadow: 0 8px 30px -12px rgba(15,23,42,.18) !important; }
+/* The dot pattern and glow are tuned for a dark ground. */
+html.light .dot-pattern { opacity: .5; }
+html.light .glow-card {
+  box-shadow: 0 4px 20px -6px rgba(13,148,136,.18), 0 1px 3px rgba(15,23,42,.06) !important;
+}
 
-/* Calendar bars need more saturation to read on white. */
-html.light #hero-cal .bg-teal-500\/45 { background-color: rgba(13,148,136,.45) !important; }
-html.light #hero-cal .bg-sky-500\/60 { background-color: rgba(2,132,199,.55) !important; }
-html.light #hero-cal .bg-slate-500\/40 { background-color: rgba(100,116,139,.35) !important; }
+/* Calendar bars: full saturation. The washed-out alpha values from the first
+   pass were the single worst part of light mode. */
+html.light #hero-cal .bg-teal-500\/45,
+html.light #cal .bg-teal-500\/45 { background-color: #14b8a6 !important; }
+html.light #hero-cal .bg-sky-500\/60,
+html.light #cal .bg-sky-500\/60 { background-color: #0ea5e9 !important; }
+html.light #hero-cal .bg-slate-500\/40,
+html.light #cal .bg-slate-500\/40 { background-color: #cbd5e1 !important; }
+
+/* Tinted badges and accent panels keep their colour instead of greying out. */
+html.light .bg-teal-500\/15 { background-color: rgba(20,184,166,.14) !important; }
+html.light .bg-sky-500\/15 { background-color: rgba(14,165,233,.14) !important; }
+html.light .bg-amber-500\/15 { background-color: rgba(245,158,11,.16) !important; }
+html.light .bg-red-500\/15 { background-color: rgba(239,68,68,.12) !important; }
+html.light .bg-green-500\/15 { background-color: rgba(34,197,94,.14) !important; }
+html.light .text-sky-400 { color: #0284c7 !important; }
+html.light .text-amber-400 { color: #b45309 !important; }
+html.light .text-red-400 { color: #dc2626 !important; }
+html.light .text-green-400 { color: #15803d !important; }
+
+/* Hero gradient wash reads as grey haze on light; warm it slightly. */
+html.light .from-teal-500\/10 { --tw-gradient-from: rgba(20,184,166,.10) !important; }
+html.light .to-sky-500\/10 { --tw-gradient-to: rgba(14,165,233,.10) !important; }
 </style>
 </head>
 <body class="bg-slate-950 text-slate-100 antialiased">

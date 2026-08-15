@@ -457,3 +457,39 @@ Verified before shipping: two owners in the same company see completely
 disjoint property lists (zero overlap), a wrong password is rejected, a
 forged token is rejected, and enabling access for an owner in a different
 company is refused by the SQL itself, not just the application layer.
+
+---
+
+## Vendor chase flow
+
+The gap this closes: TraxKey emailed a vendor on dispatch and then went
+quiet. A vendor who never confirmed, never scheduled and never arrived left
+the request sitting at `scheduled` forever, and the operator found out when
+the tenant called back.
+
+This is TraxSail AI's core loop applied to property work, chase the party who
+hasn't responded. Deliberately operations, not money: TraxKey still never
+touches invoices or payments.
+
+1. A job is dispatched. `vendor_acknowledged_at` is null.
+2. Every 15 minutes the chase looks for `status = 'scheduled'` jobs where the
+   vendor hasn't acknowledged and enough time has passed.
+3. **How long is enough** depends on urgency: 2h for an emergency, 8h urgent,
+   24h routine, overridable per company via `companies.chase_after_hours`.
+   A guest currently in the unit, or a turn deadline within a day, **halves**
+   the wait. Urgency compresses the timings; it does not change the ladder.
+4. **Nudge 1** re-emails the vendor, naming how long it's been and saying
+   plainly that declining is fine.
+5. **Nudge 2** does the same again.
+6. **Escalation** stops the chase, moves the request back to `needs_vendor`,
+   emails the operator, and names the next-best vendor for that trade so the
+   decision is one click rather than research.
+
+Every step writes a `vendor_chased` or `vendor_unresponsive` event, so the
+audit trail shows the chase alongside every other decision.
+
+**The chase stops by itself** when the vendor marks the job in progress in
+the vendor portal, because that moves the status off `scheduled`. No extra
+wiring, and no n8n change was needed.
+
+**No LLM anywhere in this flow.** Whether a deadline has passed is a fact.
