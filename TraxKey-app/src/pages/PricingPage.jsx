@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { apiRequest } from '../lib/api.js';
 import FlowHelp from '../components/FlowHelp.jsx';
 
@@ -114,20 +114,31 @@ function BuyoutForm({ propertyId, onCreated }) {
 }
 
 export default function PricingPage() {
+  const [params, setParams] = useSearchParams();
   const [properties, setProperties] = useState([]);
-  const [unitId, setUnitId] = useState('');
+  const [unitId, setUnitIdState] = useState(params.get('unitId') || '');
   const [calendar, setCalendar] = useState(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
+
+  // Kept in the URL so a page reload (used after computing suggestions,
+  // see computeSuggestions below) lands back on the same unit instead of
+  // resetting the picker to blank.
+  function setUnitId(id) {
+    setUnitIdState(id);
+    setParams(id ? { unitId: id } : {}, { replace: true });
+  }
 
   useEffect(() => {
     apiRequest('traxkey-get-properties').then(p => {
       const list = (p || []).filter(x => x.id);
       setProperties(list);
-      const first = list.flatMap(pr => pr.units.map(u => ({ ...u, propertyName: pr.name })))
-        .find(u => u.base_nightly_rate);
-      if (first) setUnitId(first.id);
+      const fromUrl = params.get('unitId');
+      const all = list.flatMap(pr => pr.units.map(u => ({ ...u, propertyName: pr.name })));
+      const wanted = (fromUrl && all.find(u => u.id === fromUrl)) || all[0];
+      if (wanted) setUnitId(wanted.id);
     }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const allUnits = properties.flatMap(p => p.units.map(u => ({ ...u, propertyName: p.name, propertyId: p.id })));
@@ -147,9 +158,11 @@ export default function PricingPage() {
     setBusy(true); setMsg('');
     const start = new Date(); const end = new Date(); end.setDate(end.getDate() + 30);
     const { ok, j } = await post('/pricing', { unitId, startDate: iso(start), endDate: iso(end) });
-    setBusy(false);
-    if (!ok) { setMsg(j.error || 'Could not compute suggestions'); return; }
-    loadCalendar();
+    if (!ok) { setBusy(false); setMsg(j.error || 'Could not compute suggestions'); return; }
+    // A full reload rather than re-fetching in place: unitId is already
+    // carried in the URL (see setUnitId above), so this lands back on the
+    // same unit with the freshly computed calendar, guaranteed current.
+    window.location.reload();
   }
 
   async function applyRate(stayDate, rate) {
@@ -194,6 +207,10 @@ export default function PricingPage() {
                 note="This is a prototype, not the real pricing intelligence a connected vendor would provide. Every suggestion shows its reasoning so it's never mistaken for market data."
               />
             </h1>
+            <p className="text-[11px] mt-1">
+              <span className="font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-400">Source: internal heuristic, not PriceLabs</span>
+              <span className="text-slate-400 ml-2">No PriceLabs MCP or API is connected. Prices below come from a rule-of-thumb calculator built into TraxKey, shown to demonstrate the workflow.</span>
+            </p>
           </div>
         </div>
 
