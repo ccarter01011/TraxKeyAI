@@ -81,10 +81,14 @@ def seed(company_id):
         # --- Vendors with history, so ranking has something to rank ---
         vendors = {}
         for name, trade, jobs, resp, cost, rate, rating in [
-            ("Sample: Ace Appliance", "appliance", 38, 3.0, 240, 0.94, 4.7),
-            ("Sample: TrueFlow Plumbing", "plumbing", 52, 2.5, 310, 0.96, 4.8),
-            ("Sample: Nightowl HVAC", "hvac", 11, 14.0, 520, 0.72, 3.2),
-            ("Sample: SparkleClean", "cleaning", 96, 1.5, 110, 0.98, 4.9),
+            # completion_rate is 0-100, matching the real completion workflow
+            # (TraxKey-08-Complete-Request.json) and what the dashboard
+            # displays with `${Math.round(rate)}%`. A 0-1 fraction here
+            # rounds to 0% or 1% on every card, which is how this bug shipped.
+            ("Sample: Ace Appliance", "appliance", 38, 3.0, 240, 94, 4.7),
+            ("Sample: TrueFlow Plumbing", "plumbing", 52, 2.5, 310, 96, 4.8),
+            ("Sample: Nightowl HVAC", "hvac", 11, 14.0, 520, 72, 3.2),
+            ("Sample: SparkleClean", "cleaning", 96, 1.5, 110, 98, 4.9),
         ]:
             cur.execute("""
                 INSERT INTO traxkey.vendors (company_id, name, trade, contact_email, is_sample)
