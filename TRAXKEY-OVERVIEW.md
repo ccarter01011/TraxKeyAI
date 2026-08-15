@@ -17,7 +17,7 @@ the old one. Update this link when that happens.
 
 ## 1. What TraxKey AI is
 
-A team of **7 specialized AI agents** that work a rental portfolio 24/7,
+A dedicated team of **7 specialized AI agents** that work a rental portfolio 24/7,
 across both long-term units and short-term rentals, in one system.
 
 They diagnose repairs, dispatch vendors, turn units between guests, and
