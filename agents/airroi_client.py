@@ -11,13 +11,21 @@ AIRROI_API_KEY is not set in this environment. Every function here degrades
 to a clear error rather than a guess when it's missing, same pattern as
 PRICELABS_API_KEY in pricelabs_client.py and RESEND_API_KEY elsewhere.
 
-NOTE: AirROI's exact response schema for a market/comp-set query was not
-readable from this session (same situation pricelabs_client.py documents
-for PriceLabs). parse_market_comp() below is written defensively, trying
-the field names AirROI's own marketing docs mention in prose (an "average
-daily rate" / "ADR" figure, keyed by market). Verify against a real account
-response before trusting it unattended, exactly like pricelabs_client.py's
-parse_nightly_rates() already warns for PriceLabs.
+Uses GET /markets/search deliberately, not POST /markets/summary. Both
+return an average daily rate; search costs $0.01 a call against summary's
+$0.10, and the blend below only needs the market's ADR and comp count, not
+the full metrics payload. pricing_engine caches one call per property per
+run, so a 30-night calendar costs one cent, not thirty.
+
+NOTE: the response field names below come from AirROI's published example
+for /markets/search, not from a live call against a real key. The `query`
+parameter name in particular is an inference — the docs name the endpoint
+"Find Market by Name" but do not show the parameter. get_market_comp()
+returns a clear error rather than a guessed number when the shape doesn't
+match, so a mismatch is visible on the first real call instead of silently
+feeding a wrong rate into pricing. Same warning pricelabs_client.py carries
+for its own parser; verify both against a real account before trusting
+either unattended.
 """
 
 import os
@@ -30,7 +38,7 @@ BASE_URL = "https://api.airroi.com"
 
 
 def _headers():
-    return {"Authorization": f"Bearer {AIRROI_API_KEY}"}
+    return {"x-api-key": AIRROI_API_KEY}
 
 
 def is_configured():
@@ -48,9 +56,9 @@ def get_market_comp(city, state):
         return {"ok": False, "error": "Property has no city/state to look up a market for."}
     try:
         r = requests.get(
-            f"{BASE_URL}/v1/market",
+            f"{BASE_URL}/markets/search",
             headers=_headers(),
-            params={"city": city, "state": state},
+            params={"query": f"{city}, {state}"},
             timeout=15,
         )
         r.raise_for_status()
@@ -69,16 +77,39 @@ def get_market_comp(city, state):
 
 
 def _parse_market_comp(raw):
-    """Best-effort extraction of an average-daily-rate figure, trying a few
-    plausible field names since the exact schema is unconfirmed (see module
-    docstring). Returns {"ok": False, ...} rather than a guessed number when
-    nothing recognizable is found, so a schema mismatch is visible instead
-    of silently feeding a wrong number into pricing."""
+    """Pull the average daily rate and active-listing count out of a
+    /markets/search response. AirROI's published example is:
+
+        {"markets": [{"name": "Miami Beach", "active_listings": 4287,
+                      "avg_occupancy": 0.724, "avg_daily_rate": 312.50, ...}],
+         "total_results": 1}
+
+    The first market is taken as the match. Returns {"ok": False, ...}
+    rather than a guessed number when the shape doesn't match, so a schema
+    drift or a bad query surfaces as a visible error instead of silently
+    feeding a wrong rate into pricing."""
     if not isinstance(raw, dict):
         return {"ok": False, "error": "Unrecognized AirROI response shape."}
-    market = raw.get("market") if isinstance(raw.get("market"), dict) else raw
-    adr = market.get("adr") or market.get("average_daily_rate") or market.get("avg_rate")
-    listing_count = market.get("listing_count") or market.get("comp_count")
+    markets = raw.get("markets")
+    if not isinstance(markets, list) or not markets:
+        return {"ok": False, "error": "AirROI found no market matching this property's city and state."}
+    market = markets[0]
+    if not isinstance(market, dict):
+        return {"ok": False, "error": "Unrecognized AirROI market entry."}
+
+    adr = market.get("avg_daily_rate")
     if adr is None:
-        return {"ok": False, "error": "AirROI response had no recognizable rate field.", "raw": raw}
-    return {"ok": True, "avg_rate": float(adr), "listing_count": listing_count}
+        return {"ok": False, "error": "AirROI market had no avg_daily_rate field.", "raw": raw}
+    try:
+        adr = float(adr)
+    except (TypeError, ValueError):
+        return {"ok": False, "error": f"AirROI returned a non-numeric rate: {adr!r}."}
+    if adr <= 0:
+        return {"ok": False, "error": f"AirROI returned a non-positive rate: {adr}."}
+
+    return {
+        "ok": True,
+        "avg_rate": adr,
+        "listing_count": market.get("active_listings"),
+        "market_name": market.get("name"),
+    }

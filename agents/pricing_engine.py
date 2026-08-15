@@ -159,8 +159,12 @@ class MarketHeuristicProvider:
         direction = "above" if comp > rate else "below"
         count = market.get("listing_count")
         detail = f" across {count} comparable listings" if count else ""
+        # The matched market is named so a wrong match (AirROI resolving to a
+        # different town of the same name) is visible in the UI rather than
+        # silently priced against the wrong comp set.
+        where = f" in {market['market_name']}" if market.get("market_name") else ""
         factors.append(
-            f"Market comp average ${comp:.0f}{detail}, {direction} this rate, "
+            f"Market comp average ${comp:.0f}{detail}{where}, {direction} this rate, "
             f"adjusted {(capped - rate) / rate * 100:+.0f}% toward it"
         )
         if abs(target - capped) > 0.01:
