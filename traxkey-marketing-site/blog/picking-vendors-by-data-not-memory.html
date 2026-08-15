@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>How to Pick a Vendor by Data Instead of by Memory | TraxKey AI</title>
+<meta name="description" content="Most property managers pick contractors from memory. Here is how to rank vendors on completion rate, real cost, and rating from your own job history instead." />
+<link rel="canonical" href="https://traxkey.ai/blog/picking-vendors-by-data-not-memory" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="How to Pick a Vendor by Data Instead of by Memory" />
+<meta property="og:description" content="Most property managers pick contractors from memory. Here is how to rank vendors on completion rate, real cost, and rating from your own job history instead." />
+<meta property="og:url" content="https://traxkey.ai/blog/picking-vendors-by-data-not-memory" />
+<meta property="og:site_name" content="TraxKey AI" />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  * { font-family: 'Inter', sans-serif; }
+  html, body { overflow-x: hidden; max-width: 100vw; }
+  .dot-pattern { background-image: radial-gradient(rgba(255,255,255,0.08) 1px, transparent 1px); background-size: 22px 22px; }
+  .glow-card { box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 20px 60px -20px rgba(13,148,136,0.35); }
+  .prose p { margin-bottom: 1.15rem; line-height: 1.75; color: #cbd5e1; }
+  .prose h2 { font-size: 1.4rem; font-weight: 800; margin-top: 2.25rem; margin-bottom: .85rem; color: #fff; }
+  .prose ul { margin: 0 0 1.15rem 1.1rem; list-style: disc; }
+  .prose li { margin-bottom: .5rem; line-height: 1.7; color: #cbd5e1; }
+  .prose strong { color: #fff; }
+</style>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "How to Pick a Vendor by Data Instead of by Memory",
+  "description": "Most property managers pick contractors from memory. Here is how to rank vendors on completion rate, real cost, and rating from your own job history instead.",
+  "author": {
+    "@type": "Organization",
+    "name": "TraxKey AI"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "TraxKey AI"
+  },
+  "datePublished": "2026-08-10",
+  "dateModified": "2026-08-10",
+  "mainEntityOfPage": "https://traxkey.ai/blog/picking-vendors-by-data-not-memory"
+}
+</script>
+</head>
+<body class="bg-slate-950 text-slate-100 antialiased">
+
+<nav class="fixed top-0 w-full z-50 backdrop-blur-md bg-slate-950/70 border-b border-white/5">
+  <div class="max-w-7xl mx-auto px-4 md:px-6 py-4 flex items-center justify-between">
+    <a href="/" class="flex items-center gap-2">
+      <div class="w-8 h-8 rounded-lg bg-teal-500/15 border border-teal-500/30 flex items-center justify-center">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3L4 9V21H20V9L12 3Z" stroke="#2dd4bf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <span class="font-extrabold text-lg tracking-tight">TraxKey <span class="text-teal-400">AI</span></span>
+    </a>
+    <div class="hidden md:flex items-center gap-8 text-sm text-slate-300">
+      <a href="/#how" class="hover:text-white transition">How it works</a>
+      <a href="/short-term-rentals" class="hover:text-white transition">Short-term rentals</a>
+      <a href="/demo" class="hover:text-white transition">Demo dashboard</a>
+      <a href="/blog" class="text-teal-400">Blog</a>
+      <a href="/#pricing" class="hover:text-white transition">Pricing</a>
+    </div>
+    <div class="hidden md:flex items-center gap-4">
+      <a href="https://app.traxkey.ai/login" class="text-sm text-slate-300 hover:text-white transition">Customer Login</a>
+      <a href="https://app.traxkey.ai/signup" class="bg-teal-500 hover:bg-teal-400 text-slate-950 font-semibold text-sm px-4 py-2 rounded-lg transition active:scale-95 duration-150">Start Free Trial</a>
+    </div>
+    <button onclick="toggleMobileNav()" class="md:hidden text-white p-2 -mr-2" aria-label="Toggle menu">
+      <svg id="nav-icon-open" width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <svg id="nav-icon-close" class="hidden" width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M6 6L18 18M6 18L18 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+  <div id="mobile-nav" class="hidden md:hidden border-t border-white/5 px-4 pb-4 pt-2 space-y-1 bg-slate-950/95">
+    <a href="/#how" class="block py-2 text-slate-300 hover:text-white">How it works</a>
+    <a href="/short-term-rentals" class="block py-2 text-slate-300 hover:text-white">Short-term rentals</a>
+    <a href="/demo" class="block py-2 text-slate-300 hover:text-white">Demo dashboard</a>
+    <a href="/blog" class="block py-2 text-teal-400">Blog</a>
+    <a href="/#pricing" class="block py-2 text-slate-300 hover:text-white">Pricing</a>
+    <a href="https://app.traxkey.ai/login" class="block py-2 text-slate-300 hover:text-white">Customer Login</a>
+    <a href="https://app.traxkey.ai/signup" class="block mt-2 text-center bg-teal-500 text-slate-950 font-semibold text-sm px-4 py-2.5 rounded-lg">Start Free Trial</a>
+  </div>
+</nav>
+
+<header class="dot-pattern pt-40 pb-16 px-6 bg-gradient-to-b from-teal-950/40 to-slate-950">
+  <div class="max-w-3xl mx-auto">
+    <a href="/blog" class="text-teal-400 font-semibold text-sm mb-4 tracking-wide uppercase inline-block hover:text-teal-300">&larr; Blog</a>
+    <h1 class="text-3xl md:text-5xl font-black tracking-tight mb-6">How to Pick a Vendor by Data Instead of by Memory</h1>
+    <p class="text-lg text-slate-300">Ask a property manager who their best plumber is and you'll get an instant answer. Ask them to prove it and the answer gets vague fast. Here's why that gap matters, and what to measure instead.</p>
+    <p class="text-sm text-slate-500 mt-5">August 10, 2026</p>
+  </div>
+</header>
+
+<article class="px-6 pb-24">
+  <div class="max-w-3xl mx-auto prose">
+    <p>Ask a property manager who their best plumber is and you'll get an answer in under a second. Ask them why, and you'll usually get some version of "they're good, they always pick up." That's not nothing, but it isn't evidence either, and it's how a vendor who's quietly gotten worse keeps getting work for another eighteen months.</p>
+
+    <h2>Why memory is a bad ranking system</h2>
+    <p>The problem isn't that operators have poor judgment. It's that human memory weights the wrong things:</p>
+    <ul>
+      <li><strong>Recency beats pattern.</strong> The vendor who did a great job last Tuesday outranks the one with a better two-year record, because last Tuesday is what you can recall.</li>
+      <li><strong>Responsiveness gets mistaken for reliability.</strong> A contractor who answers the phone immediately <em>feels</em> dependable. Answering fast and finishing on budget are unrelated skills, and only one of them shows up in your memory.</li>
+      <li><strong>The bad experience you didn't personally have is invisible.</strong> If your colleague dealt with the disaster, it isn't in your ranking at all.</li>
+    </ul>
+    <p>None of this is a character flaw. It's just what happens when the ranking system is a person recalling anecdotes instead of a record.</p>
+
+    <h2>The three numbers worth tracking</h2>
+    <p>You don't need a data team for this. Three fields per completed job get you most of the way:</p>
+    <ul>
+      <li><strong>Completion rate.</strong> Of the jobs you dispatched to this vendor, how many did they actually finish? A vendor who accepts everything and completes 70% of it is a scheduling problem wearing a helpful face.</li>
+      <li><strong>Real final cost, not the quote.</strong> The gap between quoted and final is the single most useful number you can hold on a contractor. Some vendors quote low and settle high; you only see it in aggregate.</li>
+      <li><strong>Your own rating after the work.</strong> One to five, recorded when the job closes while the memory is fresh, not reconstructed months later.</li>
+    </ul>
+
+    <h2>The vendor with no history is the one to watch</h2>
+    <p>Here's the trap almost every automated dispatch system falls into: a brand-new vendor has no bad history, so any scoring system that treats "no data" as "no problems" will rank them optimistically. If the estimate field is also empty, a naive system can read that as a cheap job and send it straight through.</p>
+    <p>The right rule is the boring one: <strong>an unknown cost is not a cheap cost.</strong> A vendor with zero completed jobs should require a human to approve the first one regardless of the estimate, and earn autonomy as the record accumulates. Trust should be earned per-vendor, not granted by default.</p>
+
+    <h2>Watching for the slow decline</h2>
+    <p>The failure mode that costs the most isn't the vendor who's obviously bad. It's the one who was genuinely good in March and is measurably slower by September. Job to job, nobody notices; a two-week response time looks like a busy month. Across six months of your own data, it's a clear line going the wrong direction.</p>
+    <p>This is only visible if you keep history rather than just a current snapshot. A single "average response time" field that gets overwritten every time tells you where a vendor is today, and nothing about which direction they're heading.</p>
+
+    <h2>What to do with it</h2>
+    <p>Once you have the numbers, the dispatch decision stops being a judgment call. For a given trade, rank by completion rate, then rating, then cost, and send the work to the top of the list. Keep an approval gate for anything above a dollar threshold you set, and for any vendor without a track record. That combination gives you speed on the routine work and a human decision exactly where one is actually warranted.</p>
+    <p>The point isn't to remove your judgment from vendor selection. It's to stop asking your memory to do a job that a short table of numbers does better.
+    <div class="mt-10 p-6 bg-slate-900 border border-teal-400/20 rounded-2xl glow-card">
+      <p class="font-bold mb-2">TraxKey AI runs this for you</p>
+      <p class="text-sm text-slate-400 mb-4">A dedicated team of 9 specialized AI agents works your portfolio 24/7, across long-term units and short-term rentals in one system. Your first unit is free, no card.</p>
+      <a href="https://app.traxkey.ai/signup" class="inline-block bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-sm px-5 py-2.5 rounded-lg transition">Start free &rarr;</a>
+    </div>
+  </div>
+</article>
+
+<footer class="py-10 px-6 border-t border-white/5 text-center text-sm text-slate-500">
+  <p>&copy; 2026 TraxKey AI. One system for long-term rentals and short-term rentals.</p>
+  <p class="mt-2"><a href="/" class="hover:text-slate-300 underline">Home</a> · <a href="/short-term-rentals" class="hover:text-slate-300 underline">Short-term rentals</a> · <a href="/demo" class="hover:text-slate-300 underline">Demo dashboard</a></p>
+</footer>
+
+<script>
+function toggleMobileNav() {
+  document.getElementById('mobile-nav').classList.toggle('hidden');
+  document.getElementById('nav-icon-open').classList.toggle('hidden');
+  document.getElementById('nav-icon-close').classList.toggle('hidden');
+}
+</script>
+</body>
+</html>

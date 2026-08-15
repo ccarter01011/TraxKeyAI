@@ -1,0 +1,75 @@
+{
+  "_comment": "Blog topic roadmap for TraxKey AI, same pattern as the TraxSail blog queue. The weekly draft process reads this to know what's next, drafts the top 'queued' entry, and flips it to 'published' with a date once it's live. Completed entries stay as the record of what's already covered. Posts are drafted for review, never auto-published: a marketing site is public and a wrong claim about a competitor or a feature we don't have is expensive to walk back.",
+  "cadence": "one post per week",
+  "topics": [
+    {
+      "slug": "same-day-turnaround-playbook",
+      "title": "The Same-Day Turnaround Playbook for Short-Term Rentals",
+      "target_keywords": ["same day turnover airbnb", "short term rental cleaning schedule"],
+      "status": "published",
+      "published_date": "2026-07-06"
+    },
+    {
+      "slug": "guest-in-the-unit-changes-everything",
+      "title": "Why \"Is There a Guest in the Unit?\" Should Change How You Triage Every Repair",
+      "target_keywords": ["short term rental maintenance", "airbnb maintenance emergency"],
+      "status": "published",
+      "published_date": "2026-07-27"
+    },
+    {
+      "slug": "picking-vendors-by-data-not-memory",
+      "title": "How to Pick a Vendor by Data Instead of by Memory",
+      "target_keywords": ["property management vendor management", "how to choose a contractor property manager"],
+      "status": "published",
+      "published_date": "2026-08-10"
+    },
+    {
+      "slug": "late-parts-blocking-turns",
+      "title": "The Late Part Nobody Connected to the Missed Move-In Date",
+      "target_keywords": ["property maintenance parts tracking", "unit turn delays"],
+      "status": "queued"
+    },
+    {
+      "slug": "chasing-vendors-who-go-quiet",
+      "title": "What to Do When a Vendor Accepts the Job and Then Goes Quiet",
+      "target_keywords": ["vendor not responding property management", "contractor follow up"],
+      "status": "queued"
+    },
+    {
+      "slug": "mixed-portfolio-two-systems-problem",
+      "title": "Running Long-Term and Short-Term Units? You're Probably Paying for Two Systems",
+      "target_keywords": ["mixed portfolio property management software", "long term and short term rental software"],
+      "status": "queued"
+    },
+    {
+      "slug": "lease-renewal-90-day-window",
+      "title": "The 90-Day Renewal Window Most Small Landlords Miss",
+      "target_keywords": ["lease renewal process", "tenant renewal timeline"],
+      "status": "queued"
+    },
+    {
+      "slug": "move-in-move-out-inspection-record",
+      "title": "The Inspection Record That Settles a Deposit Argument Before It Starts",
+      "target_keywords": ["move in move out inspection checklist", "security deposit documentation"],
+      "status": "queued"
+    },
+    {
+      "slug": "ai-in-property-management-what-is-real",
+      "title": "AI in Property Management: What's Actually Real in 2026, and What's Still a Demo",
+      "target_keywords": ["ai property management software", "ai for landlords"],
+      "status": "queued"
+    },
+    {
+      "slug": "review-risk-before-the-review",
+      "title": "Catching a Bad Review Before the Guest Writes It",
+      "target_keywords": ["airbnb review management", "guest experience short term rental"],
+      "status": "queued"
+    },
+    {
+      "slug": "chasing-owners-invoices-without-accounting",
+      "title": "How to Chase What You're Owed Without Becoming an Accounting Department",
+      "target_keywords": ["property management invoicing", "landlord accounts receivable"],
+      "status": "queued"
+    }
+  ]
+}

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Why &quot;Is There a Guest in the Unit?&quot; Should Change How You Triage Every Repair | TraxKey AI</title>
+<meta name="description" content="A broken AC with a guest inside is an emergency. The same AC in a unit empty for two weeks is a Tuesday job. Why occupancy-aware maintenance triage matters for short-term rentals." />
+<link rel="canonical" href="https://traxkey.ai/blog/guest-in-the-unit-changes-everything" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Why &quot;Is There a Guest in the Unit?&quot; Should Change How You Triage Every Repair" />
+<meta property="og:description" content="A broken AC with a guest inside is an emergency. The same AC in a unit empty for two weeks is a Tuesday job. Why occupancy-aware maintenance triage matters for short-term rentals." />
+<meta property="og:url" content="https://traxkey.ai/blog/guest-in-the-unit-changes-everything" />
+<meta property="og:site_name" content="TraxKey AI" />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  * { font-family: 'Inter', sans-serif; }
+  html, body { overflow-x: hidden; max-width: 100vw; }
+  .dot-pattern { background-image: radial-gradient(rgba(255,255,255,0.08) 1px, transparent 1px); background-size: 22px 22px; }
+  .glow-card { box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 20px 60px -20px rgba(13,148,136,0.35); }
+  .prose p { margin-bottom: 1.15rem; line-height: 1.75; color: #cbd5e1; }
+  .prose h2 { font-size: 1.4rem; font-weight: 800; margin-top: 2.25rem; margin-bottom: .85rem; color: #fff; }
+  .prose ul { margin: 0 0 1.15rem 1.1rem; list-style: disc; }
+  .prose li { margin-bottom: .5rem; line-height: 1.7; color: #cbd5e1; }
+  .prose strong { color: #fff; }
+</style>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "Why \"Is There a Guest in the Unit?\" Should Change How You Triage Every Repair",
+  "description": "A broken AC with a guest inside is an emergency. The same AC in a unit empty for two weeks is a Tuesday job. Why occupancy-aware maintenance triage matters for short-term rentals.",
+  "author": {
+    "@type": "Organization",
+    "name": "TraxKey AI"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "TraxKey AI"
+  },
+  "datePublished": "2026-07-27",
+  "dateModified": "2026-07-27",
+  "mainEntityOfPage": "https://traxkey.ai/blog/guest-in-the-unit-changes-everything"
+}
+</script>
+</head>
+<body class="bg-slate-950 text-slate-100 antialiased">
+
+<nav class="fixed top-0 w-full z-50 backdrop-blur-md bg-slate-950/70 border-b border-white/5">
+  <div class="max-w-7xl mx-auto px-4 md:px-6 py-4 flex items-center justify-between">
+    <a href="/" class="flex items-center gap-2">
+      <div class="w-8 h-8 rounded-lg bg-teal-500/15 border border-teal-500/30 flex items-center justify-center">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3L4 9V21H20V9L12 3Z" stroke="#2dd4bf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <span class="font-extrabold text-lg tracking-tight">TraxKey <span class="text-teal-400">AI</span></span>
+    </a>
+    <div class="hidden md:flex items-center gap-8 text-sm text-slate-300">
+      <a href="/#how" class="hover:text-white transition">How it works</a>
+      <a href="/short-term-rentals" class="hover:text-white transition">Short-term rentals</a>
+      <a href="/demo" class="hover:text-white transition">Demo dashboard</a>
+      <a href="/blog" class="text-teal-400">Blog</a>
+      <a href="/#pricing" class="hover:text-white transition">Pricing</a>
+    </div>
+    <div class="hidden md:flex items-center gap-4">
+      <a href="https://app.traxkey.ai/login" class="text-sm text-slate-300 hover:text-white transition">Customer Login</a>
+      <a href="https://app.traxkey.ai/signup" class="bg-teal-500 hover:bg-teal-400 text-slate-950 font-semibold text-sm px-4 py-2 rounded-lg transition active:scale-95 duration-150">Start Free Trial</a>
+    </div>
+    <button onclick="toggleMobileNav()" class="md:hidden text-white p-2 -mr-2" aria-label="Toggle menu">
+      <svg id="nav-icon-open" width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <svg id="nav-icon-close" class="hidden" width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M6 6L18 18M6 18L18 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+  <div id="mobile-nav" class="hidden md:hidden border-t border-white/5 px-4 pb-4 pt-2 space-y-1 bg-slate-950/95">
+    <a href="/#how" class="block py-2 text-slate-300 hover:text-white">How it works</a>
+    <a href="/short-term-rentals" class="block py-2 text-slate-300 hover:text-white">Short-term rentals</a>
+    <a href="/demo" class="block py-2 text-slate-300 hover:text-white">Demo dashboard</a>
+    <a href="/blog" class="block py-2 text-teal-400">Blog</a>
+    <a href="/#pricing" class="block py-2 text-slate-300 hover:text-white">Pricing</a>
+    <a href="https://app.traxkey.ai/login" class="block py-2 text-slate-300 hover:text-white">Customer Login</a>
+    <a href="https://app.traxkey.ai/signup" class="block mt-2 text-center bg-teal-500 text-slate-950 font-semibold text-sm px-4 py-2.5 rounded-lg">Start Free Trial</a>
+  </div>
+</nav>
+
+<header class="dot-pattern pt-40 pb-16 px-6 bg-gradient-to-b from-teal-950/40 to-slate-950">
+  <div class="max-w-3xl mx-auto">
+    <a href="/blog" class="text-teal-400 font-semibold text-sm mb-4 tracking-wide uppercase inline-block hover:text-teal-300">&larr; Blog</a>
+    <h1 class="text-3xl md:text-5xl font-black tracking-tight mb-6">Why &quot;Is There a Guest in the Unit?&quot; Should Change How You Triage Every Repair</h1>
+    <p class="text-lg text-slate-300">The same broken air conditioner is either a five-star review at risk or a routine work order. The only thing that changes the answer is whether someone is currently standing in the unit, and most maintenance software has no idea.</p>
+    <p class="text-sm text-slate-500 mt-5">July 27, 2026</p>
+  </div>
+</header>
+
+<article class="px-6 pb-24">
+  <div class="max-w-3xl mx-auto prose">
+    <p>Two identical maintenance tickets come in on the same afternoon: <em>"AC is blowing warm air."</em> Same unit type, same trade, same likely cost. One of them is an emergency and one is a Tuesday job.</p>
+    <p>The difference isn't in the ticket. It's that one unit has a guest in it right now who paid for a summer weekend, and the other is empty until the 14th.</p>
+
+    <h2>Why most systems can't tell the difference</h2>
+    <p>This sounds obvious, and it is. The reason it doesn't happen in practice is structural: the software that reads the maintenance request and the software that knows the booking calendar are usually two different products from two different vendors.</p>
+    <ul>
+      <li><strong>Maintenance tools</strong> (built for long-term rentals) have a rich concept of trades, vendors, and work orders, and no concept of a booking calendar at all.</li>
+      <li><strong>Short-term rental platforms</strong> know exactly who is checking in and when, and treat maintenance as a note field.</li>
+    </ul>
+    <p>So the operator becomes the integration. You read the ticket, you mentally cross-reference the calendar, and you decide the urgency yourself. That works until you're doing it forty times a week, or until it's 10pm and the person doing the cross-referencing is tired.</p>
+
+    <h2>What occupancy-aware triage actually changes</h2>
+    <p>When the system knows both halves, three things change automatically:</p>
+    <ul>
+      <li><strong>Urgency gets set correctly at intake,</strong> not after a guest complains. A fault reported with someone in the unit escalates on its own.</li>
+      <li><strong>The dispatch window tightens.</strong> "Sometime this week" is fine for an empty unit and unacceptable with a guest mid-stay, and the vendor should be told which situation they're walking into.</li>
+      <li><strong>Quiet hours stop being absolute.</strong> A rule that says "no vendor contact after 8pm" is sensible right up until there's no hot water and a guest checking out in the morning.</li>
+    </ul>
+
+    <h2>The turnover version of the same problem</h2>
+    <p>The same blind spot shows up at checkout. A guest leaves at 10am and the next one arrives at 4pm: that's a six-hour turn, and whether it's achievable depends on facts living in two different systems. The booking calendar knows the arrival time. The maintenance system knows there's an open repair on that unit. Only something holding both can tell you the turn is going to fail before it does.</p>
+    <p>That's the pre-arrival check worth building: a guest arriving within two days, an open repair or an unfinished cleaning turn, and an alert while there's still time to do something about it. Not a report you read afterward explaining why the review was bad.</p>
+
+    <h2>What this means if you run both kinds of rental</h2>
+    <p>If your portfolio is all long-term, none of this applies and you can ignore it: leases don't have check-in times. If it's all short-term, a dedicated STR platform covers the calendar side well and you'll be patching the maintenance half.</p>
+    <p>The operators who feel this most are the ones running both, which is an increasingly ordinary portfolio: two houses on annual leases and three cabins on Airbnb. That group is genuinely underserved, because the market split its products along a line that real portfolios stopped respecting years ago.</p>
+    <p>The practical test for any tool you're evaluating: ask whether it can tell you a guest is currently in the unit at the moment a repair is reported. If it can't, you're still the integration.
+    <div class="mt-10 p-6 bg-slate-900 border border-teal-400/20 rounded-2xl glow-card">
+      <p class="font-bold mb-2">TraxKey AI runs this for you</p>
+      <p class="text-sm text-slate-400 mb-4">A dedicated team of 9 specialized AI agents works your portfolio 24/7, across long-term units and short-term rentals in one system. Your first unit is free, no card.</p>
+      <a href="https://app.traxkey.ai/signup" class="inline-block bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-sm px-5 py-2.5 rounded-lg transition">Start free &rarr;</a>
+    </div>
+  </div>
+</article>
+
+<footer class="py-10 px-6 border-t border-white/5 text-center text-sm text-slate-500">
+  <p>&copy; 2026 TraxKey AI. One system for long-term rentals and short-term rentals.</p>
+  <p class="mt-2"><a href="/" class="hover:text-slate-300 underline">Home</a> · <a href="/short-term-rentals" class="hover:text-slate-300 underline">Short-term rentals</a> · <a href="/demo" class="hover:text-slate-300 underline">Demo dashboard</a></p>
+</footer>
+
+<script>
+function toggleMobileNav() {
+  document.getElementById('mobile-nav').classList.toggle('hidden');
+  document.getElementById('nav-icon-open').classList.toggle('hidden');
+  document.getElementById('nav-icon-close').classList.toggle('hidden');
+}
+</script>
+</body>
+</html>

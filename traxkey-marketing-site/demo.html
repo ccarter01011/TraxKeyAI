@@ -199,6 +199,7 @@ html.light .to-slate-900 { --tw-gradient-to: #ffffff !important; }
       <button id="nav-dashboard" onclick="showNav('dashboard')" class="px-4 py-2 rounded-lg text-sm font-bold transition bg-teal-500 text-slate-950">Dashboard</button>
       <button id="nav-activity" onclick="showNav('activity')" class="px-4 py-2 rounded-lg text-sm font-bold transition text-slate-400 hover:text-white border border-white/10">AI Activity</button>
       <button id="nav-turns" onclick="showNav('turns')" class="px-4 py-2 rounded-lg text-sm font-bold transition text-slate-400 hover:text-white border border-white/10">Turns</button>
+      <button id="nav-analytics" onclick="showNav('analytics')" class="px-4 py-2 rounded-lg text-sm font-bold transition text-slate-400 hover:text-white border border-white/10">Analytics</button>
       <span class="w-px h-5 bg-white/10 mx-1"></span>
       <span class="px-3 py-2 rounded-lg text-xs text-slate-600 border border-white/5 cursor-default" title="Sign up to see this">Properties</span>
       <span class="px-3 py-2 rounded-lg text-xs text-slate-600 border border-white/5 cursor-default" title="Sign up to see this">Vendors</span>
@@ -206,6 +207,7 @@ html.light .to-slate-900 { --tw-gradient-to: #ffffff !important; }
       <span class="px-3 py-2 rounded-lg text-xs text-slate-600 border border-white/5 cursor-default" title="Sign up to see this">Orders</span>
       <span class="px-3 py-2 rounded-lg text-xs text-slate-600 border border-white/5 cursor-default" title="Sign up to see this">Invoicing</span>
       <span class="px-3 py-2 rounded-lg text-xs text-slate-600 border border-white/5 cursor-default" title="Sign up to see this">Insights</span>
+      <span class="px-3 py-2 rounded-lg text-xs text-slate-600 border border-white/5 cursor-default" title="Sign up to see this">Owners</span>
     </div>
   </div>
 </section>
@@ -229,6 +231,16 @@ html.light .to-slate-900 { --tw-gradient-to: #ffffff !important; }
       </div>
       <p class="text-xs text-slate-500 mb-5">One engine for both: a long-term move-out and a short-term cleaning turn are the same cycle.</p>
       <div id="turns-list" class="space-y-3"></div>
+    </div>
+
+    <!-- ANALYTICS VIEW -->
+    <div id="view-analytics" class="hidden">
+      <div class="flex items-baseline justify-between mb-1">
+        <h3 class="font-bold text-lg">Analytics &amp; Reporting</h3>
+        <span class="text-xs text-slate-500">Last 90 days</span>
+      </div>
+      <p class="text-xs text-slate-500 mb-5">How the business is doing over a period, as opposed to what needs you today. TraxKey shows spend and what's owed; it never processes a payment.</p>
+      <div id="analytics-body"></div>
     </div>
 
     <!-- DASHBOARD VIEW -->
@@ -495,6 +507,85 @@ function renderActivity(key) {
   }).join('');
 }
 
+var ANALYTICS = {
+  pm: {
+    tiles: [
+      { label: "Occupancy", value: "94%", sub: "32 of 34 units", tone: "teal" },
+      { label: "Avg days vacant", value: "11", sub: "last 90 days", tone: "green" },
+      { label: "Total spend", value: "$18,400", sub: "last 90 days", tone: "slate" },
+      { label: "Scheduled rent / mo", value: "$47,200", sub: "from active leases", tone: "slate" }
+    ],
+    occupancy: [
+      { name: "Oakview Apartments", occupied: 11, units: 12 },
+      { name: "Maple Street House", occupied: 1, units: 1 },
+      { name: "Riverside Fourplex", occupied: 4, units: 4 },
+      { name: "Hillcrest Duplex", occupied: 1, units: 2 }
+    ],
+    spend: [
+      { name: "Oakview Apartments", value: "$9,120" },
+      { name: "Riverside Fourplex", value: "$4,880" },
+      { name: "Hillcrest Duplex", value: "$2,700" },
+      { name: "Maple Street House", value: "$1,700" }
+    ],
+    spendLabel: "Spend by property",
+    note: "Owner statements show scheduled rent from active lease terms next to spend. Not confirmed collected rent, because TraxKey doesn't process payments and so has no record of what was actually paid."
+  },
+  str: {
+    tiles: [
+      { label: "Occupancy", value: "87%", sub: "next 30 days", tone: "teal" },
+      { label: "Avg turn time", value: "4.1h", sub: "checkout to ready", tone: "green" },
+      { label: "Total spend", value: "$7,950", sub: "last 90 days", tone: "slate" },
+      { label: "Turns completed", value: "63", sub: "last 90 days", tone: "slate" }
+    ],
+    occupancy: [
+      { name: "Lakeside Cabin", occupied: 26, units: 30 },
+      { name: "Riverside B", occupied: 24, units: 30 },
+      { name: "Riverside D", occupied: 28, units: 30 },
+      { name: "Hillcrest Cottage", occupied: 27, units: 30 }
+    ],
+    spend: [
+      { name: "Fresh Start Cleaning", value: "$4,320" },
+      { name: "CoolBreeze HVAC", value: "$1,910" },
+      { name: "Reliable Plumbing", value: "$1,140" },
+      { name: "BrightSpark Electric", value: "$580" }
+    ],
+    spendLabel: "Spend by vendor",
+    note: "Occupancy here is booked nights out of the next 30, read straight off the connected Airbnb and Vrbo calendars."
+  }
+};
+
+function renderAnalytics(key) {
+  var d = ANALYTICS[key];
+  var tiles = d.tiles.map(function (t) {
+    return '<div class="bg-slate-900 border border-white/5 rounded-2xl p-5">' +
+      '<p class="text-xs uppercase tracking-wide text-slate-500 mb-1">' + t.label + '</p>' +
+      '<p class="text-2xl font-bold ' + TONE[t.tone] + '">' + t.value + '</p>' +
+      '<p class="text-xs text-slate-500 mt-1">' + t.sub + '</p></div>';
+  }).join('');
+
+  var occ = d.occupancy.map(function (o) {
+    var pct = Math.round((o.occupied / o.units) * 100);
+    return '<div class="mb-3"><div class="flex items-baseline justify-between mb-1">' +
+      '<span class="text-sm">' + o.name + '</span>' +
+      '<span class="text-xs text-slate-500">' + o.occupied + ' / ' + o.units + ' · ' + pct + '%</span></div>' +
+      '<div class="h-1.5 bg-slate-800 rounded-full overflow-hidden">' +
+      '<div class="h-full bg-teal-400 rounded-full" style="width:' + pct + '%"></div></div></div>';
+  }).join('');
+
+  var spend = d.spend.map(function (s) {
+    return '<div class="flex items-center justify-between text-sm py-1.5 border-b border-white/5 last:border-0">' +
+      '<span>' + s.name + '</span><span class="text-slate-500">' + s.value + '</span></div>';
+  }).join('');
+
+  document.getElementById('analytics-body').innerHTML =
+    '<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">' + tiles + '</div>' +
+    '<div class="grid lg:grid-cols-2 gap-6">' +
+      '<div class="bg-slate-900 border border-white/5 rounded-2xl p-6"><h4 class="font-bold mb-4">Occupancy by property</h4>' + occ + '</div>' +
+      '<div class="bg-slate-900 border border-white/5 rounded-2xl p-6"><h4 class="font-bold mb-4">' + d.spendLabel + '</h4>' + spend + '</div>' +
+    '</div>' +
+    '<p class="text-xs text-slate-500 mt-5">' + d.note + '</p>';
+}
+
 function renderTurns(key) {
   var el = document.getElementById('turns-list');
   el.innerHTML = TURNS[key].map(function (t) {
@@ -520,7 +611,7 @@ function renderTurns(key) {
 var currentNav = 'dashboard';
 function showNav(tab) {
   currentNav = tab;
-  ['dashboard', 'activity', 'turns'].forEach(function (t) {
+  ['dashboard', 'activity', 'turns', 'analytics'].forEach(function (t) {
     document.getElementById('view-' + t).classList.toggle('hidden', t !== tab);
     document.getElementById('nav-' + t).className = 'px-4 py-2 rounded-lg text-sm font-bold transition ' +
       (t === tab ? 'bg-teal-500 text-slate-950' : 'text-slate-400 hover:text-white border border-white/10');
@@ -636,6 +727,7 @@ function showView(key) {
 
   renderActivity(key);
   renderTurns(key);
+  renderAnalytics(key);
 }
 
 // Hand-rolled SVG rather than a chart library: this page must stay fast and
