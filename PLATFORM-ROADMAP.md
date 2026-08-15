@@ -341,3 +341,173 @@ Three problems, and the first one means error alerts are silently failing:
    personal inbox. Alerts stay dark until that is done.
 3. `subject` still reads "Supply chain platform error", left over from the
    TraxSail template this was cloned from.
+
+---
+
+## Adjacent product: STR setup & procurement ("launch operations")
+
+Recorded 2026-08-15. This is a **separate product sharing TraxKey's
+infrastructure**, not a TraxKey feature. Reasoning is in the next section;
+the opportunity itself is real enough to write down properly now.
+
+### The opportunity
+
+Furnishing a 2-3 bedroom short-term rental runs roughly $15k-$35k end to
+end, and $5k-$50k+ across the size range. At that spend, a missed delivery,
+a wrong purchase, or a damaged item is not an annoyance, it is a delayed
+launch with quantifiable lost booking revenue:
+
+    cost of delay = expected daily revenue x days delayed
+                  + expedite costs + rework/return costs
+
+That formula is the product's core argument. It turns "the barstools are
+late" into a decision with a dollar figure attached: replace locally today,
+substitute, or wait.
+
+### Where the gap actually is
+
+The market is not empty, and the opening is not "another place to buy
+Airbnb furniture":
+
+| Existing approach | Examples | Strong at | The opening |
+|---|---|---|---|
+| Turnkey design + install | Awning, Bee Setups, Showplace, local firms | Hands-off, professional | Expensive, market-specific, opaque once underway |
+| AI design + sourcing | Ludwig by Fulhaus | Fast visual concepts, shoppable | Doesn't own procurement execution, delivery, inventory, inspection, replacement |
+| Group purchasing | HostGPO, Minoan | Supplier access, discounts | Not a project-management system |
+| Furniture packages / installers | Regional firms | Local delivery and setup | Regional, service-driven, not scalable software |
+| PMS platforms | Guesty, Hostaway, Hospitable, Lodgify | Bookings and post-launch ops | Not built for the pre-launch FF&E lifecycle |
+
+The gap is the **execution middle**: sourcing through installed and
+inspected. Everyone owns an end; nobody owns the project.
+
+### Core workflow
+
+    Property intake
+    -> Room-by-room setup plan
+    -> Budget and design tier
+    -> AI-generated FF&E + OS&E scope
+    -> Approved vendor catalog / sourcing
+    -> Purchase orders and order tracking
+    -> Delivery scheduling and issue management
+    -> Installer / cleaner / photographer coordination
+    -> Quality-control inspection
+    -> Listing-ready launch checklist
+    -> Replacement and restock catalog
+
+**FF&E** = furniture, fixtures, equipment (beds, sofas, TVs, rugs,
+appliances, patio furniture). **OS&E** = operating supplies and equipment
+(linens, towels, kitchenware, coffee maker, toiletries, smart locks,
+batteries). The distinction matters: the failure mode is a beautifully
+furnished property missing mattress protectors, a can opener, smoke-detector
+batteries, and trash bags. Review-critical, unglamorous, easy to forget.
+A "guest-readiness minimum" checklist is the feature that prevents it.
+
+### Ideal early customer
+
+An STR property manager or investor with **5-100 units** onboarding,
+refreshing, or expanding, especially remotely. They need consistency without
+identical designs, they coordinate owners/designers/vendors/installers/
+cleaners/photographers, they lose time chasing shipment status and
+substitutions, and they need owner approvals with clean budgets.
+
+Not the one-property DIY host (free checklists suffice) and not the
+hotel-scale operator (already has procurement systems).
+
+### MVP, built around execution rather than mood boards
+
+1. **Property setup intake** — address/market, type, beds/baths, occupancy,
+   floor plan, style, target guest, launch date, budget, and intended
+   position (economy / standard / premium / luxury / family / group /
+   pet-friendly / business / themed).
+2. **Room-by-room FF&E + OS&E scope** — required / recommended / optional per
+   room, with quantity, budget, status, vendor, lead time, delivery status,
+   substitution approvals, and the guest-readiness minimum.
+3. **Budget and owner approval** — original budget, committed, paid,
+   estimated remaining, contingency, variance by room and category. Approval
+   buttons for substitutions, upgrades, over-budget items. Generates an
+   owner-facing proposal and change-order summary.
+4. **Procurement command center** — POs, supplier contact, ETA, tracking,
+   delivery window, damage/return status, owner. Flags "this item delays
+   launch", "delivery is after install date", "budget over by 12%".
+5. **Launch-readiness score** — Not started -> In progress -> Delivered ->
+   Installed -> Inspected -> Photo-ready -> Listed -> Bookable, with the
+   exact blockers to guest-ready.
+6. **Reusable property templates** — "2BR Downtown Business Traveler",
+   "3BR Family Getaway", "Luxury Lake House". Clone and adapt per room
+   dimensions and market position.
+7. **Replacement and restock library** — a digital twin per property: every
+   item, SKU, purchase link, warranty, replacement option, stock level,
+   image. Reordering a broken lamp or stained duvet is one click.
+
+### AI worth building here (decisions and coordination, not copy)
+
+- Generate the room-by-room FF&E/OS&E checklist from size, location, guest
+  type, budget, design tier.
+- Predict launch blockers from vendor lead times, delivery dates, install
+  capacity.
+- Recommend where to spend vs save: mattresses, blackout shades, seating,
+  cookware, outdoor space, desk setup, durable high-touch items.
+- Compare quotes on cost, delivery risk, quality, replacement availability.
+- Draft vendor emails, quote requests, POs, owner approval requests,
+  installer briefs.
+- Convert floor plans, photos, or a walkthrough video into a preliminary
+  inventory list. **Always human-reviewed before purchase.**
+- Analyze comparable listings' reviews to suggest amenities that lift
+  conversion.
+- Flag incomplete safety-related setup items for local verification.
+
+### Business model options
+
+- Per-property setup fee, $199-$999 per launch.
+- Team subscription, $99-$499/mo for templates, tracking, vendor management,
+  approvals, reorders.
+- Transaction / affiliate margin on ordered items, **disclosed**.
+- Concierge tier: human-assisted procurement and coordination.
+- Vendor SaaS: supplier/installer portals, lead access, order tools.
+
+Deliberate caution: do not lean on affiliate revenue early. It makes buyers
+ask whether a recommendation serves the property or the margin. Always show
+alternatives and disclose commercial relationships.
+
+### Validate before building
+
+Interview 15-20 people across three groups: STR managers with 10-100
+listings, investors who've launched 2+ properties remotely, and STR
+designers / furnishing companies / install coordinators. Ask:
+
+- What was the last setup that ran late or over budget?
+- What delayed the listing going live?
+- What tools did you use (spreadsheet, email, texts, design boards, carts)?
+- Who approves changes, who owns the budget?
+- What is most often missing, damaged, substituted, reordered?
+- Would you pay to reduce launch delays, and how much per property?
+- Would you trust a platform to recommend items, or only coordinate items
+  you select?
+
+The signal to look for: "we run launches out of spreadsheets, texts and
+vendor emails" **plus** an ability to quantify lost booking revenue from a
+delay. Interest without a quantified cost is a feature idea, not a business.
+
+### Why separate product, not a TraxKey feature
+
+- **Different buyer moment.** TraxKey sells to someone with occupied units
+  and a maintenance problem. This sells to someone with an empty property
+  and a launch deadline, often before TraxKey is relevant to them at all.
+- **Different lifecycle.** Setup is a bounded project that ends at
+  "bookable". TraxKey's value is perpetual and starts at "bookable". That is
+  a clean handoff, not a merge.
+- **Positioning risk.** TraxKey's wedge is being the one system for an
+  operator running both rental types. Bolting on procurement starts drifting
+  toward "the platform that does everything", which is the position AppFolio
+  already holds and the reason the wedge exists.
+
+**What genuinely should be shared**, and why this isn't a stranger product:
+
+- The **ordered-items / chase engine** already built in TraxKey. A
+  procurement command center is largely that engine with more fields.
+- The **property inventory / digital twin** (built in TraxKey 2026-08-15).
+  TraxKey uses it for replacement-on-breakage; the setup product uses it as
+  the launch scope and the restock library. This is the seam between the two
+  products, and the reason to build inventory properly now.
+
+Cross-sell at the handoff: launch completes, TraxKey takes over the unit.

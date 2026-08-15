@@ -36,6 +36,9 @@ from invoice_chase import run_invoice_chase
 from imports import (preview_invoices, commit_invoices, preview_items, commit_items,
                      export_invoices, export_items, TEMPLATES)
 from analytics import occupancy_summary, rental_activity_summary, financial_summary, owner_statements
+from property_profile import (get_profile, save_profile, list_inventory, add_inventory,
+                              set_inventory_condition, delete_inventory, onboarding_status)
+from damage_assessment import assess as assess_damage
 from str_ops import (list_supplies, upsert_supply, delete_supply,
                      list_damage, record_damage, set_claim_status)
 from owner_portal import (login as owner_login, validate as owner_validate,
@@ -107,7 +110,8 @@ class HealthHandler(BaseHTTPRequestHandler):
         if route not in ("/chat", "/tenant-chat", "/sample-data", "/ordered-items",
                          "/supplies", "/damage", "/owner-login", "/owner-access", "/owners",
                          "/owner-forgot-password", "/owner-reset-password", "/suggestions",
-                         "/invoices", "/invoice-customers", "/import"):
+                         "/invoices", "/invoice-customers", "/import",
+                         "/property-profile", "/inventory", "/damage-assessment"):
             self._json(404, {"error": "Not found"})
             return
         try:
@@ -260,6 +264,32 @@ class HealthHandler(BaseHTTPRequestHandler):
             self._json(200 if result.get("ok") else 400, result)
             return
 
+        if route in ("/property-profile", "/inventory", "/damage-assessment"):
+            token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
+            company_id = validate_session(token)
+            if not company_id:
+                self._json(401, {"error": "Unauthorized"})
+                return
+            try:
+                if route == "/property-profile":
+                    result = save_profile(company_id, payload.get("propertyId", ""), payload)
+                elif route == "/damage-assessment":
+                    result = assess_damage(company_id, payload.get("requestId", ""))
+                else:
+                    action = payload.get("action")
+                    if action == "condition":
+                        result = set_inventory_condition(company_id, payload.get("itemId", ""), payload.get("condition", ""))
+                    elif action == "delete":
+                        result = delete_inventory(company_id, payload.get("itemId", ""))
+                    else:
+                        result = add_inventory(company_id, payload)
+            except Exception:
+                traceback.print_exc()
+                self._json(500, {"error": "Could not save that"})
+                return
+            self._json(200 if result.get("ok") else 400, result)
+            return
+
         if route == "/import":
             token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
             company_id = validate_session(token)
@@ -328,7 +358,8 @@ class HealthHandler(BaseHTTPRequestHandler):
             # Separate persona from the sales bot: warm, resident-facing, and
             # far more constrained about what it may promise. See tenant_chat.py.
             reply, err = tenant_answer(
-                payload.get("question", ""), payload.get("companyName"), ip
+                payload.get("question", ""), payload.get("companyName"), ip,
+                unit_id=payload.get("unitId"),
             )
         else:
             reply, err = sales_answer(payload.get("question", ""), payload.get("history"), ip)
@@ -490,6 +521,31 @@ class HealthHandler(BaseHTTPRequestHandler):
             except Exception:
                 traceback.print_exc()
                 self._json(500, {"error": "Could not build that export"})
+            return
+
+        if self.path.split("?")[0] in ("/property-profile", "/inventory", "/onboarding"):
+            token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
+            company_id = validate_session(token)
+            if not company_id:
+                self._json(401, {"error": "Unauthorized"})
+                return
+            r = self.path.split("?")[0]
+            q = parse_qs(urlparse(self.path).query)
+            pid = (q.get("propertyId") or [""])[0]
+            try:
+                if r == "/property-profile":
+                    prof = get_profile(company_id, pid)
+                    if prof is None:
+                        self._json(404, {"error": "Property not found"})
+                        return
+                    self._json(200, _plain(prof))
+                elif r == "/inventory":
+                    self._json(200, {"items": _plain(list_inventory(company_id, pid))})
+                else:
+                    self._json(200, _plain(onboarding_status(company_id)))
+            except Exception:
+                traceback.print_exc()
+                self._json(500, {"error": "Could not load that"})
             return
 
         if self.path.split("?")[0] == "/analytics":

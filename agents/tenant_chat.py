@@ -18,6 +18,8 @@ fixed brief only. The worst case is an unhelpful sentence, never a leak.
 import os
 import time
 import traceback
+
+from property_profile import context_for_unit
 from collections import defaultdict
 
 from anthropic import Anthropic
@@ -71,9 +73,43 @@ What you actually do:
 - Help them describe the problem clearly, that's your main job. A good
   description gets the right trade sent out the first time. Ask about what,
   where, how long, and whether it's getting worse.
-- Tell them what counts as an emergency: active water leak, no heat or AC in
-  extreme weather, no power, gas smell, sewage, a door or window that won't
-  lock, anything unsafe. Tell them to pick Emergency for those.
+- Help them pick the right urgency, and explain it in their words if they
+  ask or if they've clearly picked the wrong one. The three levels:
+
+  EMERGENCY, someone could get hurt or the building is being damaged right
+  now. Gas smell. Fire or smoke. No heat when it's freezing, or no AC in
+  dangerous heat. Active water leak or flooding. Sewage backing up. No
+  power at all. A door or window that won't lock. Anything that makes the
+  place unsafe to be in tonight.
+
+  URGENT, not dangerous, but it can't wait days and it stops normal life.
+  No hot water. Fridge not cooling with food in it. Toilet not working when
+  it's the only one. AC out in ordinary summer heat. Oven or stove dead.
+  Washer leaking a little. A lock that's stiff but still works.
+
+  ROUTINE, annoying, needs fixing, safe to schedule. Dripping tap. Running
+  toilet. One burner out with others working. Slow drain. Loose handle or
+  cabinet door. Squeaky hinge. A light fixture out that isn't the only
+  light. Cosmetic damage.
+
+  If they're unsure between two, take the higher one and say why. Nobody
+  gets in trouble for calling something urgent that turned out routine.
+
+- Try the simple fix first, but only the genuinely safe ones, and only when
+  their description points at it. Ask before assuming they've tried it, and
+  make it clear they don't have to. Safe things to suggest:
+  - Garbage disposal humming but not spinning: the reset button underneath.
+  - Outlet dead: check the GFCI reset on a nearby bathroom or kitchen outlet,
+    then the breaker.
+  - Nothing working in one room: check the breaker panel for a tripped switch.
+  - Toilet running: jiggle the handle, check the flapper isn't stuck open.
+  - Dishwasher not draining: check the filter at the bottom for food.
+  - AC blowing warm: check the thermostat is on cool and the filter isn't
+    filthy.
+  - Smoke alarm chirping: usually a low battery.
+  If the simple fix works, tell them they can close the request and that
+  it's genuinely fine to have asked. If it doesn't, or they'd rather not
+  try, move straight on to logging it without making them feel bad.
 - For a gas smell, fire, or anything immediately dangerous, tell them to
   leave and call 911 or their gas company first, before filling in any form.
   Say that plainly and first, ahead of anything else.
@@ -98,7 +134,7 @@ Keep replies to 2 to 4 sentences unless they asked something that genuinely
 needs more. Never use em dashes."""
 
 
-def answer(question, company_name=None, ip="unknown"):
+def answer(question, company_name=None, ip="unknown", unit_id=None):
     """Returns (reply, error_code). error_code is None on success."""
     if not question or not question.strip():
         return (None, "empty")
@@ -112,12 +148,22 @@ def answer(question, company_name=None, ip="unknown"):
 
     who = f"You work for {company_name}." if company_name else ""
 
+    # What we actually know about this specific building, so the assistant
+    # can answer "what filter does my furnace take" instead of guessing.
+    # Deliberately excludes anything sensitive, see property_profile.py.
+    context = ""
+    if unit_id:
+        try:
+            context = context_for_unit(unit_id)
+        except Exception:
+            traceback.print_exc()
+
     try:
         response = anthropic_client.messages.create(
             model="claude-sonnet-4-6",
             max_tokens=350,
             temperature=0.5,  # warmer than the operator concierge's 0.3
-            system=SYSTEM_PROMPT + ("\n\n" + who if who else ""),
+            system=SYSTEM_PROMPT + ("\n\n" + who if who else "") + context,
             messages=[{"role": "user", "content": question.strip()}],
         )
         text = response.content[0].text.strip()
