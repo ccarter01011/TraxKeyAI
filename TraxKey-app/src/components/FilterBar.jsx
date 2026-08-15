@@ -10,9 +10,14 @@ const fld = 'bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-
  *
  * statusOptions: [{value, label}]. Pass [] to hide the status dropdown.
  * searchPlaceholder: pass null to hide the search input.
+ * showDates: false hides the date-range inputs, for lists with no
+ * meaningful date field (Properties, Vendors) rather than showing pickers
+ * that can never match anything.
+ * statusLabel: the "all" option's text, since "All statuses" reads oddly
+ * for a type/trade dropdown.
  * onChange({status, from, to, q}) fires on every change.
  */
-export default function FilterBar({ statusOptions = [], searchPlaceholder = 'Search…', onChange, extra }) {
+export default function FilterBar({ statusOptions = [], searchPlaceholder = 'Search…', showDates = true, statusLabel = 'All statuses', onChange, extra }) {
   const [status, setStatus] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
@@ -41,18 +46,22 @@ export default function FilterBar({ statusOptions = [], searchPlaceholder = 'Sea
       )}
       {statusOptions.length > 0 && (
         <select value={status} onChange={e => emit({ status: e.target.value })} className={fld}>
-          <option value="">All statuses</option>
+          <option value="">{statusLabel}</option>
           {statusOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
       )}
-      <label className="flex items-center gap-1.5 text-xs text-slate-400">
-        From
-        <input type="date" value={from} onChange={e => emit({ from: e.target.value })} className={fld} />
-      </label>
-      <label className="flex items-center gap-1.5 text-xs text-slate-400">
-        To
-        <input type="date" value={to} onChange={e => emit({ to: e.target.value })} className={fld} />
-      </label>
+      {showDates && (
+        <>
+          <label className="flex items-center gap-1.5 text-xs text-slate-400">
+            From
+            <input type="date" value={from} onChange={e => emit({ from: e.target.value })} className={fld} />
+          </label>
+          <label className="flex items-center gap-1.5 text-xs text-slate-400">
+            To
+            <input type="date" value={to} onChange={e => emit({ to: e.target.value })} className={fld} />
+          </label>
+        </>
+      )}
       {extra}
       {active && (
         <button onClick={clear} className="text-xs text-slate-400 hover:text-slate-900 dark:hover:text-white underline">

@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiRequest } from '../lib/api.js';
 import FlowHelp from '../components/FlowHelp.jsx';
+import FilterBar, { useFiltered } from '../components/FilterBar.jsx';
 
 const TRADES = ['hvac', 'plumbing', 'electrical', 'appliance', 'general', 'pest', 'locksmith', 'roofing'];
+const TRADE_OPTIONS = TRADES.map(t => ({ value: t, label: t }));
 
 function AddVendorForm({ onCreated }) {
   const [open, setOpen] = useState(false);
@@ -144,6 +146,11 @@ function VendorRow({ vendor }) {
 export default function VendorsPage() {
   const [vendors, setVendors] = useState(null);
   const [error, setError] = useState('');
+  const [filters, setFilters] = useState({ status: '', from: '', to: '', q: '' });
+  const filtered = useFiltered(vendors, filters, {
+    statusField: 'trade',
+    searchFields: ['name', 'contact_email', 'contact_phone'],
+  });
 
   async function load() {
     try {
@@ -187,7 +194,21 @@ export default function VendorsPage() {
             <p className="text-sm text-slate-500 dark:text-slate-400">No vendors yet. Add one per trade you work with, this is what the AI Maintenance Coordinator dispatches to.</p>
           </div>
         )}
-        {vendors && vendors.map(v => <VendorRow key={v.id} vendor={v} />)}
+        {vendors && vendors.length > 0 && (
+          <FilterBar
+            statusOptions={TRADE_OPTIONS}
+            statusLabel="All trades"
+            searchPlaceholder="Search name, email, phone…"
+            showDates={false}
+            onChange={setFilters}
+          />
+        )}
+        {vendors && vendors.length > 0 && filtered.length === 0 && (
+          <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl p-8 text-center">
+            <p className="text-sm text-slate-500 dark:text-slate-400">Nothing matches those filters.</p>
+          </div>
+        )}
+        {filtered && filtered.map(v => <VendorRow key={v.id} vendor={v} />)}
       </div>
     </div>
   );

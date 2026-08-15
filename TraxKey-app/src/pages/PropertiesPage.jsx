@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { apiRequest } from '../lib/api.js';
+import FilterBar, { useFiltered } from '../components/FilterBar.jsx';
 
 const PROPERTY_TYPES = [
   { value: 'single_family', label: 'Single-family' },
@@ -155,6 +156,11 @@ function PropertyCard({ property, onChanged }) {
 export default function PropertiesPage() {
   const [properties, setProperties] = useState(null);
   const [error, setError] = useState('');
+  const [filters, setFilters] = useState({ status: '', from: '', to: '', q: '' });
+  const filtered = useFiltered(properties, filters, {
+    statusField: 'property_type',
+    searchFields: ['name', 'address_line1', 'city', 'state', 'zip'],
+  });
 
   async function load() {
     try {
@@ -187,7 +193,21 @@ export default function PropertiesPage() {
             <p className="text-sm text-slate-500 dark:text-slate-400">No properties yet. Add your first one above, this is what TraxKey AI's agents will monitor and act on.</p>
           </div>
         )}
-        {properties && properties.map(p => (
+        {properties && properties.length > 0 && (
+          <FilterBar
+            statusOptions={PROPERTY_TYPES}
+            statusLabel="All types"
+            searchPlaceholder="Search name, address, city…"
+            showDates={false}
+            onChange={setFilters}
+          />
+        )}
+        {properties && properties.length > 0 && filtered.length === 0 && (
+          <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl p-8 text-center">
+            <p className="text-sm text-slate-500 dark:text-slate-400">Nothing matches those filters.</p>
+          </div>
+        )}
+        {filtered && filtered.map(p => (
           <PropertyCard key={p.id} property={p} onChanged={load} />
         ))}
       </div>
