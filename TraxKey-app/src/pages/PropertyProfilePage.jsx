@@ -119,6 +119,166 @@ function InventoryForm({ propertyId, units, onCreated }) {
   );
 }
 
+const AMENITY_CATEGORIES = [
+  ['pool', 'Pool'], ['water', 'Water (lake, dock, river)'], ['fire', 'Fire (firepit, grill)'],
+  ['sport', 'Sport / recreation'], ['gathering', 'Gathering space'], ['other', 'Other'],
+];
+const AMENITY_STATUS_CLS = {
+  open: 'bg-green-500/15 text-green-700 dark:text-green-400',
+  maintenance: 'bg-amber-500/15 text-amber-700 dark:text-amber-400',
+  closed: 'bg-red-500/15 text-red-700 dark:text-red-400',
+};
+
+function AddAmenityForm({ propertyId, onCreated }) {
+  const [open, setOpen] = useState(false);
+  const [f, setF] = useState({ name: '', category: 'other', capacity: '' });
+  const [err, setErr] = useState('');
+
+  async function submit(e) {
+    e.preventDefault(); setErr('');
+    const res = await fetch(`${AGENT_BASE}/amenities`, { method: 'POST', headers: hdrs(), body: JSON.stringify({ ...f, propertyId }) });
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok || !j.ok) { setErr(j.error || 'Could not save'); return; }
+    setF({ name: '', category: 'other', capacity: '' }); setOpen(false); onCreated();
+  }
+
+  if (!open) return <button onClick={() => setOpen(true)} className="bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-sm px-4 py-2 rounded-lg transition">+ Add amenity</button>;
+
+  return (
+    <form onSubmit={submit} className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl p-5 space-y-3 mb-5">
+      <p className="font-bold text-sm">Add a shared amenity</p>
+      <div className="grid sm:grid-cols-3 gap-3">
+        <input required placeholder="Main pool" value={f.name} onChange={e => setF(s => ({ ...s, name: e.target.value }))} className={fld} />
+        <select value={f.category} onChange={e => setF(s => ({ ...s, category: e.target.value }))} className={fld}>
+          {AMENITY_CATEGORIES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+        </select>
+        <input type="number" min="1" placeholder="Capacity (optional)" value={f.capacity} onChange={e => setF(s => ({ ...s, capacity: e.target.value }))} className={fld} />
+      </div>
+      {err && <p className="text-xs text-red-500">{err}</p>}
+      <div className="flex gap-2">
+        <button type="submit" className="bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-sm px-4 py-2 rounded-lg">Save</button>
+        <button type="button" onClick={() => setOpen(false)} className="text-sm text-slate-500 px-3">Cancel</button>
+      </div>
+    </form>
+  );
+}
+
+function AmenityRow({ amenity, onChanged }) {
+  const [note, setNote] = useState('');
+  const [notifyMsg, setNotifyMsg] = useState('');
+  const [notifyResult, setNotifyResult] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  async function setStatus(status) {
+    await fetch(`${AGENT_BASE}/amenities`, { method: 'POST', headers: hdrs(), body: JSON.stringify({ action: 'status', amenityId: amenity.id, status, note }) });
+    setNote(''); onChanged();
+  }
+  async function remove() {
+    await fetch(`${AGENT_BASE}/amenities`, { method: 'POST', headers: hdrs(), body: JSON.stringify({ action: 'delete', amenityId: amenity.id }) });
+    onChanged();
+  }
+  async function notify() {
+    if (!notifyMsg.trim()) return;
+    setBusy(true);
+    const res = await fetch(`${AGENT_BASE}/amenity-notify`, { method: 'POST', headers: hdrs(), body: JSON.stringify({ amenityId: amenity.id, message: notifyMsg }) });
+    const j = await res.json().catch(() => ({}));
+    setBusy(false);
+    setNotifyResult(j);
+  }
+
+  return (
+    <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-xl p-4 mb-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-bold">{amenity.name}</p>
+          <p className="text-xs text-slate-500 mt-0.5">
+            {AMENITY_CATEGORIES.find(([v]) => v === amenity.category)?.[1] || amenity.category}
+            {amenity.capacity ? ` · up to ${amenity.capacity}` : ''}
+            {amenity.open_issues > 0 ? ` · ${amenity.open_issues} open issue${amenity.open_issues !== 1 ? 's' : ''}` : ''}
+          </p>
+          {amenity.status_note && <p className="text-xs text-slate-500 mt-1 italic">{amenity.status_note}</p>}
+        </div>
+        <span className={`shrink-0 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${AMENITY_STATUS_CLS[amenity.status]}`}>{amenity.status}</span>
+      </div>
+      <div className="flex flex-wrap items-center gap-2 mt-3">
+        {['open', 'maintenance', 'closed'].filter(s => s !== amenity.status).map(s => (
+          <button key={s} onClick={() => setStatus(s)} className="text-xs font-semibold text-teal-600 dark:text-teal-400 hover:underline">
+            Mark {s}
+          </button>
+        ))}
+        <button onClick={remove} className="text-xs text-slate-400 hover:text-red-500 ml-auto">Remove</button>
+      </div>
+      {amenity.status !== 'open' && (
+        <input placeholder="Status note (e.g. back online Thursday)" value={note} onChange={e => setNote(e.target.value)}
+          className={`${fld} mt-2 text-xs`} />
+      )}
+      <details className="mt-3">
+        <summary className="text-xs text-slate-500 cursor-pointer select-none">Notify guests currently on the property</summary>
+        <div className="mt-2 flex gap-2">
+          <input placeholder="e.g. Pool heater is being repaired, back online Thursday" value={notifyMsg}
+            onChange={e => setNotifyMsg(e.target.value)} className={`${fld} text-xs`} />
+          <button onClick={notify} disabled={busy} className="shrink-0 bg-teal-500 hover:bg-teal-400 disabled:opacity-50 text-slate-950 font-bold text-xs px-3 py-2 rounded-lg">
+            {busy ? '…' : 'Send'}
+          </button>
+        </div>
+        {notifyResult && (
+          <p className="text-[11px] text-slate-500 mt-2">
+            Notified {notifyResult.notified} of {notifyResult.totalActiveGuests} active guests by email.
+            {notifyResult.unreachable?.length > 0 && (
+              <> No email on file for: {notifyResult.unreachable.map(g => `${g.guestName || 'guest'} (${g.unitNumber || 'unit'})`).join(', ')}. Reach them another way.</>
+            )}
+          </p>
+        )}
+      </details>
+    </div>
+  );
+}
+
+function AmenitiesTab({ propertyId }) {
+  const [amenities, setAmenities] = useState(null);
+
+  async function load() {
+    const res = await fetch(`${AGENT_BASE}/amenities?propertyId=${propertyId}`, { headers: hdrs() });
+    const j = await res.json().catch(() => ({ amenities: [] }));
+    setAmenities(j.amenities || []);
+  }
+  useEffect(() => { load(); }, [propertyId]);
+
+  return (
+    <>
+      <AddAmenityForm propertyId={propertyId} onCreated={load} />
+      {amenities === null ? <p className="text-sm text-slate-400">Loading…</p>
+        : amenities.length === 0 ? (
+          <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-xl p-8 text-center">
+            <p className="text-sm font-bold mb-1">No shared amenities logged</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Add the pool, dock, firepit, or anything shared across units. An issue here affects every guest, so it lives separately from a single unit's maintenance.</p>
+          </div>
+        ) : amenities.map(a => <AmenityRow key={a.id} amenity={a} onChanged={load} />)}
+    </>
+  );
+}
+
+function RentalModeToggle({ propertyId, mode, onChanged }) {
+  const [busy, setBusy] = useState(false);
+  async function set(next) {
+    if (next === mode) return;
+    setBusy(true);
+    await fetch(`${AGENT_BASE}/rental-mode`, { method: 'POST', headers: hdrs(), body: JSON.stringify({ propertyId, mode: next }) });
+    setBusy(false); onChanged();
+  }
+  return (
+    <div className="inline-flex items-center bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-lg p-0.5 gap-0.5">
+      {[['standard', 'Standard STR'], ['experiential', 'Experiential / Micro-Resort']].map(([v, l]) => (
+        <button key={v} disabled={busy} onClick={() => set(v)}
+          className={`px-3 py-1.5 rounded-md text-xs font-bold transition disabled:opacity-50 ${mode === v
+            ? 'bg-teal-500 text-slate-950' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}>
+          {l}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function PropertyProfilePage() {
   const [params, setParams] = useSearchParams();
   const propertyId = params.get('propertyId') || '';
@@ -154,6 +314,7 @@ export default function PropertyProfilePage() {
       f[key] = prof?.[snake] ?? '';
     }));
     setForm(f);
+    if (prof?.rental_mode !== 'experiential') setTab(t => (t === 'amenities' ? 'profile' : t));
   }
   useEffect(() => { load(); }, [propertyId]);
 
@@ -212,16 +373,22 @@ export default function PropertyProfilePage() {
               <span className="text-xs text-slate-500">{pct}% of the key details</span>
             </div>
           )}
+          {profile && propertyId && (
+            <RentalModeToggle propertyId={propertyId} mode={profile.rental_mode || 'standard'} onChanged={load} />
+          )}
         </div>
 
         <div className="flex gap-1 mb-5 border-b border-slate-200 dark:border-white/10">
-          {[['profile', 'Property profile'], ['inventory', `Inventory (${inventory.length})`]].map(([k, l]) => (
+          {[['profile', 'Property profile'], ['inventory', `Inventory (${inventory.length})`],
+            ...(profile?.rental_mode === 'experiential' ? [['amenities', 'Shared amenities']] : [])].map(([k, l]) => (
             <button key={k} onClick={() => setTab(k)}
               className={`text-sm font-semibold px-4 py-2 -mb-px border-b-2 transition ${tab === k ? 'border-teal-500 text-teal-600 dark:text-teal-400' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>{l}</button>
           ))}
         </div>
 
-        {tab === 'profile' ? (
+        {tab === 'amenities' ? (
+          <AmenitiesTab propertyId={propertyId} />
+        ) : tab === 'profile' ? (
           <>
             {SECTIONS.map(sec => (
               <div key={sec.title} className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl p-5 mb-4">

@@ -259,6 +259,11 @@ def create_reservation(company_id, body):
                 WHERE b.unit_id = %(unit)s::uuid
                   AND b.checkin_date < %(checkout)s::date AND b.checkout_date > %(checkin)s::date
               )
+              AND NOT EXISTS (
+                SELECT 1 FROM traxkey.property_buyouts pb
+                WHERE pb.property_id = p.id AND pb.status = 'confirmed'
+                  AND pb.checkin_date < %(checkout)s::date AND pb.checkout_date > %(checkin)s::date
+              )
             RETURNING id
             """,
             {"c": company_id, "unit": unit_id, "guest": guest,
@@ -269,8 +274,74 @@ def create_reservation(company_id, body):
         )
         row = cur.fetchone()
     if not row:
-        return {"ok": False, "error": "Those dates overlap an existing reservation, or the unit wasn't found."}
+        return {"ok": False, "error": "Those dates overlap an existing reservation, an existing buyout, or the unit wasn't found."}
     return {"ok": True, "id": str(row["id"])}
+
+
+def create_buyout(company_id, body):
+    """A whole-property booking: every unit blocked for the range. Conflict
+    check covers both individual unit reservations and iCal-synced bookings
+    across every unit on the property, since a buyout is meaningless if one
+    cabin is already spoken for."""
+    prop = (body.get("propertyId") or "").strip()
+    guest = (body.get("guestName") or "").strip()
+    checkin = (body.get("checkinDate") or "").strip()
+    checkout = (body.get("checkoutDate") or "").strip()
+    rate = str(body.get("totalRate") or "").strip()
+    if not (prop and guest and checkin and checkout and rate):
+        return {"ok": False, "error": "Guest name, dates, and a total rate are all needed."}
+
+    with db() as conn, conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO traxkey.property_buyouts
+              (company_id, property_id, guest_name, guest_email, checkin_date, checkout_date, total_rate, notes)
+            SELECT p.company_id, p.id, %(guest)s, NULLIF(%(email)s, ''),
+                   %(checkin)s::date, %(checkout)s::date, %(rate)s::numeric, NULLIF(%(notes)s, '')
+            FROM traxkey.properties p
+            WHERE p.id = %(prop)s::uuid AND p.company_id = %(c)s
+              AND NOT EXISTS (
+                SELECT 1 FROM traxkey.direct_reservations dr
+                JOIN traxkey.units u ON u.id = dr.unit_id
+                WHERE u.property_id = p.id AND dr.status = 'confirmed'
+                  AND dr.checkin_date < %(checkout)s::date AND dr.checkout_date > %(checkin)s::date
+              )
+              AND NOT EXISTS (
+                SELECT 1 FROM traxkey.bookings b
+                JOIN traxkey.units u ON u.id = b.unit_id
+                WHERE u.property_id = p.id
+                  AND b.checkin_date < %(checkout)s::date AND b.checkout_date > %(checkin)s::date
+              )
+              AND NOT EXISTS (
+                SELECT 1 FROM traxkey.property_buyouts pb
+                WHERE pb.property_id = p.id AND pb.status = 'confirmed'
+                  AND pb.checkin_date < %(checkout)s::date AND pb.checkout_date > %(checkin)s::date
+              )
+            RETURNING id
+            """,
+            {"c": company_id, "prop": prop, "guest": guest,
+             "email": (body.get("guestEmail") or "").strip(),
+             "checkin": checkin, "checkout": checkout, "rate": rate,
+             "notes": (body.get("notes") or "").strip()},
+        )
+        row = cur.fetchone()
+    if not row:
+        return {"ok": False, "error": "At least one unit already has a reservation in that window, or the property wasn't found."}
+    return {"ok": True, "id": str(row["id"])}
+
+
+def list_buyouts(company_id, property_id):
+    with db() as conn, conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT id, guest_name, checkin_date, checkout_date, total_rate, status
+            FROM traxkey.property_buyouts
+            WHERE company_id = %s AND property_id = %s::uuid AND status = 'confirmed'
+            ORDER BY checkin_date
+            """,
+            (company_id, property_id),
+        )
+        return [dict(r) for r in cur.fetchall()]
 
 
 def cancel_reservation(company_id, reservation_id):

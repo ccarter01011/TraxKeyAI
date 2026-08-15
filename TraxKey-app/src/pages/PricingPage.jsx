@@ -79,6 +79,40 @@ function BaseRateForm({ unitId, currentRate, onSet }) {
   );
 }
 
+function BuyoutForm({ propertyId, onCreated }) {
+  const [open, setOpen] = useState(false);
+  const [f, setF] = useState({ guestName: '', checkinDate: '', checkoutDate: '', totalRate: '' });
+  const [err, setErr] = useState('');
+
+  async function submit(e) {
+    e.preventDefault(); setErr('');
+    const { ok, j } = await post('/buyouts', { ...f, propertyId });
+    if (!ok) { setErr(j.error || 'Could not save'); return; }
+    setF({ guestName: '', checkinDate: '', checkoutDate: '', totalRate: '' });
+    setOpen(false); onCreated();
+  }
+
+  if (!propertyId) return null;
+  if (!open) return <button onClick={() => setOpen(true)} className="text-xs text-slate-500 hover:text-slate-900 dark:hover:text-white hover:underline">+ Whole-property buyout</button>;
+
+  return (
+    <form onSubmit={submit} className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl p-4 space-y-2 my-3">
+      <p className="text-xs text-slate-500 mb-1">Blocks every unit on the property for these dates. For a full buyout: weddings, retreats, reunions.</p>
+      <div className="grid grid-cols-2 gap-2">
+        <input required placeholder="Guest / group name" value={f.guestName} onChange={e => setF(s => ({ ...s, guestName: e.target.value }))} className={fld} />
+        <input required type="number" step="0.01" placeholder="Total rate" value={f.totalRate} onChange={e => setF(s => ({ ...s, totalRate: e.target.value }))} className={fld} />
+        <input required type="date" value={f.checkinDate} onChange={e => setF(s => ({ ...s, checkinDate: e.target.value }))} className={fld} />
+        <input required type="date" value={f.checkoutDate} onChange={e => setF(s => ({ ...s, checkoutDate: e.target.value }))} className={fld} />
+      </div>
+      {err && <p className="text-xs text-red-500">{err}</p>}
+      <div className="flex gap-2">
+        <button type="submit" className="bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs px-3 py-1.5 rounded-lg">Book buyout</button>
+        <button type="button" onClick={() => setOpen(false)} className="text-xs text-slate-500">Cancel</button>
+      </div>
+    </form>
+  );
+}
+
 export default function PricingPage() {
   const [properties, setProperties] = useState([]);
   const [unitId, setUnitId] = useState('');
@@ -96,7 +130,7 @@ export default function PricingPage() {
     }).catch(() => {});
   }, []);
 
-  const allUnits = properties.flatMap(p => p.units.map(u => ({ ...u, propertyName: p.name })));
+  const allUnits = properties.flatMap(p => p.units.map(u => ({ ...u, propertyName: p.name, propertyId: p.id })));
   const unit = allUnits.find(u => u.id === unitId);
 
   async function loadCalendar() {
@@ -191,6 +225,7 @@ export default function PricingPage() {
             <div className="mb-3 flex flex-wrap items-center gap-3">
               <BaseRateForm unitId={unitId} currentRate={calendar?.rates?.[0]?.base_rate ?? unit?.base_nightly_rate} onSet={loadCalendar} />
               <ReservationForm unitId={unitId} onCreated={loadCalendar} />
+              <BuyoutForm propertyId={unit?.propertyId} onCreated={loadCalendar} />
             </div>
             {calendar?.rates?.length > 0 ? (
               <div className="space-y-2">

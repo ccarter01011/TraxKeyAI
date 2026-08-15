@@ -40,8 +40,10 @@ from property_profile import (get_profile, save_profile, list_inventory, add_inv
                               set_inventory_condition, delete_inventory, onboarding_status)
 from damage_assessment import assess as assess_damage
 from pricing_engine import (suggest_rates, apply_rate, set_base_rate, get_calendar as get_pricing_calendar,
-                            create_reservation, cancel_reservation)
+                            create_reservation, cancel_reservation, create_buyout, list_buyouts)
 from pricing_test_data import seed as seed_pricing_test, remove as remove_pricing_test
+from amenities import (set_rental_mode, list_amenities, add_amenity, set_amenity_status,
+                       delete_amenity, report_amenity_issue, notify_active_guests)
 from str_ops import (list_supplies, upsert_supply, delete_supply,
                      list_damage, record_damage, set_claim_status)
 from owner_portal import (login as owner_login, validate as owner_validate,
@@ -115,7 +117,9 @@ class HealthHandler(BaseHTTPRequestHandler):
                          "/owner-forgot-password", "/owner-reset-password", "/suggestions",
                          "/invoices", "/invoice-customers", "/import",
                          "/property-profile", "/inventory", "/damage-assessment",
-                         "/pricing", "/reservations", "/pricing-test-data"):
+                         "/pricing", "/reservations", "/pricing-test-data",
+                         "/rental-mode", "/amenities", "/amenity-issue", "/amenity-notify",
+                         "/buyouts"):
             self._json(404, {"error": "Not found"})
             return
         try:
@@ -287,6 +291,82 @@ class HealthHandler(BaseHTTPRequestHandler):
                         result = delete_inventory(company_id, payload.get("itemId", ""))
                     else:
                         result = add_inventory(company_id, payload)
+            except Exception:
+                traceback.print_exc()
+                self._json(500, {"error": "Could not save that"})
+                return
+            self._json(200 if result.get("ok") else 400, result)
+            return
+
+        if route == "/rental-mode":
+            token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
+            company_id = validate_session(token)
+            if not company_id:
+                self._json(401, {"error": "Unauthorized"})
+                return
+            result = set_rental_mode(company_id, payload.get("propertyId", ""), payload.get("mode", ""))
+            self._json(200 if result.get("ok") else 400, result)
+            return
+
+        if route == "/amenities":
+            token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
+            company_id = validate_session(token)
+            if not company_id:
+                self._json(401, {"error": "Unauthorized"})
+                return
+            try:
+                action = payload.get("action")
+                if action == "status":
+                    result = set_amenity_status(company_id, payload.get("amenityId", ""), payload.get("status", ""), payload.get("note"))
+                elif action == "delete":
+                    result = delete_amenity(company_id, payload.get("amenityId", ""))
+                else:
+                    result = add_amenity(company_id, payload)
+            except Exception:
+                traceback.print_exc()
+                self._json(500, {"error": "Could not save that"})
+                return
+            self._json(200 if result.get("ok") else 400, result)
+            return
+
+        if route == "/amenity-issue":
+            token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
+            company_id = validate_session(token)
+            if not company_id:
+                self._json(401, {"error": "Unauthorized"})
+                return
+            try:
+                result = report_amenity_issue(company_id, payload)
+            except Exception:
+                traceback.print_exc()
+                self._json(500, {"error": "Could not save that"})
+                return
+            self._json(200 if result.get("ok") else 400, result)
+            return
+
+        if route == "/amenity-notify":
+            token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
+            company_id = validate_session(token)
+            if not company_id:
+                self._json(401, {"error": "Unauthorized"})
+                return
+            try:
+                result = notify_active_guests(company_id, payload.get("amenityId", ""), payload.get("message", ""))
+            except Exception:
+                traceback.print_exc()
+                self._json(500, {"error": "Could not notify guests"})
+                return
+            self._json(200 if result.get("ok") else 400, result)
+            return
+
+        if route == "/buyouts":
+            token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
+            company_id = validate_session(token)
+            if not company_id:
+                self._json(401, {"error": "Unauthorized"})
+                return
+            try:
+                result = create_buyout(company_id, payload)
             except Exception:
                 traceback.print_exc()
                 self._json(500, {"error": "Could not save that"})
@@ -607,6 +687,36 @@ class HealthHandler(BaseHTTPRequestHandler):
             except Exception:
                 traceback.print_exc()
                 self._json(500, {"error": "Could not load that"})
+            return
+
+        if self.path.split("?")[0] == "/amenities":
+            token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
+            company_id = validate_session(token)
+            if not company_id:
+                self._json(401, {"error": "Unauthorized"})
+                return
+            q = parse_qs(urlparse(self.path).query)
+            pid = (q.get("propertyId") or [""])[0]
+            try:
+                self._json(200, {"amenities": _plain(list_amenities(company_id, pid))})
+            except Exception:
+                traceback.print_exc()
+                self._json(500, {"error": "Could not load amenities"})
+            return
+
+        if self.path.split("?")[0] == "/buyouts":
+            token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
+            company_id = validate_session(token)
+            if not company_id:
+                self._json(401, {"error": "Unauthorized"})
+                return
+            q = parse_qs(urlparse(self.path).query)
+            pid = (q.get("propertyId") or [""])[0]
+            try:
+                self._json(200, {"buyouts": _plain(list_buyouts(company_id, pid))})
+            except Exception:
+                traceback.print_exc()
+                self._json(500, {"error": "Could not load buyouts"})
             return
 
         if self.path.split("?")[0] == "/pricing":

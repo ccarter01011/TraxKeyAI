@@ -46,7 +46,7 @@ def get_profile(company_id, property_id):
     with db() as conn, conn.cursor() as cur:
         cur.execute(
             """
-            SELECT p.id AS property_id, p.name, pr.*
+            SELECT p.id AS property_id, p.name, p.rental_mode, pr.*
             FROM traxkey.properties p
             LEFT JOIN traxkey.property_profiles pr ON pr.property_id = p.id
             WHERE p.id = %s::uuid AND p.company_id = %s
