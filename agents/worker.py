@@ -498,7 +498,7 @@ class HealthHandler(BaseHTTPRequestHandler):
 
         if route == "/tenant-amenities":
             try:
-                result = list_amenities_for_token(payload.get("token", ""))
+                result = _plain(list_amenities_for_token(payload.get("token", "")))
             except Exception:
                 traceback.print_exc()
                 self._json(500, {"error": "Could not load amenities"})
