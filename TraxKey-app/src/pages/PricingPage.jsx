@@ -47,6 +47,52 @@ function ReservationForm({ unitId, onCreated }) {
   );
 }
 
+function PriceLabsMapping({ unitId, currentListingId, onSet }) {
+  const [configured, setConfigured] = useState(null);
+  const [editing, setEditing] = useState(false);
+  const [listingId, setListingId] = useState(currentListingId || '');
+  const [err, setErr] = useState('');
+
+  useEffect(() => {
+    fetch(`${AGENT_BASE}/pricelabs`, { headers: hdrs() })
+      .then(r => r.json()).then(j => setConfigured(!!j.configured)).catch(() => setConfigured(false));
+  }, []);
+  useEffect(() => { setListingId(currentListingId || ''); }, [currentListingId, unitId]);
+
+  async function save(e) {
+    e.preventDefault(); setErr('');
+    const { ok, j } = await post('/pricelabs', { unitId, listingId });
+    if (!ok) { setErr(j.error || 'Could not save'); return; }
+    setEditing(false); onSet();
+  }
+
+  if (configured === null) return null;
+
+  if (!configured) {
+    return (
+      <p className="text-[11px] text-slate-400">
+        PriceLabs isn't connected (no <code className="bg-slate-100 dark:bg-slate-950 px-1 rounded">PRICELABS_API_KEY</code> set). Every unit uses the internal heuristic until it is.
+      </p>
+    );
+  }
+
+  if (!editing) {
+    return (
+      <button onClick={() => setEditing(true)} className="text-xs text-slate-500 hover:text-slate-900 dark:hover:text-white">
+        PriceLabs listing: <span className="font-bold text-slate-700 dark:text-slate-200">{currentListingId || 'not mapped'}</span> · edit
+      </button>
+    );
+  }
+  return (
+    <form onSubmit={save} className="flex items-center gap-2">
+      <input value={listingId} onChange={e => setListingId(e.target.value)} placeholder="PriceLabs listing ID" className={`${fld} w-40`} />
+      <button type="submit" className="bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs px-2.5 py-1.5 rounded-lg">Save</button>
+      <button type="button" onClick={() => setEditing(false)} className="text-xs text-slate-500">Cancel</button>
+      {err && <span className="text-xs text-red-500">{err}</span>}
+    </form>
+  );
+}
+
 function BaseRateForm({ unitId, currentRate, onSet }) {
   const [editing, setEditing] = useState(false);
   const [rate, setRate] = useState(currentRate || '');
@@ -201,16 +247,12 @@ export default function PricingPage() {
                 steps={[
                   'A reservation system separate from Airbnb and Vrbo, for direct bookings TraxKey controls the price on.',
                   'Each night gets a suggested rate from a pricing engine, adjusted for weekend demand, lead time, and how full the property already is that week.',
-                  'No revenue-management vendor is connected yet. The engine is built vendor-agnostic on purpose, so plugging in PriceLabs or another provider later is a one-file swap.',
+                  'PriceLabs integration exists in code (Customer API, real X-API-Key auth), but is only live for a unit once it is mapped to a real PriceLabs listing below and PRICELABS_API_KEY is set. Every other unit uses the internal heuristic.',
                   'Accepting a suggestion locks it as the applied rate for that night. A booked night keeps the rate it was actually booked at.',
                 ]}
-                note="This is a prototype, not the real pricing intelligence a connected vendor would provide. Every suggestion shows its reasoning so it's never mistaken for market data."
+                note="Unmapped units are clearly a prototype, not real market intelligence. A mapped unit with the key configured gets a real PriceLabs recommendation instead, and the calendar below labels which one produced each night's price."
               />
             </h1>
-            <p className="text-[11px] mt-1">
-              <span className="font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-400">Source: internal heuristic, not PriceLabs</span>
-              <span className="text-slate-400 ml-2">No PriceLabs MCP or API is connected. Prices below come from a rule-of-thumb calculator built into TraxKey, shown to demonstrate the workflow.</span>
-            </p>
           </div>
         </div>
 
@@ -241,6 +283,7 @@ export default function PricingPage() {
           <>
             <div className="mb-3 flex flex-wrap items-center gap-3">
               <BaseRateForm unitId={unitId} currentRate={calendar?.rates?.[0]?.base_rate ?? unit?.base_nightly_rate} onSet={loadCalendar} />
+              <PriceLabsMapping unitId={unitId} currentListingId={calendar?.pricelabsListingId} onSet={loadCalendar} />
               <ReservationForm unitId={unitId} onCreated={loadCalendar} />
               <BuyoutForm propertyId={unit?.propertyId} onCreated={loadCalendar} />
             </div>
@@ -265,6 +308,9 @@ export default function PricingPage() {
                       {!booked && (
                         <div className="flex items-center gap-2 shrink-0">
                           <span className="text-xs text-slate-400">base {money(r.base_rate)}</span>
+                          {r.source === 'pricelabs' && (
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-600 dark:text-sky-400">PriceLabs</span>
+                          )}
                           <span className="text-sm font-bold text-teal-600 dark:text-teal-400">suggest {money(r.suggested_rate)}</span>
                           {r.applied_rate ? (
                             <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-green-500/15 text-green-700 dark:text-green-400">applied {money(r.applied_rate)}</span>

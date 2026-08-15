@@ -191,6 +191,35 @@ a bad import after the fact. New customers/suppliers are created inline.
 Export gets the full history back out as CSV any time; a tool that traps
 your data is a tool people hesitate to adopt.
 
+### 7. Experiential STR / micro-resort mode — LIVE
+**The claim:** a per-property toggle for multi-unit properties sharing
+amenities — 5 acres, 7 cabins, one pool, one lake. Switching a property to
+Experiential / Micro-Resort adds shared-amenity tracking with its own
+status and maintenance thread, a one-click "notify every guest currently on
+the property" action, and whole-property buyout bookings that block every
+unit at once for a wedding or reunion.
+
+**Why it matters:** this is a real, underserved niche sitting in a gap the
+software market skipped entirely. Single-unit STR tools (Hostaway, Guesty,
+Hospitable) have no concept of a shared amenity — a broken pool heater has
+nowhere to live except a maintenance ticket pinned to one cabin, when it
+affects every guest on the property. Hotel PMS is built for a front desk
+and 80 rooms, not two people running seven cabins. Nobody currently owns
+this middle.
+
+**Where the fit comes from structurally:** TraxKey's property→units model
+already matches a compound's real shape — the site is the property, each
+cabin is a unit, one calendar. The only piece that was missing was the
+amenity itself, which is what this mode adds. Deliberately per-*property*,
+not per-company: an operator can run standalone STR units and one
+resort-style compound in the same portfolio without either forcing the
+other's UI on it.
+
+**Honest scope:** this is a narrower market than TraxKey's core
+mixed-portfolio pitch and is not the primary wedge. It's a genuine
+secondary differentiator worth naming on the marketing site, not the
+headline claim.
+
 ---
 
 ## Full feature inventory
