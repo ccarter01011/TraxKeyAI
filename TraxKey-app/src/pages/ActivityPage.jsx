@@ -2,6 +2,20 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiRequest } from '../lib/api.js';
 import FlowHelp from '../components/FlowHelp.jsx';
+import FilterBar, { useFiltered } from '../components/FilterBar.jsx';
+
+const STATUS_OPTIONS = [
+  { value: 'submitted', label: 'Submitted' },
+  { value: 'triaged', label: 'Triaged' },
+  { value: 'needs_vendor', label: 'Needs vendor' },
+  { value: 'awaiting_approval', label: 'Awaiting approval' },
+  { value: 'assigned', label: 'Assigned' },
+  { value: 'scheduled', label: 'Scheduled' },
+  { value: 'in_progress', label: 'In progress' },
+  { value: 'on_hold', label: 'On hold' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'closed', label: 'Closed' },
+];
 
 const STATUS_COLOR = {
   submitted: 'bg-slate-500/15 text-slate-500 dark:text-slate-400',
@@ -138,6 +152,11 @@ function RequestCard({ request, onApproved }) {
 export default function ActivityPage() {
   const [requests, setRequests] = useState(null);
   const [error, setError] = useState('');
+  const [filters, setFilters] = useState({ status: '', from: '', to: '', q: '' });
+  const filtered = useFiltered(requests, filters, {
+    dateField: 'created_at',
+    searchFields: ['description', 'property_name', 'unit_number', 'vendor_name', 'category'],
+  });
 
   function load() {
     apiRequest('traxkey-get-activity')
@@ -178,7 +197,19 @@ export default function ActivityPage() {
             <p className="text-sm text-slate-500 dark:text-slate-400">No maintenance requests yet.</p>
           </div>
         )}
-        {requests && requests.map(r => <RequestCard key={r.id} request={r} onApproved={load} />)}
+        {requests && requests.length > 0 && (
+          <FilterBar
+            statusOptions={STATUS_OPTIONS}
+            searchPlaceholder="Search description, unit, vendor…"
+            onChange={setFilters}
+          />
+        )}
+        {requests && requests.length > 0 && filtered.length === 0 && (
+          <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl p-8 text-center">
+            <p className="text-sm text-slate-500 dark:text-slate-400">Nothing matches those filters.</p>
+          </div>
+        )}
+        {filtered && filtered.map(r => <RequestCard key={r.id} request={r} onApproved={load} />)}
       </div>
     </div>
   );

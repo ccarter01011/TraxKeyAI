@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiRequest } from '../lib/api.js';
 import FlowHelp from '../components/FlowHelp.jsx';
+import FilterBar, { useFiltered } from '../components/FilterBar.jsx';
 
 // Deliberately generalized: an annual long-term move-out turnover and a
 // same-week short-term cleaning turn are the same lifecycle, only the
@@ -217,6 +218,16 @@ export default function TurnsPage() {
   const [turns, setTurns] = useState(null);
   const [units, setUnits] = useState([]);
   const [error, setError] = useState('');
+  const [filters, setFilters] = useState({ status: '', from: '', to: '', q: '' });
+  const [hideOccupied, setHideOccupied] = useState(true);
+  const base = useMemo(
+    () => (hideOccupied ? (turns || []).filter(t => t.status !== 'occupied') : turns),
+    [turns, hideOccupied],
+  );
+  const filtered = useFiltered(base, filters, {
+    dateField: 'vacancy_started_at',
+    searchFields: ['property_name', 'unit_number', 'new_resident_name'],
+  });
 
   async function load() {
     try {
@@ -288,7 +299,25 @@ export default function TurnsPage() {
             <p className="text-sm text-slate-500 dark:text-slate-400">No turns yet. Start one when a unit goes vacant.</p>
           </div>
         )}
-        {turns && turns.map(t => <TurnCard key={t.id} turn={t} onChanged={load} />)}
+        {turns && turns.length > 0 && (
+          <FilterBar
+            statusOptions={STAGES}
+            searchPlaceholder="Search property, unit, resident…"
+            onChange={setFilters}
+            extra={
+              <label className="flex items-center gap-1.5 text-xs text-slate-400 cursor-pointer">
+                <input type="checkbox" checked={hideOccupied} onChange={e => setHideOccupied(e.target.checked)} />
+                Hide occupied
+              </label>
+            }
+          />
+        )}
+        {turns && turns.length > 0 && filtered.length === 0 && (
+          <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl p-8 text-center">
+            <p className="text-sm text-slate-500 dark:text-slate-400">Nothing matches those filters.</p>
+          </div>
+        )}
+        {filtered && filtered.map(t => <TurnCard key={t.id} turn={t} onChanged={load} />)}
       </div>
     </div>
   );

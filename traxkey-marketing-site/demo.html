@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>See the dashboard | TraxKey AI</title>
+<title>Demo dashboard | TraxKey AI</title>
 <meta name="description" content="A working look at the TraxKey AI operator dashboard for long-term rentals and short-term rentals, with the reporting a mixed portfolio actually needs." />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -193,8 +193,46 @@ html.light .to-slate-900 { --tw-gradient-to: #ffffff !important; }
   </div>
 </section>
 
+<section class="px-6">
+  <div class="max-w-6xl mx-auto">
+    <div class="flex flex-wrap items-center justify-center gap-2 mb-8">
+      <button id="nav-dashboard" onclick="showNav('dashboard')" class="px-4 py-2 rounded-lg text-sm font-bold transition bg-teal-500 text-slate-950">Dashboard</button>
+      <button id="nav-activity" onclick="showNav('activity')" class="px-4 py-2 rounded-lg text-sm font-bold transition text-slate-400 hover:text-white border border-white/10">AI Activity</button>
+      <button id="nav-turns" onclick="showNav('turns')" class="px-4 py-2 rounded-lg text-sm font-bold transition text-slate-400 hover:text-white border border-white/10">Turns</button>
+      <span class="w-px h-5 bg-white/10 mx-1"></span>
+      <span class="px-3 py-2 rounded-lg text-xs text-slate-600 border border-white/5 cursor-default" title="Sign up to see this">Properties</span>
+      <span class="px-3 py-2 rounded-lg text-xs text-slate-600 border border-white/5 cursor-default" title="Sign up to see this">Vendors</span>
+      <span class="px-3 py-2 rounded-lg text-xs text-slate-600 border border-white/5 cursor-default" title="Sign up to see this">Leases</span>
+      <span class="px-3 py-2 rounded-lg text-xs text-slate-600 border border-white/5 cursor-default" title="Sign up to see this">Orders</span>
+      <span class="px-3 py-2 rounded-lg text-xs text-slate-600 border border-white/5 cursor-default" title="Sign up to see this">Invoicing</span>
+      <span class="px-3 py-2 rounded-lg text-xs text-slate-600 border border-white/5 cursor-default" title="Sign up to see this">Insights</span>
+    </div>
+  </div>
+</section>
+
 <section class="pb-16 px-6">
   <div class="max-w-6xl mx-auto">
+
+    <!-- ACTIVITY VIEW -->
+    <div id="view-activity" class="hidden">
+      <div class="flex items-baseline justify-between mb-1">
+        <h3 class="font-bold text-lg">Maintenance Coordinator</h3>
+      </div>
+      <p class="text-xs text-slate-500 mb-5">Every request, and every step the AI took on it, in plain language.</p>
+      <div id="activity-list" class="space-y-3"></div>
+    </div>
+
+    <!-- TURNS VIEW -->
+    <div id="view-turns" class="hidden">
+      <div class="flex items-baseline justify-between mb-1">
+        <h3 class="font-bold text-lg">Vacant to ready</h3>
+      </div>
+      <p class="text-xs text-slate-500 mb-5">One engine for both: a long-term move-out and a short-term cleaning turn are the same cycle.</p>
+      <div id="turns-list" class="space-y-3"></div>
+    </div>
+
+    <!-- DASHBOARD VIEW -->
+    <div id="view-dashboard">
 
     <!-- CONCIERGE -->
     <div class="bg-gradient-to-r from-teal-500/10 to-sky-500/10 border border-teal-400/20 rounded-2xl p-6 mb-6 glow-card">
@@ -259,6 +297,8 @@ html.light .to-slate-900 { --tw-gradient-to: #ffffff !important; }
         </div>
         <div id="side-panel" class="bg-slate-900 border border-white/5 rounded-2xl p-6"></div>
       </div>
+    </div>
+
     </div>
 
     <p class="text-xs text-slate-500 text-center mt-8">
@@ -382,6 +422,111 @@ var DOT = {
   red: "bg-red-400", slate: "bg-slate-500"
 };
 
+// Full detail views for the two pages that make the "one system knows both
+// halves" claim concrete: the audit trail behind every AI decision, and the
+// vacant-to-ready lifecycle a booking calendar alone can't compute. Static
+// data, not a mockup of live app chrome, this page never calls the agents
+// service.
+var STATUS_COLOR = {
+  submitted: "bg-slate-500/15 text-slate-400", triaged: "bg-sky-500/15 text-sky-400",
+  needs_vendor: "bg-red-500/15 text-red-400", awaiting_approval: "bg-amber-500/15 text-amber-400",
+  assigned: "bg-sky-500/15 text-sky-400", scheduled: "bg-teal-500/15 text-teal-400",
+  in_progress: "bg-sky-500/15 text-sky-400", completed: "bg-green-500/15 text-green-400"
+};
+var STAGE_COLOR = {
+  vacancy_started: "bg-amber-500/15 text-amber-400", inspecting: "bg-sky-500/15 text-sky-400",
+  repairs_in_progress: "bg-sky-500/15 text-sky-400", ready: "bg-teal-500/15 text-teal-400",
+  relisted: "bg-teal-500/15 text-teal-400", occupied: "bg-green-500/15 text-green-400"
+};
+
+var ACTIVITY = {
+  pm: [
+    { desc: "Dishwasher not draining, Unit 7B", status: "scheduled", where: "Oakview A — Unit 7B", category: "appliance", urgency: "routine", vendor: "Ace Appliance", cost: 180,
+      trail: ["Submitted by resident, 6:02am", "AI diagnosed: appliance, routine · 6:04am", "Matched Ace Appliance on completion rate · 6:05am", "Dispatched automatically, under your $500 limit · 6:12am"] },
+    { desc: "Water heater replacement, Maple Street", status: "awaiting_approval", where: "Maple Street", category: "plumbing", urgency: "urgent", vendor: "Reliable Plumbing", cost: 610,
+      trail: ["Submitted by resident, 7:22am", "AI diagnosed: plumbing, urgent · 7:24am", "$610 estimate is over your $500 limit · waiting on your approval · 7:40am"] },
+    { desc: "Hallway smoke detector chirping", status: "scheduled", where: "Hillcrest Cottage", category: "electrical", urgency: "routine", vendor: "BrightSpark Electric", cost: 65,
+      trail: ["Submitted by resident, 7:55am", "AI diagnosed: electrical, low battery likely · 7:57am", "Dispatched to BrightSpark Electric · 8:05am"] },
+    { desc: "Front door deadbolt, Riverside A", status: "needs_vendor", where: "Riverside Fourplex — Unit A", category: "locksmith", urgency: "urgent", vendor: null, cost: null,
+      trail: ["Submitted by resident, 2 days ago", "AI diagnosed: locksmith, urgent · same day", "No locksmith on file for this trade, flagged for you"] }
+  ],
+  str: [
+    { desc: "AC not cooling, Riverside B", status: "completed", where: "Riverside Fourplex — Unit B", category: "hvac", urgency: "urgent", vendor: "CoolBreeze HVAC", cost: 410,
+      trail: ["Submitted by guest, 1:04pm", "AI checked the calendar: guest in unit right now · escalated to urgent · 1:05pm", "Dispatched same hour, CoolBreeze HVAC · 1:20pm", "Marked complete, $410 · 4:50pm"] },
+    { desc: "Turnover cleaning for Riverside D", status: "scheduled", where: "Riverside Fourplex — Unit D", category: "cleaning", urgency: "urgent", vendor: "Fresh Start Cleaning Co", cost: 95,
+      trail: ["Opened automatically from the booking calendar, checkout 10am", "Same-day turnaround detected: next guest 4pm · 10:02am", "Fresh Start Cleaning Co assigned by performance history · 10:03am"] },
+    { desc: "Hillcrest checkout detected", status: "in_progress", where: "Hillcrest Cottage", category: "cleaning", urgency: "routine", vendor: "Fresh Start Cleaning Co", cost: 95,
+      trail: ["Cleaning turn opened from the calendar · 11:15am", "Fresh Start Cleaning Co assigned · 11:16am"] },
+    { desc: "Review-risk follow-up, Hillcrest", status: "assigned", where: "Hillcrest Cottage", category: "guest outreach", urgency: "routine", vendor: null, cost: null,
+      trail: ["Prior stay closed with an unresolved issue · flagged · 3:44pm", "Outreach message suggested before the review window closes"] }
+  ]
+};
+
+var TURNS = {
+  pm: [
+    { where: "Unit 12", turnType: null, stage: "repairs_in_progress", daysVacant: 3, cost: 340,
+      deadline: null, repairs: [{ desc: "Repaint living room", status: "completed", cost: 220 }, { desc: "Replace hallway light fixture", status: "scheduled", cost: 120 }] },
+    { where: "Maple Street", turnType: null, stage: "vacancy_started", daysVacant: 1, cost: 0,
+      deadline: null, repairs: [] }
+  ],
+  str: [
+    { where: "Riverside Fourplex — Unit D", turnType: "cleaning", stage: "vacancy_started", daysVacant: 1, cost: 95,
+      deadline: { label: "Next guest arrives in 4 hours", tone: "bg-red-500/15 text-red-400" }, repairs: [{ desc: "Turnover cleaning", status: "scheduled", cost: 95 }] },
+    { where: "Hillcrest Cottage", turnType: "cleaning", stage: "inspecting", daysVacant: 1, cost: 95,
+      deadline: { label: "Next guest arrives tomorrow", tone: "bg-amber-500/15 text-amber-400" }, repairs: [{ desc: "Turnover cleaning", status: "in_progress", cost: 95 }] },
+    { where: "Riverside Fourplex — Unit B", turnType: "cleaning", stage: "ready", daysVacant: 2, cost: 95,
+      deadline: { label: "Next guest arrives Thursday", tone: "bg-slate-500/15 text-slate-400" }, repairs: [{ desc: "Turnover cleaning", status: "completed", cost: 95 }] }
+  ]
+};
+
+function renderActivity(key) {
+  var el = document.getElementById('activity-list');
+  el.innerHTML = ACTIVITY[key].map(function (r) {
+    return '<div class="bg-slate-900 border border-white/5 rounded-2xl p-5">' +
+      '<div class="flex items-start justify-between gap-3 mb-1">' +
+      '<p class="text-sm font-medium flex-1">' + r.desc + '</p>' +
+      '<span class="shrink-0 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ' + (STATUS_COLOR[r.status] || 'bg-slate-500/15 text-slate-400') + '">' + r.status.replace(/_/g, ' ') + '</span>' +
+      '</div>' +
+      '<p class="text-xs text-slate-500 mb-3">' + r.where + ' · ' + r.category + ' · ' + r.urgency +
+      (r.vendor ? ' · assigned to ' + r.vendor : '') + (r.cost ? ' · est. $' + r.cost : '') + '</p>' +
+      '<div class="space-y-1 border-t border-white/5 pt-3">' +
+      r.trail.map(function (t) { return '<p class="text-xs text-slate-500">' + t + '</p>'; }).join('') +
+      '</div></div>';
+  }).join('');
+}
+
+function renderTurns(key) {
+  var el = document.getElementById('turns-list');
+  el.innerHTML = TURNS[key].map(function (t) {
+    return '<div class="bg-slate-900 border border-white/5 rounded-2xl p-5">' +
+      '<div class="flex items-start justify-between gap-3 mb-1">' +
+      '<div><p class="font-medium">' + t.where + '</p>' +
+      '<p class="text-xs text-slate-500">Day ' + t.daysVacant + ' of vacancy' + (t.cost ? ' · $' + t.cost + ' in repairs' : '') + '</p></div>' +
+      '<div class="flex items-center gap-2 shrink-0">' +
+      (t.turnType === 'cleaning' ? '<span class="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-400">Cleaning</span>' : '') +
+      '<span class="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ' + STAGE_COLOR[t.stage] + '">' + t.stage.replace(/_/g, ' ') + '</span>' +
+      '</div></div>' +
+      (t.deadline ? '<div class="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full mt-2 ' + t.deadline.tone + '">' + t.deadline.label + '</div>' : '') +
+      (t.repairs.length ? '<div class="mt-3 space-y-1.5">' + t.repairs.map(function (r) {
+        return '<div class="flex items-center gap-3 text-xs bg-slate-950/40 rounded-lg px-3 py-2">' +
+          '<span class="flex-1">' + r.desc + '</span>' +
+          (r.cost ? '<span class="text-slate-500">$' + r.cost + '</span>' : '') +
+          '<span class="text-[10px] font-bold uppercase tracking-wide text-slate-500">' + r.status.replace(/_/g, ' ') + '</span></div>';
+      }).join('') + '</div>' : '') +
+      '</div>';
+  }).join('');
+}
+
+var currentNav = 'dashboard';
+function showNav(tab) {
+  currentNav = tab;
+  ['dashboard', 'activity', 'turns'].forEach(function (t) {
+    document.getElementById('view-' + t).classList.toggle('hidden', t !== tab);
+    document.getElementById('nav-' + t).className = 'px-4 py-2 rounded-lg text-sm font-bold transition ' +
+      (t === tab ? 'bg-teal-500 text-slate-950' : 'text-slate-400 hover:text-white border border-white/10');
+  });
+}
+
 var typingTimer = null;
 var SENTENCE_ENDERS = ['.', '!', '?'];
 
@@ -488,6 +633,9 @@ function showView(key) {
         '<span class="text-sm text-slate-300">' + s.label + '</span>' +
         '<span class="text-xs font-bold ' + TONE[s.tone] + '">' + s.value + '</span></div>';
     }).join('');
+
+  renderActivity(key);
+  renderTurns(key);
 }
 
 // Hand-rolled SVG rather than a chart library: this page must stay fast and

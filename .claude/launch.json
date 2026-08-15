@@ -12,6 +12,12 @@
         "4177"
       ],
       "port": 4177
+    },
+    {
+      "name": "traxkey-app",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--", "--port", "5183"],
+      "port": 5183
     }
   ]
 }
