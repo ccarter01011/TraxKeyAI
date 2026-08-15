@@ -3,15 +3,15 @@
 *Written for someone who has not seen the code.*
 
 **Live Google Doc:**
-https://docs.google.com/document/d/1izpAojw_YfwRrnt_NedNG0mUiIYUq_16EKdAPC_WazY/edit
-(v3 — v1 and v2 are superseded and can be deleted)
+https://docs.google.com/document/d/1qSdLlpwWrzqB9XUN9zVrc1GIasLn44ESvAAi1F2LtWQ/edit
+(v4 — v1, v2, v3 are superseded and can be deleted)
 
 This markdown file is the source. There is no way to update a Doc's content
 in place (Drive's update tool only changes title/location, not the body),
 so a material change here means a NEW Doc and a new link, not an edit to
 the old one. Update this link when that happens.
 
-**Last updated:** 14 August 2026
+**Last updated:** 15 August 2026
 
 ---
 
@@ -135,6 +135,8 @@ including the reason for each decision.
 | **Orders** | Parts and materials a job is waiting on, flagged when late, and when late means a turn will slip. Suppliers are chased by email once an item goes past its expected date, with a CC address and an on/off switch per item. Adapted from our own supply-chain product, TraxSail AI, which chases suppliers on purchase orders. |
 | **Property profile (onboarding)** | The nuances only the operator knows, captured once per property: water shutoff and panel locations, HVAC filter size, which quirks are normal, trash day, emergency info, insurance carrier and deductible. Feeds the resident assistant and the damage assessment. |
 | **Property inventory** | What is actually in each unit: appliances and furniture with brand, model, price, purchase date, warranty, condition, and a replacement link. Used for replace-on-breakage and to check warranty before anyone pays for a repair. |
+| **Direct booking & pricing (prototype)** | A reservation system outside Airbnb/Vrbo, with nightly rate suggestions from a vendor-agnostic pricing engine (weekend lift, last-minute discount, occupancy adjustment). No revenue-management vendor connected yet, built to swap one in later without a rebuild. Marked as a test feature on the dashboard. |
+| **Experiential STR / micro-resort mode** | A per-property toggle for multi-unit properties sharing amenities (a compound with a pool, dock, or clubhouse across several cabins). Adds shared-amenity tracking with its own status and maintenance thread, a "notify every guest currently on the property" action, and whole-property buyout bookings for weddings and retreats that block every unit at once. |
 | **Invoices** | What you're owed, bucketed by how overdue it is, with reminders sent automatically until someone answers. CC address and auto-reminder switch per customer, overridable per invoice. TraxKey tracks and chases; it never processes a payment or holds funds. |
 | **Supplies & damage** | Consumables per unit with reorder levels; checkout damage tied to the stay it happened during. |
 | **Vendor portal** | Vendors log in, see their jobs, mark them in progress. |
@@ -245,7 +247,7 @@ Stated plainly because it is a strategy, not a gap:
 | Rent collection, trust accounting | Regulated, and a mistake is the operator's legal problem. It sits alongside whatever already moves their money. |
 | Tenant screening scores | Governed by fair-credit law. We would integrate a licensed provider, never score anyone ourselves. |
 | Deposit deduction amounts | Governed by state law that varies everywhere. TraxKey records what changed and a human decides. |
-| Dynamic pricing | Needs market data we do not have. PriceLabs already does it well. |
+| Real market-data pricing | A prototype pricing engine exists (§3), but it is a deterministic heuristic, not real market intelligence. No revenue-management vendor is connected. Built vendor-agnostic so one can be swapped in without a rebuild. |
 | Writing back to Airbnb/Vrbo | Requires partner agreements we do not have. Reading their calendars does not, and is enough. |
 
 The pattern: **TraxKey handles operations. It never handles money or makes a
