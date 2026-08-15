@@ -4,6 +4,8 @@ import { apiRequest } from '../lib/api.js';
 import FlowHelp from '../components/FlowHelp.jsx';
 import FilterBar, { useFiltered } from '../components/FilterBar.jsx';
 
+const AGENT_BASE = 'https://langgraph-production-42ef.up.railway.app';
+
 const STATUS_OPTIONS = [
   { value: 'submitted', label: 'Submitted' },
   { value: 'triaged', label: 'Triaged' },
@@ -44,6 +46,72 @@ const EVENT_LABEL = {
   readiness_alert: 'Guest arriving, not ready',
   in_progress: 'Vendor started work',
 };
+
+
+const REC_LABEL = {
+  charge_occupant: ['Bill the occupant', 'bg-amber-500/15 text-amber-700 dark:text-amber-400'],
+  insurance: ['Submit an insurance claim', 'bg-sky-500/15 text-sky-600 dark:text-sky-400'],
+  operator: ['Owner absorbs it', 'bg-slate-500/15 text-slate-600 dark:text-slate-400'],
+  warranty: ['Check the warranty first', 'bg-green-500/15 text-green-700 dark:text-green-400'],
+  needs_info: ['Not enough information yet', 'bg-red-500/15 text-red-600 dark:text-red-400'],
+};
+
+/** Who pays: occupant, insurer, or owner. TraxKey gathers the facts and
+ *  recommends; the operator decides, because this is a liability call. */
+function DamageAssessment({ request }) {
+  const [result, setResult] = useState(request.damage_assessment || null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+
+  async function run(e) {
+    e.stopPropagation();
+    setBusy(true); setErr('');
+    try {
+      const res = await fetch(`${AGENT_BASE}/damage-assessment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('tk_token')}` },
+        body: JSON.stringify({ requestId: request.id }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok || !j.ok) throw new Error(j.error || 'Could not assess');
+      setResult(j.assessment);
+    } catch (e2) { setErr(e2.message); } finally { setBusy(false); }
+  }
+
+  if (!result) {
+    return (
+      <div className="mt-3 pt-3 border-t border-slate-200 dark:border-white/5">
+        <button onClick={run} disabled={busy}
+          className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline disabled:opacity-50">
+          {busy ? 'Working…' : 'Who pays for this?'}
+        </button>
+        <span className="text-[11px] text-slate-400 ml-2">Occupant charge, insurance claim, or owner cost</span>
+        {err && <p className="text-xs text-red-500 mt-1">{err}</p>}
+      </div>
+    );
+  }
+
+  const [label, cls] = REC_LABEL[result.recommendation] || ['Reviewed', 'bg-slate-500/15 text-slate-500'];
+  return (
+    <div className="mt-3 pt-3 border-t border-slate-200 dark:border-white/5">
+      <div className="flex items-center gap-2 flex-wrap mb-2">
+        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${cls}`}>{label}</span>
+        <span className="text-[11px] text-slate-400">cause reads as {result.cause?.cause?.replace('_', ' ')}</span>
+        <button onClick={run} disabled={busy} className="text-[11px] text-slate-500 hover:underline">{busy ? '…' : 'Re-run'}</button>
+      </div>
+      <p className="text-xs text-slate-600 dark:text-slate-300">{result.reasoning}</p>
+      {result.missingInfo?.length > 0 && (
+        <div className="mt-2">
+          <p className="text-[11px] font-bold text-amber-600 dark:text-amber-400">Still needed to be sure:</p>
+          <ul className="mt-0.5 space-y-0.5">
+            {result.missingInfo.map((m, i) => <li key={i} className="text-[11px] text-slate-500">· {m}</li>)}
+          </ul>
+        </div>
+      )}
+      <p className="text-[10px] text-slate-400 mt-2">{result.disclaimer}</p>
+    </div>
+  );
+}
 
 function RequestCard({ request, onApproved }) {
   const [expanded, setExpanded] = useState(false);
@@ -145,6 +213,7 @@ function RequestCard({ request, onApproved }) {
           ))}
         </div>
       )}
+      <DamageAssessment request={request} />
     </div>
   );
 }

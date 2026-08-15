@@ -229,6 +229,13 @@ export default function DashboardPage() {
             lifecycle stage. Lifecycle grouping (onboarding, setup,
             operations) optimises for week one and then leaves dead weight in
             prime position for years. Daily work belongs at the top. */}
+        <Section label="Start here" hint="do this once per property, everything else works better after">
+          <Tile
+            to="/onboarding" title="Step 1 &middot; Onboard a property"
+            blurb="Capture the nuances only you know: where the shutoff is, the filter size, which quirks are normal. Plus the inventory of what's in the unit."
+          />
+        </Section>
+
         <Section label="Daily operations" hint="what you touch most">
           <Tile
             to="/calendar" title="Calendar"
