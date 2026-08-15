@@ -93,6 +93,142 @@ function PriceLabsMapping({ unitId, currentListingId, onSet }) {
   );
 }
 
+const SOURCE_BADGE = {
+  pricelabs: { label: 'PriceLabs', cls: 'bg-sky-500/15 text-sky-600 dark:text-sky-400' },
+  market_heuristic: { label: 'Market', cls: 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400' },
+};
+
+// Sunday-first grid of whole weeks covering every month the rates span, so
+// a 30-day range starting mid-month renders as two real months rather than
+// one ragged block. Days outside the rate range render as empty cells.
+function monthGrids(rates) {
+  if (!rates.length) return [];
+  const days = rates.map(r => r.stay_date.slice(0, 10));
+  const first = new Date(`${days[0]}T00:00:00`);
+  const last = new Date(`${days[days.length - 1]}T00:00:00`);
+
+  const grids = [];
+  const cursor = new Date(first.getFullYear(), first.getMonth(), 1);
+  while (cursor <= last) {
+    const year = cursor.getFullYear();
+    const month = cursor.getMonth();
+    const startPad = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const cells = [];
+    for (let i = 0; i < startPad; i++) cells.push(null);
+    for (let d = 1; d <= daysInMonth; d++) {
+      cells.push(`${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
+    }
+    while (cells.length % 7 !== 0) cells.push(null);
+    grids.push({
+      label: new Date(year, month, 1).toLocaleDateString(undefined, { month: 'long', year: 'numeric' }),
+      cells,
+    });
+    cursor.setMonth(cursor.getMonth() + 1);
+  }
+  return grids;
+}
+
+function RateCalendar({ rates, isBooked, bookedRate, onApply }) {
+  const [selected, setSelected] = useState(null);
+  const byDay = Object.fromEntries(rates.map(r => [r.stay_date.slice(0, 10), r]));
+  const grids = monthGrids(rates);
+  const detail = selected ? byDay[selected] : null;
+
+  return (
+    <div className="space-y-6">
+      {grids.map(g => (
+        <div key={g.label}>
+          <p className="text-sm font-bold mb-2">{g.label}</p>
+          <div className="grid grid-cols-7 gap-1">
+            {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
+              <div key={d} className="text-[10px] font-bold text-slate-400 text-center py-1">{d}</div>
+            ))}
+            {g.cells.map((day, i) => {
+              const r = day && byDay[day];
+              if (!r) return <div key={i} className="aspect-square rounded-lg bg-slate-50/50 dark:bg-slate-900/30" />;
+              const booked = isBooked(day);
+              const badge = SOURCE_BADGE[r.source];
+              const shown = booked ? bookedRate(day) : (r.applied_rate ?? r.suggested_rate);
+              return (
+                <button
+                  key={i}
+                  onClick={() => setSelected(selected === day ? null : day)}
+                  title={(r.factors || []).join(' · ')}
+                  className={`aspect-square rounded-lg border p-1 flex flex-col items-center justify-center gap-0.5 transition
+                    ${booked
+                      ? 'bg-teal-500/10 border-teal-400/30'
+                      : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/5 hover:border-teal-400/50'}
+                    ${selected === day ? 'ring-2 ring-teal-400' : ''}`}
+                >
+                  <span className="text-[10px] text-slate-400 leading-none">{Number(day.slice(8))}</span>
+                  <span className={`text-xs font-bold leading-none ${booked
+                    ? 'text-teal-700 dark:text-teal-400'
+                    : r.applied_rate ? 'text-green-700 dark:text-green-400' : 'text-slate-900 dark:text-slate-100'}`}>
+                    {money(shown)}
+                  </span>
+                  {!booked && badge && (
+                    <span className={`text-[8px] font-bold px-1 rounded leading-tight ${badge.cls}`}>{badge.label}</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+
+      <div className="flex flex-wrap gap-3 text-[10px] text-slate-500">
+        <span><span className="inline-block w-2 h-2 rounded-sm bg-teal-500/40 mr-1" />Booked</span>
+        <span><span className="inline-block w-2 h-2 rounded-sm bg-green-500/40 mr-1" />Applied rate</span>
+        <span><span className="inline-block w-2 h-2 rounded-sm bg-indigo-500/40 mr-1" />Market comp data</span>
+        <span><span className="inline-block w-2 h-2 rounded-sm bg-sky-500/40 mr-1" />PriceLabs</span>
+      </div>
+
+      {detail && (
+        <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl p-4">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-bold">{selected}</p>
+            {isBooked(selected) ? (
+              <span className="text-xs font-bold text-teal-700 dark:text-teal-400">Booked @ {money(bookedRate(selected))}</span>
+            ) : detail.applied_rate ? (
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-green-500/15 text-green-700 dark:text-green-400">applied {money(detail.applied_rate)}</span>
+            ) : (
+              <button onClick={() => onApply(selected, detail.suggested_rate)}
+                className="bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs px-3 py-1.5 rounded-lg">
+                Accept {money(detail.suggested_rate)}
+              </button>
+            )}
+          </div>
+          <ul className="space-y-1">
+            {(detail.factors || []).map((f, i) => (
+              <li key={i} className="text-xs text-slate-500 dark:text-slate-400">· {f}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MarketDataStatus() {
+  const [configured, setConfigured] = useState(null);
+
+  useEffect(() => {
+    fetch(`${AGENT_BASE}/market-data`, { headers: hdrs() })
+      .then(r => r.json()).then(j => setConfigured(!!j.configured)).catch(() => setConfigured(false));
+  }, []);
+
+  if (configured === null) return null;
+  return (
+    <span className="text-xs text-slate-500">
+      Market data:{' '}
+      <span className={`font-bold ${configured ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-700 dark:text-slate-200'}`}>
+        {configured ? 'AirROI comp set connected' : 'not connected'}
+      </span>
+    </span>
+  );
+}
+
 function BaseRateForm({ unitId, currentRate, onSet }) {
   const [editing, setEditing] = useState(false);
   const [rate, setRate] = useState(currentRate || '');
@@ -247,10 +383,10 @@ export default function PricingPage() {
                 steps={[
                   'A reservation system separate from Airbnb and Vrbo, for direct bookings TraxKey controls the price on.',
                   'Each night gets a suggested rate from a pricing engine, adjusted for weekend demand, lead time, and how full the property already is that week.',
-                  'PriceLabs integration exists in code (Customer API, real X-API-Key auth), but is only live for a unit once it is mapped to a real PriceLabs listing below and PRICELABS_API_KEY is set. Every other unit uses the internal heuristic.',
+                  'Three pricing tiers, picked per unit. A unit mapped to a real PriceLabs listing (with PRICELABS_API_KEY set) gets a PriceLabs recommendation. Otherwise, if AIRROI_API_KEY is set, the internal heuristic is pulled toward the comp-set average for that market. Otherwise the plain heuristic runs on its own.',
                   'Accepting a suggestion locks it as the applied rate for that night. A booked night keeps the rate it was actually booked at.',
                 ]}
-                note="Unmapped units are clearly a prototype, not real market intelligence. A mapped unit with the key configured gets a real PriceLabs recommendation instead, and the calendar below labels which one produced each night's price."
+                note="Each night is labeled with the tier that produced it, so a rule-of-thumb number is never mistaken for market intelligence. Market-data nights show how far the comp set moved the rate and how many comparable listings were behind it; the pull is capped so one thin market can't produce an absurd price."
               />
             </h1>
           </div>
@@ -284,45 +420,12 @@ export default function PricingPage() {
             <div className="mb-3 flex flex-wrap items-center gap-3">
               <BaseRateForm unitId={unitId} currentRate={calendar?.rates?.[0]?.base_rate ?? unit?.base_nightly_rate} onSet={loadCalendar} />
               <PriceLabsMapping unitId={unitId} currentListingId={calendar?.pricelabsListingId} onSet={loadCalendar} />
+              <MarketDataStatus />
               <ReservationForm unitId={unitId} onCreated={loadCalendar} />
               <BuyoutForm propertyId={unit?.propertyId} onCreated={loadCalendar} />
             </div>
             {calendar?.rates?.length > 0 ? (
-              <div className="space-y-2">
-                {calendar.rates.map(r => {
-                  const day = r.stay_date.slice(0, 10);
-                  const booked = isBooked(day);
-                  return (
-                    <div key={day} className={`flex items-center justify-between gap-3 rounded-xl px-4 py-2.5 border ${booked
-                      ? 'bg-teal-500/10 border-teal-400/30' : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/5'}`}>
-                      <div className="flex items-center gap-3 min-w-0">
-                        <span className="text-xs font-mono text-slate-500 w-20 shrink-0">{day}</span>
-                        {booked ? (
-                          <span className="text-xs font-bold text-teal-700 dark:text-teal-400">Booked @ {money(bookedRate(day))}</span>
-                        ) : (
-                          <span className="text-xs text-slate-500 truncate" title={(r.factors || []).join(' · ')}>
-                            {(r.factors || []).slice(1).join(' · ') || 'No adjustments'}
-                          </span>
-                        )}
-                      </div>
-                      {!booked && (
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className="text-xs text-slate-400">base {money(r.base_rate)}</span>
-                          {r.source === 'pricelabs' && (
-                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-600 dark:text-sky-400">PriceLabs</span>
-                          )}
-                          <span className="text-sm font-bold text-teal-600 dark:text-teal-400">suggest {money(r.suggested_rate)}</span>
-                          {r.applied_rate ? (
-                            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-green-500/15 text-green-700 dark:text-green-400">applied {money(r.applied_rate)}</span>
-                          ) : (
-                            <button onClick={() => applyRate(day, r.suggested_rate)} className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline">Accept</button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+              <RateCalendar rates={calendar.rates} isBooked={isBooked} bookedRate={bookedRate} onApply={applyRate} />
             ) : (
               <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-xl p-8 text-center">
                 <p className="text-sm text-slate-500 dark:text-slate-400">No pricing computed yet for this unit. Click "Compute 30-day suggestions" above.</p>

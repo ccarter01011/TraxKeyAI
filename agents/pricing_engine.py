@@ -1,13 +1,27 @@
 """Dynamic pricing suggestions for direct-booked units, vendor-agnostic.
 
-Two providers exist. Which one a given unit uses is decided per-unit, not
-globally: a unit with a real PriceLabs listing mapped to it (see
-schema_v33.sql, units.pricelabs_listing_id) and a configured
-PRICELABS_API_KEY gets real PriceLabs pricing. Every other unit falls back
-to HeuristicProvider, a deterministic stand-in. That fallback matters:
-PriceLabs can only price a listing it already has market history for, so a
-brand-new TraxKey test unit has no PriceLabs data to fetch regardless of
-whether the integration is configured.
+Three providers exist, picked per-unit rather than globally:
+
+    PriceLabsProvider   A unit mapped to a real PriceLabs listing (see
+                        schema_v33.sql, units.pricelabs_listing_id) with
+                        PRICELABS_API_KEY set. A finished rate, computed by
+                        PriceLabs from real market history.
+
+    MarketHeuristicProvider  AIRROI_API_KEY set and AirROI has comp data for
+                        the property's market. The internal heuristic, then
+                        pulled toward the comp-set average. AirROI returns
+                        market *context* (an average nightly rate for the
+                        market), not a finished per-night rate, so it blends
+                        into the heuristic rather than replacing it.
+
+    HeuristicProvider   Everything else. Deterministic stand-in: base rate
+                        adjusted for weekend demand, lead time, and the
+                        property's own occupancy that week.
+
+The fallback chain matters: PriceLabs can only price a listing it already
+has market history for, and AirROI only covers markets it tracks, so a
+brand-new test unit in a thin market still gets a priced calendar instead
+of an error.
 
     provider = pick_provider(unit)
     suggestions = provider.suggest(unit, date_range, occupancy_context)
@@ -15,7 +29,8 @@ whether the integration is configured.
 Every suggestion records `factors`, in plain language, so an operator (or a
 future us) can see why a night was priced the way it was without reading
 the algorithm. That matters most for the heuristic: nobody should mistake a
-rule-of-thumb calculation for market intelligence.
+rule-of-thumb calculation for market intelligence. When AirROI data is in
+play the factors say so explicitly, and name the comp count behind it.
 """
 
 import json
@@ -23,6 +38,7 @@ import os
 from datetime import date, timedelta
 
 from db import db
+import airroi_client
 import pricelabs_client
 
 
@@ -72,6 +88,86 @@ class HeuristicProvider:
         return round(rate, 2), factors
 
 
+class MarketHeuristicProvider:
+    """The heuristic, then pulled toward AirROI's comp-set average for the
+    property's market.
+
+    The pull is deliberately partial (COMP_WEIGHT below), not a jump to the
+    comp average. The comp set is a whole market's average across every
+    property type and quality level in it; this unit's base rate encodes
+    what the operator knows about their own property that a market average
+    cannot. Snapping straight to the market number would throw that away.
+    The blend keeps the operator's base rate as the anchor and treats the
+    comp average as evidence about which direction to lean.
+
+    PULL_CAP exists because a thin or mismatched market (a luxury cabin in
+    a market of budget condos) can produce a comp average far from anything
+    sensible for this unit. Capping how far a single night can be moved
+    keeps a bad market match from producing an absurd rate.
+    """
+
+    name = "market_heuristic"
+
+    COMP_WEIGHT = 0.35   # how far toward the comp average a night is pulled
+    PULL_CAP = 0.25      # never move a night more than 25% on comp data alone
+    MIN_COMPS = 5        # below this, the market average isn't worth trusting
+
+    def __init__(self):
+        self._cache = {}        # "city|state" -> {"avg_rate": x, "listing_count": n}
+        self._cache_error = {}  # "city|state" -> error string
+
+    @staticmethod
+    def _key(city, state):
+        return f"{(city or '').strip().lower()}|{(state or '').strip().lower()}"
+
+    def prefetch_market(self, city, state):
+        """One lookup per property per run. The comp-set average is a market
+        figure, so it doesn't change night to night the way occupancy does,
+        and fetching it per night would be one billed API call per night."""
+        key = self._key(city, state)
+        if key in self._cache or key in self._cache_error:
+            return
+        result = airroi_client.get_market_comp(city, state)
+        if not result.get("ok"):
+            self._cache_error[key] = result.get("error", "Unknown AirROI error.")
+            return
+        count = result.get("listing_count")
+        if count is not None and count < self.MIN_COMPS:
+            self._cache_error[key] = (
+                f"AirROI found only {count} comparable listings in this market, "
+                f"too few to price against."
+            )
+            return
+        self._cache[key] = result
+
+    def suggest(self, unit, stay_date, occupancy_pct, today=None):
+        rate, factors = PROVIDERS["heuristic"].suggest(unit, stay_date, occupancy_pct, today)
+
+        market = self._cache.get(self._key(unit.get("city"), unit.get("state")))
+        if not market:
+            # No usable comp data for this market. The heuristic's own answer
+            # still stands; say why the market layer didn't apply rather than
+            # letting the operator assume comp data was used.
+            reason = self._cache_error.get(self._key(unit.get("city"), unit.get("state")),
+                                           "No AirROI market data for this property.")
+            return rate, factors + [f"Market comparison unavailable: {reason}"]
+
+        comp = market["avg_rate"]
+        target = rate + (comp - rate) * self.COMP_WEIGHT
+        capped = max(rate * (1 - self.PULL_CAP), min(rate * (1 + self.PULL_CAP), target))
+
+        direction = "above" if comp > rate else "below"
+        count = market.get("listing_count")
+        detail = f" across {count} comparable listings" if count else ""
+        factors.append(
+            f"Market comp average ${comp:.0f}{detail}, {direction} this rate, "
+            f"adjusted {(capped - rate) / rate * 100:+.0f}% toward it"
+        )
+        if abs(target - capped) > 0.01:
+            factors.append(f"Adjustment capped at {self.PULL_CAP*100:.0f}% to limit a single market signal's pull")
+        return round(capped, 2), factors
+
+
 class PriceLabsProvider:
     """Real PriceLabs pricing, for a unit mapped to a real PriceLabs
     listing. Talks to the Customer API (api.pricelabs.co), not the MCP
@@ -119,16 +215,26 @@ class PriceLabsProvider:
         return round(float(rate), 2), ["Live PriceLabs recommendation for this listing and date."]
 
 
-PROVIDERS = {"heuristic": HeuristicProvider(), "pricelabs": PriceLabsProvider()}
+PROVIDERS = {
+    "heuristic": HeuristicProvider(),
+    "market_heuristic": MarketHeuristicProvider(),
+    "pricelabs": PriceLabsProvider(),
+}
 
 
 def pick_provider(unit):
-    """PriceLabs when this specific unit is mapped to a real listing and
-    the integration is configured; the heuristic otherwise. Decided per
-    unit, not globally, since most units will never have a PriceLabs
-    mapping regardless of whether the key is set."""
+    """PriceLabs first when this unit is mapped to a real listing, then the
+    AirROI-informed heuristic when that key is configured, then the plain
+    heuristic. Decided per unit, not globally, since most units will never
+    have a PriceLabs mapping regardless of whether the key is set.
+
+    PriceLabs outranks AirROI because it returns a finished per-night rate
+    computed from that specific listing's history; AirROI returns market
+    context that still has to be blended with a rule of thumb."""
     if unit.get("pricelabs_listing_id") and pricelabs_client.is_configured():
         return PROVIDERS["pricelabs"]
+    if airroi_client.is_configured():
+        return PROVIDERS["market_heuristic"]
     return PROVIDERS["heuristic"]
 
 
@@ -173,7 +279,8 @@ def suggest_rates(company_id, unit_id, start_date, end_date):
     with db() as conn, conn.cursor() as cur:
         cur.execute(
             """
-            SELECT u.id, u.base_nightly_rate, u.property_id, u.pricelabs_listing_id
+            SELECT u.id, u.base_nightly_rate, u.property_id, u.pricelabs_listing_id,
+                   p.city, p.state
             FROM traxkey.units u
             JOIN traxkey.properties p ON p.id = u.property_id
             WHERE u.id = %s::uuid AND p.company_id = %s
@@ -190,6 +297,8 @@ def suggest_rates(company_id, unit_id, start_date, end_date):
         heuristic = PROVIDERS["heuristic"]
         if provider.name == "pricelabs":
             provider.prefetch_range(unit["pricelabs_listing_id"], start_date, end_date)
+        elif provider.name == "market_heuristic":
+            provider.prefetch_market(unit["city"], unit["state"])
 
         cur.execute("SELECT id FROM traxkey.units WHERE property_id = %s", (unit["property_id"],))
         sibling_units = [r["id"] for r in cur.fetchall()]
@@ -256,6 +365,13 @@ def pricelabs_status():
     """Whether the integration is configured at all, for the UI to show
     the right thing without every operator needing to know an env var name."""
     return {"configured": pricelabs_client.is_configured()}
+
+
+def market_data_status():
+    """Whether AirROI comp data is available, so the pricing page can say
+    which tier of pricing a unit is actually getting rather than leaving the
+    operator to guess."""
+    return {"configured": airroi_client.is_configured()}
 
 
 def list_pricelabs_listings():

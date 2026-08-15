@@ -220,6 +220,34 @@ mixed-portfolio pitch and is not the primary wedge. It's a genuine
 secondary differentiator worth naming on the marketing site, not the
 headline claim.
 
+### 8. Pricing that shows its work — LIVE
+**The claim:** every priced night carries a plain-language list of what
+moved it: the base rate, the weekend lift, the lead-time adjustment, the
+property's own occupancy that week, and — where market data is connected —
+the comp-set average, how many comparable listings were behind it, and how
+far it pulled the rate. The calendar labels each night with which tier
+priced it: PriceLabs, market data, or the internal heuristic.
+
+**Why it matters:** the incumbent revenue-management tools are black boxes.
+PriceLabs and Beyond return a number; the operator either trusts it or
+overrides it on instinct, and gets no help deciding which. Showing the
+reasoning is what makes an operator comfortable letting an algorithm price
+their calendar at all, and it is the thing a small operator most often says
+they don't get from the existing tools.
+
+**Where the fit comes from structurally:** the `source` column on
+`unit_nightly_rates` was vendor-agnostic from day one (schema_v31), so
+adding AirROI as a third tier didn't rewrite any history or change what the
+UI knows. A future provider slots in the same way.
+
+**Honest scope:** the internal heuristic is a rule of thumb, not revenue
+management, and the product says so on the page rather than dressing it up.
+The three tiers are a real quality ladder: PriceLabs for a mapped listing,
+AirROI comp data for a tracked market, rules alone otherwise. What makes
+this defensible isn't the algorithm — it's that a $99/mo tool gives a small
+operator market-aware pricing at all, without PriceLabs' $1/listing/month
+per-listing fee stacked on top.
+
 ---
 
 ## Full feature inventory
@@ -254,6 +282,9 @@ headline claim.
 | CSV export (invoices, orders) | full history, any time |
 | Owner portal | separate login, read-only, scoped per-owner even within one company |
 | Suggestion box | in-app feature requests, admin triage |
+| Direct booking | reservations TraxKey owns the price on, separate from Airbnb/Vrbo; whole-property buyouts |
+| Dynamic pricing | three tiers per unit: PriceLabs (mapped listings), AirROI comp-set data blended into the internal heuristic, or the heuristic alone |
+| Priced-nights calendar | month grid, each night labeled with the tier that priced it and why |
 
 ### Not built (be honest about these in sales conversations)
 - Payment processing / rent collection / trust accounting — **deliberately
@@ -264,7 +295,9 @@ headline claim.
 - Owner statements as a formatted document (the owner portal itself is live)
 - Inspections and checklists
 - Listing syndication, channel management (beyond read-only iCal)
-- Dynamic pricing
+- Pushing prices back out to Airbnb/Vrbo — pricing is computed and shown in
+  TraxKey, but the operator still enters the rate on the channel themselves.
+  Write-back needs channel-manager API access we don't have.
 - Cleaning/turnover scheduling as a standalone product — Breezeway and Turno
   own this space
 - Document storage, e-signature

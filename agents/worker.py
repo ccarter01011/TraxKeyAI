@@ -41,7 +41,8 @@ from property_profile import (get_profile, save_profile, list_inventory, add_inv
 from damage_assessment import assess as assess_damage
 from pricing_engine import (suggest_rates, apply_rate, set_base_rate, get_calendar as get_pricing_calendar,
                             create_reservation, cancel_reservation, create_buyout, list_buyouts,
-                            set_pricelabs_listing, pricelabs_status, list_pricelabs_listings)
+                            set_pricelabs_listing, pricelabs_status, list_pricelabs_listings,
+                            market_data_status)
 from pricing_test_data import seed as seed_pricing_test, remove as remove_pricing_test
 from amenities import (set_rental_mode, list_amenities, add_amenity, set_amenity_status,
                        delete_amenity, report_amenity_issue, notify_active_guests,
@@ -772,6 +773,15 @@ class HealthHandler(BaseHTTPRequestHandler):
             except Exception:
                 traceback.print_exc()
                 self._json(500, {"error": "Could not reach PriceLabs"})
+            return
+
+        if self.path.split("?")[0] == "/market-data":
+            token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
+            company_id = validate_session(token)
+            if not company_id:
+                self._json(401, {"error": "Unauthorized"})
+                return
+            self._json(200, market_data_status())
             return
 
         if self.path.split("?")[0] == "/pricing":
