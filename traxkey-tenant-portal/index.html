@@ -238,7 +238,10 @@ function selectReportTarget(target) {
   const note = document.getElementById('mf-amenity-status-note');
   if (target === 'amenity') {
     select.classList.remove('hidden');
-    if (!select.value && amenities.length) { select.value = amenities[0].id; onAmenityPicked(); }
+    // A populated <select> auto-picks its first option, so select.value is
+    // already truthy the first time this runs, before onAmenityPicked has
+    // ever fired. Call it unconditionally rather than gating on that.
+    if (amenities.length) onAmenityPicked();
   } else {
     select.classList.add('hidden');
     note.classList.add('hidden');
