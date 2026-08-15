@@ -5,7 +5,7 @@ import FlowHelp from '../components/FlowHelp.jsx';
 
 const AGENT_BASE = 'https://langgraph-production-42ef.up.railway.app';
 const hdrs = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('tk_token')}` });
-const fld = 'w-full bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-teal-400';
+const fld = 'w-full bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-teal-400 placeholder:text-slate-400 dark:placeholder:text-slate-600 placeholder:italic';
 
 // The onboarding SOP, in the order an owner walkthrough actually happens.
 // Grouped so a half-finished profile still reads as deliberate rather than
@@ -17,8 +17,8 @@ const SECTIONS = [
     fields: [
       ['yearBuilt', 'Year built', 'number'],
       ['squareFeet', 'Square feet', 'number'],
-      ['accessNotes', 'Access', 'text', 'Lockbox on the gas meter, back door sticks in winter'],
-      ['parkingNotes', 'Parking', 'text', 'Two spots in the alley, guest parking on the street after 6pm'],
+      ['accessNotes', 'Access', 'text', 'e.g. Lockbox on the gas meter, back door sticks in winter'],
+      ['parkingNotes', 'Parking', 'text', 'e.g. Two spots in the alley, guest parking on the street after 6pm'],
     ],
   },
   {
@@ -26,13 +26,13 @@ const SECTIONS = [
     hint: 'This is the section that pays for itself. The AI uses it to answer residents directly.',
     core: true,
     fields: [
-      ['waterShutoffLocation', 'Water shutoff location', 'text', 'Basement, back wall behind the stairs'],
-      ['electricalPanelLocation', 'Electrical panel location', 'text', 'Garage, left of the door'],
-      ['hvacType', 'Heating / cooling type', 'text', 'Gas furnace + central AC'],
-      ['hvacFilterSize', 'HVAC filter size', 'text', '16x25x1'],
-      ['waterHeaterNotes', 'Water heater', 'text', 'Gas, in the utility closet. Pilot goes out occasionally.'],
-      ['applianceNotes', 'Appliances', 'text', 'Whirlpool dishwasher, GE range, LG stacked washer/dryer'],
-      ['emergencyNotes', 'Emergency info', 'text', 'Gas shutoff at the meter, north side'],
+      ['waterShutoffLocation', 'Water shutoff location', 'text', 'e.g. Basement, back wall behind the stairs'],
+      ['electricalPanelLocation', 'Electrical panel location', 'text', 'e.g. Garage, left of the door'],
+      ['hvacType', 'Heating / cooling type', 'text', 'e.g. Gas furnace + central AC'],
+      ['hvacFilterSize', 'HVAC filter size', 'text', 'e.g. 16x25x1'],
+      ['waterHeaterNotes', 'Water heater', 'text', 'e.g. Gas, in the utility closet. Pilot goes out occasionally.'],
+      ['applianceNotes', 'Appliances', 'text', 'e.g. Whirlpool dishwasher, GE range, LG stacked washer/dryer'],
+      ['emergencyNotes', 'Emergency info', 'text', 'e.g. Gas shutoff at the meter, north side'],
     ],
   },
   {
@@ -40,26 +40,26 @@ const SECTIONS = [
     hint: 'The "that\'s normal, not a fault" list. Stops a service call for something that was never broken.',
     core: true,
     fields: [
-      ['knownQuirks', 'Known quirks', 'textarea', 'Upstairs bath fan is loud. This is normal.\nFront door needs a firm pull to latch.'],
-      ['wifiNotes', 'Wi-Fi', 'text', 'Network name and where the router is. Never put the password here.'],
-      ['trashDay', 'Trash day', 'text', 'Tuesday, bins out Monday night'],
-      ['utilitiesNotes', 'Utilities', 'text', 'Owner pays water and trash, resident pays gas and electric'],
+      ['knownQuirks', 'Known quirks', 'textarea', 'e.g. Upstairs bath fan is loud. This is normal.\nFront door needs a firm pull to latch.'],
+      ['wifiNotes', 'Wi-Fi', 'text', 'e.g. Network name and where the router is. Never put the password here.'],
+      ['trashDay', 'Trash day', 'text', 'e.g. Tuesday, bins out Monday night'],
+      ['utilitiesNotes', 'Utilities', 'text', 'e.g. Owner pays water and trash, resident pays gas and electric'],
     ],
   },
   {
     title: 'Rules',
     fields: [
-      ['petPolicy', 'Pet policy', 'text', 'Cats only, no dogs, $300 deposit'],
-      ['smokingPolicy', 'Smoking policy', 'text', 'No smoking anywhere on the property'],
+      ['petPolicy', 'Pet policy', 'text', 'e.g. Cats only, no dogs, $300 deposit'],
+      ['smokingPolicy', 'Smoking policy', 'text', 'e.g. No smoking anywhere on the property'],
     ],
   },
   {
     title: 'Insurance',
     hint: 'Used by the damage assessment to compare a repair estimate against your deductible. Never shown to residents.',
     fields: [
-      ['insuranceCarrier', 'Carrier', 'text', 'State Farm'],
+      ['insuranceCarrier', 'Carrier', 'text', 'e.g. State Farm'],
       ['insurancePolicyNumber', 'Policy number', 'text'],
-      ['insuranceDeductible', 'Deductible', 'number', '1000'],
+      ['insuranceDeductible', 'Deductible', 'number', 'e.g. 1000'],
     ],
   },
 ];
