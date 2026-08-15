@@ -17,7 +17,7 @@ the old one. Update this link when that happens.
 
 ## 1. What TraxKey AI is
 
-A dedicated team of **8 specialized AI agents** that work a rental portfolio 24/7,
+A dedicated team of **9 specialized AI agents** that work a rental portfolio 24/7,
 across both long-term units and short-term rentals, in one system.
 
 They diagnose repairs, dispatch vendors, turn units between guests, and
@@ -25,9 +25,9 @@ watch every lease. Short-term tools don't do leases. Property software
 doesn't do calendars. TraxKey does both, which is why it knows a guest is
 in the unit when the AC fails.
 
-Not a single bot bolted onto a ticketing tool. Each of the eight owns one
+Not a single bot bolted onto a ticketing tool. Each of the nine owns one
 workflow end to end, and they share the portfolio, the vendor network, and
-the operator's rules. Section 4 names all eight.
+the operator's rules. Section 4 names all nine.
 
 Most property software is a filing cabinet: it records what happened and
 leaves a human to make every decision. TraxKey decides the ones that are
@@ -132,7 +132,8 @@ including the reason for each decision.
 | **Inspections** | Move-in and move-out condition records, and exactly what changed between them. |
 | **Business Memory** | Rules the AI obeys: approval limits, quiet hours, preferred vendors, set per trade, property or unit. |
 | **Insights** | Patterns in the operator's own data: vendors slowing down, units that keep breaking, rents below their own average. |
-| **Orders** | Parts and materials a job is waiting on, flagged when late, and when late means a turn will slip. Adapted from our own supply-chain product, TraxSail AI, which chases suppliers on purchase orders. |
+| **Orders** | Parts and materials a job is waiting on, flagged when late, and when late means a turn will slip. Suppliers are chased by email once an item goes past its expected date, with a CC address and an on/off switch per item. Adapted from our own supply-chain product, TraxSail AI, which chases suppliers on purchase orders. |
+| **Invoices** | What you're owed, bucketed by how overdue it is, with reminders sent automatically until someone answers. CC address and auto-reminder switch per customer, overridable per invoice. TraxKey tracks and chases; it never processes a payment or holds funds. |
 | **Supplies & damage** | Consumables per unit with reorder levels; checkout damage tied to the stay it happened during. |
 | **Vendor portal** | Vendors log in, see their jobs, mark them in progress. |
 | **Owner portal** | Owners you manage for see occupancy, spend, and activity for their own properties, read-only. Never see another owner's properties or any tenant's identity. |
@@ -157,6 +158,7 @@ makes them a platform rather than a bundle of features.
 | **Insights Agent** | Vendor slowdowns, repeat-failure units, below-average rents, late parts blocking a turn | Daily |
 | **Follow-up Agent** | Keep residents and guests informed; chase leads who never converted | Every 15 min |
 | **Vendor Chase Agent** | Nudge a dispatched vendor who has gone silent, escalate to you after two tries | Every 15 min |
+| **Invoice Chase Agent** | Remind a customer an invoice is past due, and a supplier that a part is late; hand both to you after two tries | Hourly |
 
 ### The three assistants, and why they sound different
 

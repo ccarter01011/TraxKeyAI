@@ -20,6 +20,7 @@ import InsightsPage from './pages/InsightsPage.jsx';
 import OrderedItemsPage from './pages/OrderedItemsPage.jsx';
 import StrOpsPage from './pages/StrOpsPage.jsx';
 import OwnersPage from './pages/OwnersPage.jsx';
+import InvoicesPage from './pages/InvoicesPage.jsx';
 import AdminSuggestionsPage from './pages/AdminSuggestionsPage.jsx';
 import AdminLoginPage from './pages/AdminLoginPage.jsx';
 import AdminDashboardPage from './pages/AdminDashboardPage.jsx';
@@ -57,6 +58,7 @@ function App() {
           <Route path="/orders" element={<RequireAuth><OrderedItemsPage /></RequireAuth>} />
           <Route path="/str-ops" element={<RequireAuth><StrOpsPage /></RequireAuth>} />
           <Route path="/owners" element={<RequireAuth><OwnersPage /></RequireAuth>} />
+          <Route path="/invoices" element={<RequireAuth><InvoicesPage /></RequireAuth>} />
           <Route path="/admin/login" element={<AdminLoginPage />} />
           <Route path="/admin" element={<AdminDashboardPage />} />
           <Route path="/admin/suggestions" element={<AdminSuggestionsPage />} />

@@ -493,3 +493,48 @@ the vendor portal, because that moves the status off `scheduled`. No extra
 wiring, and no n8n change was needed.
 
 **No LLM anywhere in this flow.** Whether a deadline has passed is a fact.
+
+---
+
+## Invoice and supplier chase flow
+
+The same ladder as the vendor chase, pointed at two other parties who go
+quiet: a customer who owes on an invoice, and a supplier sitting on a part.
+
+**TraxKey chases; it never collects.** These emails ask someone to pay or to
+ship. No payment is processed, no funds pass through TraxKey, and there is
+no trust accounting. Marking an invoice paid is a note the operator makes
+after the money has arrived somewhere else. The amount exists so the
+operator can see what is outstanding, nothing more.
+
+### Invoices
+
+1. An invoice is open, past its due date, and auto-reminders are on.
+2. **Auto-reminders resolve in SQL**, not in the UI:
+   `COALESCE(invoices.auto_email_enabled, invoice_customers.auto_email_enabled)`.
+   A per-invoice value of null inherits the customer default, so the
+   dashboard and the chase agent can never disagree about what will be sent.
+   Same pattern for the CC address.
+3. **Wait**: 3 days past due before the first reminder, overridable per
+   company via `companies.invoice_chase_after_days`, then 7 days between
+   reminders.
+4. **Reminder 1** is polite and assumes it crossed in the post.
+5. **Reminder 2** is firmer and copies the operator.
+6. **Escalation** stops the chase and emails the operator. What to do about
+   an unpaid invoice is a business decision, not an automated one.
+
+### Suppliers (ordered items)
+
+Identical ladder against `ordered_items.expected_on`: 1 day late before the
+first request, 3 days between. Escalation tells the operator the supplier
+has gone silent and suggests sourcing elsewhere if it is blocking a turn.
+Requires `supplier_email` to be set; without one there is nobody to chase.
+
+Both ladders stop by themselves when the row leaves its open state, because
+the query filters on `status = 'open'` / `status = 'ordered'`.
+
+Runs **hourly**, not on the 15-minute loop: these waits are measured in days,
+so a faster loop would only mean the same rows failing the same due check
+four times as often.
+
+**No LLM anywhere in this flow.** Whether an invoice is overdue is a fact.

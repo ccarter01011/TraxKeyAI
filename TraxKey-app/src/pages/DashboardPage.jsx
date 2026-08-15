@@ -249,6 +249,10 @@ export default function DashboardPage() {
             blurb="Parts and materials a job is waiting on. Flagged when late, and when late means a turn will slip."
           />
           <Tile
+            to="/invoices" title="Invoices"
+            blurb="What you're owed, how overdue it is, and reminders sent for you until someone answers."
+          />
+          <Tile
             to="/inspections" title="Inspections"
             blurb="Move-in and move-out condition records, and what changed between them."
             badge={c.openInspections ? `${c.openInspections} in progress` : null}

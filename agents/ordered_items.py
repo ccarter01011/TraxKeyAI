@@ -26,6 +26,8 @@ def list_items(company_id):
             """
             SELECT oi.id, oi.description, oi.supplier, oi.reference, oi.cost,
                    oi.ordered_on, oi.expected_on, oi.received_on, oi.status, oi.notes,
+                   oi.supplier_email, oi.cc_email, oi.auto_email_enabled,
+                   oi.chase_count, oi.last_chased_at,
                    u.unit_number, p.name AS property_name,
                    t.deadline_at AS turn_deadline, t.status AS turn_status,
                    CASE WHEN oi.status = 'ordered' AND oi.expected_on IS NOT NULL
@@ -99,13 +101,15 @@ def create(company_id, body):
         cur.execute(
             """
             INSERT INTO traxkey.ordered_items
-              (company_id, description, supplier, reference, cost, expected_on, unit_id, turn_id, notes)
+              (company_id, description, supplier, reference, cost, expected_on, unit_id, turn_id, notes,
+               supplier_email, cc_email, auto_email_enabled)
             SELECT %(c)s, %(desc)s,
                    NULLIF(%(sup)s, ''), NULLIF(%(ref)s, ''),
                    NULLIF(%(cost)s, '')::numeric,
                    NULLIF(%(exp)s, '')::date,
                    u.id, t.id,
-                   NULLIF(%(notes)s, '')
+                   NULLIF(%(notes)s, ''),
+                   NULLIF(%(supmail)s, ''), NULLIF(%(cc)s, ''), %(auto)s
             FROM (SELECT 1) x
             LEFT JOIN traxkey.units u
               ON u.id = NULLIF(%(unit)s, '')::uuid
@@ -122,10 +126,39 @@ def create(company_id, body):
              "exp": (body.get("expectedOn") or "").strip(),
              "unit": (body.get("unitId") or "").strip(),
              "turn": (body.get("turnId") or "").strip(),
-             "notes": (body.get("notes") or "").strip()},
+             "notes": (body.get("notes") or "").strip(),
+             "supmail": (body.get("supplierEmail") or "").strip(),
+             "cc": (body.get("ccEmail") or "").strip(),
+             "auto": bool(body.get("autoEmailEnabled", True))},
         )
         row = cur.fetchone()
     return {"ok": True, "id": str(row["id"])} if row else {"ok": False, "error": "Could not save that."}
+
+
+def set_email_prefs(company_id, item_id, body):
+    """Who to chase, who to copy, and whether to chase automatically at all.
+
+    Empty string clears a field rather than leaving the old address in place,
+    so an operator can remove a CC without deleting the item.
+    """
+    with db() as conn, conn.cursor() as cur:
+        cur.execute(
+            """
+            UPDATE traxkey.ordered_items
+            SET supplier_email = NULLIF(%(supmail)s, ''),
+                cc_email = NULLIF(%(cc)s, ''),
+                auto_email_enabled = %(auto)s,
+                updated_at = now()
+            WHERE id = %(id)s::uuid AND company_id = %(c)s
+            RETURNING id
+            """,
+            {"supmail": (body.get("supplierEmail") or "").strip(),
+             "cc": (body.get("ccEmail") or "").strip(),
+             "auto": bool(body.get("autoEmailEnabled", True)),
+             "id": item_id, "c": company_id},
+        )
+        row = cur.fetchone()
+    return {"ok": True} if row else {"ok": False, "error": "Not found."}
 
 
 def set_status(company_id, item_id, status):

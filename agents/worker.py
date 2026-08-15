@@ -25,7 +25,12 @@ from calendar_view import get_calendar
 from insights import get_insights, snapshot_vendor_performance
 from vendor_chase import run_vendor_chase
 from suggestions import submit as submit_suggestion, list_all as list_suggestions, set_status as set_suggestion_status
-from ordered_items import list_items, create as create_item, set_status as set_item_status
+from ordered_items import (list_items, create as create_item, set_status as set_item_status,
+                           set_email_prefs as set_item_email_prefs)
+from invoices import (list_customers, list_invoices, ar_summary, create_customer,
+                      set_customer_prefs, create_invoice, set_invoice_status,
+                      set_invoice_prefs)
+from invoice_chase import run_invoice_chase
 from str_ops import (list_supplies, upsert_supply, delete_supply,
                      list_damage, record_damage, set_claim_status)
 from owner_portal import (login as owner_login, validate as owner_validate,
@@ -46,6 +51,24 @@ CALENDAR_SYNC_INTERVAL_SECONDS = int(os.environ.get("CALENDAR_SYNC_INTERVAL_SECO
 
 
 import json
+from decimal import Decimal
+
+
+def _plain(value):
+    """JSON-safe copy of rows from psycopg: dates to ISO strings, uuids and
+    Decimals to str/float. Money stays a float only for display; nothing here
+    does arithmetic on it."""
+    if isinstance(value, list):
+        return [_plain(v) for v in value]
+    if isinstance(value, dict):
+        return {k: _plain(v) for k, v in value.items()}
+    if isinstance(value, Decimal):
+        return float(value)
+    if hasattr(value, "isoformat"):
+        return value.isoformat()
+    if hasattr(value, "hex") and not isinstance(value, (bytes, str, int)):
+        return str(value)
+    return value
 
 
 class HealthHandler(BaseHTTPRequestHandler):
@@ -78,7 +101,8 @@ class HealthHandler(BaseHTTPRequestHandler):
         route = self.path.split("?")[0]
         if route not in ("/chat", "/tenant-chat", "/sample-data", "/ordered-items",
                          "/supplies", "/damage", "/owner-login", "/owner-access", "/owners",
-                         "/owner-forgot-password", "/owner-reset-password", "/suggestions"):
+                         "/owner-forgot-password", "/owner-reset-password", "/suggestions",
+                         "/invoices", "/invoice-customers"):
             self._json(404, {"error": "Not found"})
             return
         try:
@@ -202,11 +226,52 @@ class HealthHandler(BaseHTTPRequestHandler):
             try:
                 if payload.get("action") == "status":
                     result = set_item_status(company_id, payload.get("itemId", ""), payload.get("status", ""))
+                elif payload.get("action") == "email-prefs":
+                    result = set_item_email_prefs(company_id, payload.get("itemId", ""), payload)
                 else:
                     result = create_item(company_id, payload)
             except Exception:
                 traceback.print_exc()
                 self._json(500, {"error": "Could not update that item"})
+                return
+            self._json(200 if result.get("ok") else 400, result)
+            return
+
+        if route == "/invoice-customers":
+            token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
+            company_id = validate_session(token)
+            if not company_id:
+                self._json(401, {"error": "Unauthorized"})
+                return
+            try:
+                if payload.get("action") == "email-prefs":
+                    result = set_customer_prefs(company_id, payload.get("customerId", ""), payload)
+                else:
+                    result = create_customer(company_id, payload)
+            except Exception:
+                traceback.print_exc()
+                self._json(500, {"error": "Could not update that customer"})
+                return
+            self._json(200 if result.get("ok") else 400, result)
+            return
+
+        if route == "/invoices":
+            token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
+            company_id = validate_session(token)
+            if not company_id:
+                self._json(401, {"error": "Unauthorized"})
+                return
+            try:
+                action = payload.get("action")
+                if action == "status":
+                    result = set_invoice_status(company_id, payload.get("invoiceId", ""), payload.get("status", ""))
+                elif action == "email-prefs":
+                    result = set_invoice_prefs(company_id, payload.get("invoiceId", ""), payload)
+                else:
+                    result = create_invoice(company_id, payload)
+            except Exception:
+                traceback.print_exc()
+                self._json(500, {"error": "Could not update that invoice"})
                 return
             self._json(200 if result.get("ok") else 400, result)
             return
@@ -367,6 +432,23 @@ class HealthHandler(BaseHTTPRequestHandler):
                 self._json(500, {"error": "Could not load ordered items"})
             return
 
+        if self.path.split("?")[0] == "/invoices":
+            token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
+            company_id = validate_session(token)
+            if not company_id:
+                self._json(401, {"error": "Unauthorized"})
+                return
+            try:
+                self._json(200, {
+                    "invoices": _plain(list_invoices(company_id)),
+                    "customers": _plain(list_customers(company_id)),
+                    "summary": _plain(ar_summary(company_id)),
+                })
+            except Exception:
+                traceback.print_exc()
+                self._json(500, {"error": "Could not load invoices"})
+            return
+
         if self.path.split("?")[0] == "/insights":
             token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
             company_id = validate_session(token)
@@ -473,6 +555,13 @@ if __name__ == "__main__":
                 traceback.print_exc()
             try:
                 run_lease_agent()
+            except Exception:
+                traceback.print_exc()
+            # Hourly, not the fast loop: invoice and supplier chasing is
+            # measured in days, so checking every 15 minutes would only mean
+            # the same rows failing the same due check 4x as often.
+            try:
+                run_invoice_chase()
             except Exception:
                 traceback.print_exc()
             try:
