@@ -4,6 +4,7 @@ import { useAuth } from '../lib/AuthContext.jsx';
 import { apiRequest } from '../lib/api.js';
 import ThemeToggle from '../components/ThemeToggle.jsx';
 import ConciergeWidget from '../components/ConciergeWidget.jsx';
+import SuggestionModal from '../components/SuggestionModal.jsx';
 
 const TENANT_PORTAL_BASE = 'https://tenant.traxkey.ai';
 
@@ -160,6 +161,7 @@ function Section({ label, hint, children }) {
 
 export default function DashboardPage() {
   const { user, logout } = useAuth();
+  const [suggestOpen, setSuggestOpen] = useState(false);
   const [counts, setCounts] = useState(null);
 
   // Reuses the endpoints each page already calls rather than adding a
@@ -300,6 +302,17 @@ export default function DashboardPage() {
           <TenantPortalLink />
         </Section>
       </div>
+
+      <button
+        onClick={() => setSuggestOpen(true)}
+        className="fixed bottom-6 right-6 z-40 bg-teal-500 hover:bg-teal-400 text-slate-950 rounded-full w-14 h-14 shadow-lg shadow-teal-500/30 flex items-center justify-center transition active:scale-95"
+        aria-label="Suggest a feature"
+        title="Suggest a feature"
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M9 18H15M12 3C8.5 3 6 5.5 6 9C6 11.5 7.5 13 8.5 14C9 14.5 9 15 9 15.5V16H15V15.5C15 15 15 14.5 15.5 14C16.5 13 18 11.5 18 9C18 5.5 15.5 3 12 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+
+      {suggestOpen && <SuggestionModal onClose={() => setSuggestOpen(false)} />}
     </div>
   );
 }

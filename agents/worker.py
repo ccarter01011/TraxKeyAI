@@ -24,6 +24,7 @@ from sample_data import seed as seed_sample, remove as remove_sample, has_sample
 from calendar_view import get_calendar
 from insights import get_insights, snapshot_vendor_performance
 from vendor_chase import run_vendor_chase
+from suggestions import submit as submit_suggestion, list_all as list_suggestions, set_status as set_suggestion_status
 from ordered_items import list_items, create as create_item, set_status as set_item_status
 from str_ops import (list_supplies, upsert_supply, delete_supply,
                      list_damage, record_damage, set_claim_status)
@@ -34,7 +35,7 @@ from owner_portal import (login as owner_login, validate as owner_validate,
                           send_reset_email as owner_send_reset_email)
 from concierge import validate_session
 from concierge import get_briefing
-from admin_concierge import get_admin_briefing
+from admin_concierge import get_admin_briefing, validate_admin
 from sales_chat import answer as sales_answer
 from tenant_chat import answer as tenant_answer
 
@@ -77,7 +78,7 @@ class HealthHandler(BaseHTTPRequestHandler):
         route = self.path.split("?")[0]
         if route not in ("/chat", "/tenant-chat", "/sample-data", "/ordered-items",
                          "/supplies", "/damage", "/owner-login", "/owner-access", "/owners",
-                         "/owner-forgot-password", "/owner-reset-password"):
+                         "/owner-forgot-password", "/owner-reset-password", "/suggestions"):
             self._json(404, {"error": "Not found"})
             return
         try:
@@ -92,6 +93,27 @@ class HealthHandler(BaseHTTPRequestHandler):
 
         # Behind Railway's proxy, the real client IP is in the forwarded header.
         ip = (self.headers.get("X-Forwarded-For") or self.client_address[0] or "unknown").split(",")[0].strip()
+
+        if route == "/suggestions":
+            token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
+            # Admin can triage; a customer can only submit.
+            admin_id = validate_admin(token)
+            if admin_id and payload.get("action") == "status":
+                result = set_suggestion_status(payload.get("suggestionId", ""), payload.get("status", ""), payload.get("note"))
+                self._json(200 if result.get("ok") else 400, result)
+                return
+            company_id = validate_session(token)
+            if not company_id:
+                self._json(401, {"error": "Unauthorized"})
+                return
+            try:
+                result = submit_suggestion(company_id, token, payload.get("subject", ""), payload.get("message", ""))
+            except Exception:
+                traceback.print_exc()
+                self._json(500, {"error": "Could not save that"})
+                return
+            self._json(200 if result.get("ok") else 400, result)
+            return
 
         if route == "/owner-forgot-password":
             result = owner_request_reset(payload.get("email", ""))
@@ -233,6 +255,23 @@ class HealthHandler(BaseHTTPRequestHandler):
                 self._json(401, {"error": "Unauthorized"})
                 return
             self._json(200, result)
+            return
+
+        if self.path.split("?")[0] == "/suggestions":
+            # Admin only: this is every customer's ideas across all accounts.
+            if not validate_admin(self.headers.get("Authorization", "").replace("Bearer ", "").strip()):
+                self._json(401, {"error": "Unauthorized"})
+                return
+            try:
+                rows = list_suggestions()
+                for r in rows:
+                    r["id"] = str(r["id"])
+                    if r.get("created_at"):
+                        r["created_at"] = r["created_at"].isoformat()
+                self._json(200, {"suggestions": rows})
+            except Exception:
+                traceback.print_exc()
+                self._json(500, {"error": "Could not load suggestions"})
             return
 
         if self.path.split("?")[0] == "/owners":

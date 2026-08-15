@@ -20,6 +20,7 @@ import InsightsPage from './pages/InsightsPage.jsx';
 import OrderedItemsPage from './pages/OrderedItemsPage.jsx';
 import StrOpsPage from './pages/StrOpsPage.jsx';
 import OwnersPage from './pages/OwnersPage.jsx';
+import AdminSuggestionsPage from './pages/AdminSuggestionsPage.jsx';
 import AdminLoginPage from './pages/AdminLoginPage.jsx';
 import AdminDashboardPage from './pages/AdminDashboardPage.jsx';
 import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx';
@@ -58,6 +59,7 @@ function App() {
           <Route path="/owners" element={<RequireAuth><OwnersPage /></RequireAuth>} />
           <Route path="/admin/login" element={<AdminLoginPage />} />
           <Route path="/admin" element={<AdminDashboardPage />} />
+          <Route path="/admin/suggestions" element={<AdminSuggestionsPage />} />
           <Route path="/activity" element={<RequireAuth><ActivityPage /></RequireAuth>} />
         </Routes>
       </BrowserRouter>
