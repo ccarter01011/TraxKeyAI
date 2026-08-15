@@ -299,6 +299,10 @@ export default function DashboardPage() {
             to="/analytics" title="Occupancy, activity &amp; financials"
             blurb="Occupancy trend, rental activity rollups, spend by property and vendor, and owner statements."
           />
+          <Tile
+            to="/pricing" title="Direct booking &amp; pricing (test)"
+            blurb="A reservation system outside Airbnb and Vrbo, with nightly rate suggestions. Prototype: no revenue-management vendor is connected yet."
+          />
         </Section>
 
         <Section label="Setup" hint="set once, revisit rarely">

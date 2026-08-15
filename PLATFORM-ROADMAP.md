@@ -511,3 +511,56 @@ delay. Interest without a quantified cost is a feature idea, not a business.
   products, and the reason to build inventory properly now.
 
 Cross-sell at the handoff: launch completes, TraxKey takes over the unit.
+
+---
+
+## Direct booking + dynamic pricing (prototype, 2026-08-15)
+
+User asked whether TraxKey could attach to a PriceLabs MCP for dynamic
+pricing suggestions on a portfolio calendar. No PriceLabs MCP connector
+exists (checked the registry), and PriceLabs' REST API is account-gated, so
+this shipped as a **vendor-agnostic scaffold** rather than a live PriceLabs
+integration:
+
+- `db/schema_v31.sql`: `direct_reservations` (a booking channel TraxKey
+  owns, separate from the read-only iCal mirror of Airbnb/Vrbo), and
+  `unit_nightly_rates` (one row per unit per night: base rate, suggested
+  rate, applied rate, and which provider produced the suggestion).
+- `agents/pricing_engine.py`: a `Provider` interface. Ships with
+  `HeuristicProvider`, a deterministic stand-in (weekend lift, last-minute
+  discount, far-out premium, occupancy adjustment) that names every factor
+  in its output so it is never mistaken for real market data. Swapping in
+  PriceLabs, Beyond, or Wheelhouse later is one new Provider class and
+  changing `PRICING_PROVIDER`; the schema, routes, and UI do not change.
+- `/pricing` page: pick a unit, compute 30 days of suggestions, accept a
+  night's rate to lock it, create/cancel direct reservations. A "create
+  test compound" button seeds three test units with realistic pricing so
+  the concept can be seen without touching real data.
+
+**Not yet done, and worth doing before this is a real feature rather than a
+demo**: an actual PriceLabs (or equivalent) account and API key, and a
+`PriceLabsProvider` implementation. Until then this stays a working
+prototype behind a clearly-labeled "test" tile on the dashboard.
+
+## Micro-resorts / experiential STR (recorded 2026-08-15, not started)
+
+User asked whether TraxKey fills a gap for multi-unit properties sharing
+amenities (e.g. 5 acres, 7 cabins, one pool and lake). It does, partially:
+the existing property -> units model already fits a small resort structurally
+(the site is the property, each cabin is a unit, one calendar). What is
+missing is everything about the **shared amenity**:
+
+- No amenity entity. A broken pool heater has nowhere to live except a
+  maintenance ticket on one unit, when it affects every guest on the
+  property.
+- No way to notify every currently-checked-in guest at once. Resident/guest
+  messaging today is strictly per-unit.
+- No whole-property buyout or group-booking concept, a common pattern for
+  these properties (weddings, retreats, reunions).
+
+Sized as a lightweight addition, not a new subsystem: an `amenities` table
+per property, each with its own maintenance thread and a "notify active
+guests" action. Real, underserved niche (too boutique for hotel PMS, no
+single-unit STR tool has an amenity concept at all), but a narrower market
+than TraxKey's core mixed-portfolio pitch, so sequenced after the setup/
+procurement product rather than before it.

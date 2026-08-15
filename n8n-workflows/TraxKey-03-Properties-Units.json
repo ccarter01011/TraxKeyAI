@@ -232,7 +232,7 @@
       ],
       "notes": "json_agg with a FILTER for a property with zero units yet, returns an empty array instead of [null].",
       "parameters": {
-        "query": "SELECT p.id, p.name, p.address_line1, p.address_line2, p.city, p.state, p.zip, p.property_type,\n  COALESCE(\n    json_agg(json_build_object('id', u.id, 'unit_number', u.unit_number, 'bedrooms', u.bedrooms, 'bathrooms', u.bathrooms, 'status', u.status) ORDER BY u.unit_number)\n    FILTER (WHERE u.id IS NOT NULL), '[]'\n  ) AS units\nFROM traxkey.properties p\nLEFT JOIN traxkey.units u ON u.property_id = p.id\nWHERE p.company_id = '{{ $json.company_id }}'\nGROUP BY p.id\nORDER BY p.created_at DESC;",
+        "query": "SELECT p.id, p.name, p.address_line1, p.address_line2, p.city, p.state, p.zip, p.property_type,\n  COALESCE(\n    json_agg(json_build_object('id', u.id, 'unit_number', u.unit_number, 'bedrooms', u.bedrooms, 'bathrooms', u.bathrooms, 'status', u.status, 'base_nightly_rate', u.base_nightly_rate) ORDER BY u.unit_number)\n    FILTER (WHERE u.id IS NOT NULL), '[]'\n  ) AS units\nFROM traxkey.properties p\nLEFT JOIN traxkey.units u ON u.property_id = p.id\nWHERE p.company_id = '{{ $json.company_id }}'\nGROUP BY p.id\nORDER BY p.created_at DESC;",
         "options": {},
         "operation": "executeQuery"
       },

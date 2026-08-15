@@ -39,6 +39,9 @@ from analytics import occupancy_summary, rental_activity_summary, financial_summ
 from property_profile import (get_profile, save_profile, list_inventory, add_inventory,
                               set_inventory_condition, delete_inventory, onboarding_status)
 from damage_assessment import assess as assess_damage
+from pricing_engine import (suggest_rates, apply_rate, set_base_rate, get_calendar as get_pricing_calendar,
+                            create_reservation, cancel_reservation)
+from pricing_test_data import seed as seed_pricing_test, remove as remove_pricing_test
 from str_ops import (list_supplies, upsert_supply, delete_supply,
                      list_damage, record_damage, set_claim_status)
 from owner_portal import (login as owner_login, validate as owner_validate,
@@ -111,7 +114,8 @@ class HealthHandler(BaseHTTPRequestHandler):
                          "/supplies", "/damage", "/owner-login", "/owner-access", "/owners",
                          "/owner-forgot-password", "/owner-reset-password", "/suggestions",
                          "/invoices", "/invoice-customers", "/import",
-                         "/property-profile", "/inventory", "/damage-assessment"):
+                         "/property-profile", "/inventory", "/damage-assessment",
+                         "/pricing", "/reservations", "/pricing-test-data"):
             self._json(404, {"error": "Not found"})
             return
         try:
@@ -283,6 +287,63 @@ class HealthHandler(BaseHTTPRequestHandler):
                         result = delete_inventory(company_id, payload.get("itemId", ""))
                     else:
                         result = add_inventory(company_id, payload)
+            except Exception:
+                traceback.print_exc()
+                self._json(500, {"error": "Could not save that"})
+                return
+            self._json(200 if result.get("ok") else 400, result)
+            return
+
+        if route == "/pricing-test-data":
+            token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
+            company_id = validate_session(token)
+            if not company_id:
+                self._json(401, {"error": "Unauthorized"})
+                return
+            try:
+                result = (remove_pricing_test(company_id) if payload.get("action") == "remove"
+                          else seed_pricing_test(company_id))
+            except Exception:
+                traceback.print_exc()
+                self._json(500, {"error": "Could not do that"})
+                return
+            self._json(200 if result.get("ok") else 400, result)
+            return
+
+        if route == "/pricing":
+            token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
+            company_id = validate_session(token)
+            if not company_id:
+                self._json(401, {"error": "Unauthorized"})
+                return
+            try:
+                action = payload.get("action")
+                if action == "apply":
+                    result = apply_rate(company_id, payload.get("unitId", ""), payload.get("stayDate", ""), payload.get("rate"))
+                elif action == "set-base-rate":
+                    result = set_base_rate(company_id, payload.get("unitId", ""), payload.get("rate"))
+                else:
+                    start = datetime.strptime(payload.get("startDate", ""), "%Y-%m-%d").date()
+                    end = datetime.strptime(payload.get("endDate", ""), "%Y-%m-%d").date()
+                    result = suggest_rates(company_id, payload.get("unitId", ""), start, end)
+            except Exception:
+                traceback.print_exc()
+                self._json(500, {"error": "Could not compute pricing"})
+                return
+            self._json(200 if result.get("ok") else 400, result)
+            return
+
+        if route == "/reservations":
+            token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
+            company_id = validate_session(token)
+            if not company_id:
+                self._json(401, {"error": "Unauthorized"})
+                return
+            try:
+                if payload.get("action") == "cancel":
+                    result = cancel_reservation(company_id, payload.get("reservationId", ""))
+                else:
+                    result = create_reservation(company_id, payload)
             except Exception:
                 traceback.print_exc()
                 self._json(500, {"error": "Could not save that"})
@@ -546,6 +607,27 @@ class HealthHandler(BaseHTTPRequestHandler):
             except Exception:
                 traceback.print_exc()
                 self._json(500, {"error": "Could not load that"})
+            return
+
+        if self.path.split("?")[0] == "/pricing":
+            token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
+            company_id = validate_session(token)
+            if not company_id:
+                self._json(401, {"error": "Unauthorized"})
+                return
+            q = parse_qs(urlparse(self.path).query)
+            unit_id = (q.get("unitId") or [""])[0]
+            try:
+                start = datetime.strptime((q.get("startDate") or [""])[0], "%Y-%m-%d").date()
+                end = datetime.strptime((q.get("endDate") or [""])[0], "%Y-%m-%d").date()
+            except ValueError:
+                self._json(400, {"error": "startDate and endDate are required, YYYY-MM-DD"})
+                return
+            try:
+                self._json(200, _plain(get_pricing_calendar(company_id, unit_id, start, end)))
+            except Exception:
+                traceback.print_exc()
+                self._json(500, {"error": "Could not load pricing"})
             return
 
         if self.path.split("?")[0] == "/analytics":

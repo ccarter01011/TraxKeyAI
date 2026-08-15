@@ -23,6 +23,7 @@ import OwnersPage from './pages/OwnersPage.jsx';
 import InvoicesPage from './pages/InvoicesPage.jsx';
 import AnalyticsPage from './pages/AnalyticsPage.jsx';
 import PropertyProfilePage from './pages/PropertyProfilePage.jsx';
+import PricingPage from './pages/PricingPage.jsx';
 import AdminSuggestionsPage from './pages/AdminSuggestionsPage.jsx';
 import AdminLoginPage from './pages/AdminLoginPage.jsx';
 import AdminDashboardPage from './pages/AdminDashboardPage.jsx';
@@ -63,6 +64,7 @@ function App() {
           <Route path="/invoices" element={<RequireAuth><InvoicesPage /></RequireAuth>} />
           <Route path="/analytics" element={<RequireAuth><AnalyticsPage /></RequireAuth>} />
           <Route path="/onboarding" element={<RequireAuth><PropertyProfilePage /></RequireAuth>} />
+          <Route path="/pricing" element={<RequireAuth><PricingPage /></RequireAuth>} />
           <Route path="/admin/login" element={<AdminLoginPage />} />
           <Route path="/admin" element={<AdminDashboardPage />} />
           <Route path="/admin/suggestions" element={<AdminSuggestionsPage />} />
