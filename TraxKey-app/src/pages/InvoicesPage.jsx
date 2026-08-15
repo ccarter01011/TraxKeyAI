@@ -2,6 +2,13 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import FlowHelp from '../components/FlowHelp.jsx';
 import ImportExport from '../components/ImportExport.jsx';
+import FilterBar, { useFiltered } from '../components/FilterBar.jsx';
+
+const STATUS_OPTIONS = [
+  { value: 'open', label: 'Open' },
+  { value: 'paid', label: 'Paid' },
+  { value: 'cancelled', label: 'Cancelled' },
+];
 
 const AGENT_BASE = 'https://langgraph-production-42ef.up.railway.app';
 const hdrs = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('tk_token')}` });
@@ -200,6 +207,11 @@ export default function InvoicesPage() {
   const s = data?.summary || {};
   const invoices = data?.invoices || [];
   const customers = data?.customers || [];
+  const [filters, setFilters] = useState({ status: '', from: '', to: '', q: '' });
+  const filtered = useFiltered(invoices, filters, {
+    dateField: 'due_on',
+    searchFields: ['invoice_number', 'customer_name'],
+  });
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 px-6 py-8">
@@ -262,7 +274,22 @@ export default function InvoicesPage() {
                 <p className="text-sm font-bold mb-1">Nothing outstanding</p>
                 <p className="text-xs text-slate-500 dark:text-slate-400">Add a customer, then add an invoice against them and TraxKey will chase it once it goes past due.</p>
               </div>
-            ) : <div className="space-y-3">{invoices.map(i => <InvoiceRow key={i.id} inv={i} onChanged={load} />)}</div>
+            ) : (
+              <>
+                <FilterBar
+                  statusOptions={STATUS_OPTIONS}
+                  searchPlaceholder="Search invoice #, customer…"
+                  onChange={setFilters}
+                />
+                {filtered.length === 0 ? (
+                  <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-xl p-8 text-center">
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Nothing matches those filters.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">{filtered.map(i => <InvoiceRow key={i.id} inv={i} onChanged={load} />)}</div>
+                )}
+              </>
+            )
           ) : (
             <div className="space-y-3">
               <AddCustomer onCreated={load} />

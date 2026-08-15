@@ -2,6 +2,12 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiRequest } from '../lib/api.js';
 import FlowHelp from '../components/FlowHelp.jsx';
+import FilterBar, { useFiltered } from '../components/FilterBar.jsx';
+
+const STATUS_OPTIONS = [
+  { value: 'in_progress', label: 'In progress' },
+  { value: 'completed', label: 'Completed' },
+];
 
 const TYPES = [
   { value: 'move_in', label: 'Move-in' },
@@ -246,6 +252,11 @@ export default function InspectionsPage() {
   const [inspections, setInspections] = useState(null);
   const [units, setUnits] = useState([]);
   const [error, setError] = useState('');
+  const [filters, setFilters] = useState({ status: '', from: '', to: '', q: '' });
+  const filtered = useFiltered(inspections, filters, {
+    dateField: 'created_at',
+    searchFields: ['property_name', 'unit_number', 'inspection_type'],
+  });
 
   async function load() {
     try {
@@ -305,9 +316,22 @@ export default function InspectionsPage() {
             </p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {inspections.map(i => <InspectionCard key={i.id} inspection={i} onChanged={load} />)}
-          </div>
+          <>
+            <FilterBar
+              statusOptions={STATUS_OPTIONS}
+              searchPlaceholder="Search property, unit, type…"
+              onChange={setFilters}
+            />
+            {filtered.length === 0 ? (
+              <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-xl p-8 text-center">
+                <p className="text-sm text-slate-500 dark:text-slate-400">Nothing matches those filters.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filtered.map(i => <InspectionCard key={i.id} inspection={i} onChanged={load} />)}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
