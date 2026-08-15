@@ -17,14 +17,17 @@ the old one. Update this link when that happens.
 
 ## 1. What TraxKey AI is
 
-A team of AI agents that run a rental portfolio's operations, 24 hours a
-day, across both long-term units and short-term rentals, in one system.
+A team of **7 specialized AI agents** that work a rental portfolio 24/7,
+across both long-term units and short-term rentals, in one system.
 
-Not a single bot bolted onto a ticketing tool. **Seven specialised agents**,
-each owning one workflow end to end, coordinating maintenance, turnovers,
-leases, guest readiness, vendor performance, and the portfolio's own trends,
-around the clock, without waiting on business hours. Section 4 names all
-seven.
+They diagnose repairs, dispatch vendors, turn units between guests, and
+watch every lease. Short-term tools don't do leases. Property software
+doesn't do calendars. TraxKey does both, which is why it knows a guest is
+in the unit when the AC fails.
+
+Not a single bot bolted onto a ticketing tool. Each of the seven owns one
+workflow end to end, and they share the portfolio, the vendor network, and
+the operator's rules. Section 4 names all seven.
 
 Most property software is a filing cabinet: it records what happened and
 leaves a human to make every decision. TraxKey decides the ones that are
