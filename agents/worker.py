@@ -43,7 +43,8 @@ from pricing_engine import (suggest_rates, apply_rate, set_base_rate, get_calend
                             create_reservation, cancel_reservation, create_buyout, list_buyouts)
 from pricing_test_data import seed as seed_pricing_test, remove as remove_pricing_test
 from amenities import (set_rental_mode, list_amenities, add_amenity, set_amenity_status,
-                       delete_amenity, report_amenity_issue, notify_active_guests)
+                       delete_amenity, report_amenity_issue, notify_active_guests,
+                       list_amenities_for_token, report_amenity_issue_public)
 from str_ops import (list_supplies, upsert_supply, delete_supply,
                      list_damage, record_damage, set_claim_status)
 from owner_portal import (login as owner_login, validate as owner_validate,
@@ -119,7 +120,7 @@ class HealthHandler(BaseHTTPRequestHandler):
                          "/property-profile", "/inventory", "/damage-assessment",
                          "/pricing", "/reservations", "/pricing-test-data",
                          "/rental-mode", "/amenities", "/amenity-issue", "/amenity-notify",
-                         "/buyouts"):
+                         "/buyouts", "/tenant-amenities", "/tenant-amenity-issue"):
             self._json(404, {"error": "Not found"})
             return
         try:
@@ -491,6 +492,26 @@ class HealthHandler(BaseHTTPRequestHandler):
             except Exception:
                 traceback.print_exc()
                 self._json(500, {"error": "Could not update sample data"})
+                return
+            self._json(200 if result.get("ok") else 400, result)
+            return
+
+        if route == "/tenant-amenities":
+            try:
+                result = list_amenities_for_token(payload.get("token", ""))
+            except Exception:
+                traceback.print_exc()
+                self._json(500, {"error": "Could not load amenities"})
+                return
+            self._json(200 if result.get("ok") else 400, result)
+            return
+
+        if route == "/tenant-amenity-issue":
+            try:
+                result = report_amenity_issue_public(payload.get("token", ""), payload)
+            except Exception:
+                traceback.print_exc()
+                self._json(500, {"error": "Could not submit that"})
                 return
             self._json(200 if result.get("ok") else 400, result)
             return

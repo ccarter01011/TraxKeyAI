@@ -121,6 +121,88 @@ def delete_amenity(company_id, amenity_id):
     return {"ok": True} if row else {"ok": False, "error": "Not found."}
 
 
+def resolve_resident_token(token):
+    """Resident access_token -> everything the tenant page needs, or None
+    if the token doesn't match anything active. Same trust boundary as the
+    n8n resident-intake flow: the token itself is the credential, nobody
+    logs in."""
+    token = (token or "").strip()
+    if not token:
+        return None
+    with db() as conn, conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT r.id AS resident_id, r.name AS resident_name, u.id AS unit_id,
+                   p.id AS property_id, p.rental_mode, p.company_id, c.name AS company_name
+            FROM traxkey.residents r
+            JOIN traxkey.units u ON u.id = r.unit_id
+            JOIN traxkey.properties p ON p.id = u.property_id
+            JOIN traxkey.companies c ON c.id = p.company_id
+            WHERE r.access_token = %s AND r.is_active
+            """,
+            (token,),
+        )
+        row = cur.fetchone()
+    return dict(row) if row else None
+
+
+def list_amenities_for_token(token):
+    """Public: what a resident/guest is allowed to see about their
+    property's shared amenities. Only what helps them decide whether to
+    report something and what's already known about it, nothing operator-only
+    like open-issue counts or internal notes."""
+    who = resolve_resident_token(token)
+    if not who:
+        return {"ok": False, "error": "Link not recognized."}
+    if who["rental_mode"] != "experiential":
+        return {"ok": True, "amenities": []}
+    with db() as conn, conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT id, name, category, status, status_note
+            FROM traxkey.amenities
+            WHERE property_id = %s
+            ORDER BY name
+            """,
+            (who["property_id"],),
+        )
+        amenities = [dict(r) for r in cur.fetchall()]
+    return {"ok": True, "amenities": amenities}
+
+
+def report_amenity_issue_public(token, body):
+    """Public submission path: a guest reporting a shared-amenity issue from
+    the tenant page, identified only by their resident token. Captures
+    resident_id the same way a normal unit report does, so the ticket shows
+    who reported it without asking them to re-enter their name."""
+    who = resolve_resident_token(token)
+    if not who:
+        return {"ok": False, "error": "Link not recognized."}
+    amenity_id = (body.get("amenityId") or "").strip()
+    description = (body.get("description") or "").strip()
+    urgency = (body.get("urgency") or "").strip()
+    if not amenity_id or not description:
+        return {"ok": False, "error": "Describe the issue and pick an amenity."}
+    if urgency not in ("routine", "urgent", "emergency"):
+        urgency = None
+
+    with db() as conn, conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO traxkey.maintenance_requests
+              (company_id, amenity_id, resident_id, description, urgency, status)
+            SELECT a.company_id, a.id, %(rid)s, %(desc)s, %(urg)s, 'submitted'
+            FROM traxkey.amenities a
+            WHERE a.id = %(aid)s::uuid AND a.property_id = %(pid)s
+            RETURNING id
+            """,
+            {"rid": who["resident_id"], "desc": description, "urg": urgency,
+             "aid": amenity_id, "pid": who["property_id"]},
+        )
+        row = cur.fetchone()
+    return {"ok": True, "id": str(row["id"])} if row else {"ok": False, "error": "That amenity wasn't found on your property."}
+
+
 def report_amenity_issue(company_id, body):
     """Same shape as a unit maintenance request, pinned to an amenity
     instead. AI classification runs the same way it does for a unit issue,

@@ -92,6 +92,22 @@
         <input id="mf-address" type="text" placeholder="123 Main St, Unit 2B" class="w-full bg-slate-900 border border-white/10 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-teal-400" />
       </div>
 
+      <!-- Only shown when the property has shared amenities logged (pool,
+           dock, firepit) and this resident arrived via their own link, so
+           we know which property to look them up against. Company-code
+           guests skip this: there's no property known until they type an
+           address, and matching free text to a property reliably enough to
+           trust isn't worth building yet. -->
+      <div id="mf-amenity-field" class="hidden">
+        <label class="block text-sm font-medium text-slate-300 mb-1.5">What's this about?</label>
+        <div class="grid grid-cols-2 gap-2 mb-2">
+          <button type="button" data-value="unit" onclick="selectReportTarget('unit')" class="target-btn border border-teal-400 bg-teal-500/15 rounded-lg py-2.5 text-sm text-center transition">My unit</button>
+          <button type="button" data-value="amenity" onclick="selectReportTarget('amenity')" class="target-btn border border-white/10 rounded-lg py-2.5 text-sm text-center hover:border-teal-400/50 transition">A shared amenity</button>
+        </div>
+        <select id="mf-amenity-select" class="hidden w-full bg-slate-900 border border-white/10 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-teal-400"></select>
+        <p id="mf-amenity-status-note" class="hidden text-xs text-amber-400 mt-1.5"></p>
+      </div>
+
       <div>
         <label class="block text-sm font-medium text-slate-300 mb-1.5">What's going on?</label>
         <textarea id="mf-description" required rows="4" placeholder="e.g. Kitchen faucet has been dripping constantly for two days" class="w-full bg-slate-900 border border-white/10 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-teal-400"></textarea>
@@ -206,6 +222,67 @@ const TENANT_CONTEXT_ENDPOINT = 'https://main-production-b95e.up.railway.app/web
 const AGENT_BASE = 'https://langgraph-production-42ef.up.railway.app';
 
 let tenantContext = { companyName: null, contactEmail: null, requiresHumanReview: false };
+let reportTarget = 'unit';
+let selectedAmenity = null;
+let amenities = [];
+
+function selectReportTarget(target) {
+  reportTarget = target;
+  document.querySelectorAll('.target-btn').forEach(function (b) {
+    const active = b.dataset.value === target;
+    b.classList.toggle('border-teal-400', active);
+    b.classList.toggle('bg-teal-500/15', active);
+    b.classList.toggle('border-white/10', !active);
+  });
+  const select = document.getElementById('mf-amenity-select');
+  const note = document.getElementById('mf-amenity-status-note');
+  if (target === 'amenity') {
+    select.classList.remove('hidden');
+    if (!select.value && amenities.length) { select.value = amenities[0].id; onAmenityPicked(); }
+  } else {
+    select.classList.add('hidden');
+    note.classList.add('hidden');
+    selectedAmenity = null;
+  }
+}
+
+function onAmenityPicked() {
+  const select = document.getElementById('mf-amenity-select');
+  const note = document.getElementById('mf-amenity-status-note');
+  selectedAmenity = amenities.find(function (a) { return a.id === select.value; });
+  if (selectedAmenity && selectedAmenity.status !== 'open') {
+    note.textContent = (selectedAmenity.status === 'closed' ? 'Currently closed. ' : 'Currently under maintenance. ')
+      + (selectedAmenity.status_note || '');
+    note.classList.remove('hidden');
+  } else {
+    note.classList.add('hidden');
+  }
+}
+
+async function loadAmenities() {
+  if (!residentToken) return; // company-code path: no reliable property lookup yet
+  try {
+    const res = await fetch(AGENT_BASE + '/tenant-amenities', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: residentToken })
+    });
+    const json = await res.json().catch(function () { return {}; });
+    amenities = (json.ok && json.amenities) || [];
+    if (amenities.length === 0) return; // standard-mode property, nothing to show
+
+    document.getElementById('mf-amenity-field').classList.remove('hidden');
+    const select = document.getElementById('mf-amenity-select');
+    select.innerHTML = amenities.map(function (a) {
+      const tag = a.status !== 'open' ? ' (' + a.status + ')' : '';
+      return '<option value="' + a.id + '">' + a.name + tag + '</option>';
+    }).join('');
+    select.onchange = onAmenityPicked;
+  } catch (err) {
+    // Amenities are a nicety on top of the core report flow. If this fails,
+    // the resident still reports against their own unit, which is what
+    // matters.
+  }
+}
 
 function showStep(id) {
   ['need-code', 'report-form', 'human-form', 'report-success'].forEach(s => document.getElementById(s).classList.add('hidden'));
@@ -217,12 +294,14 @@ if (residentToken) {
   document.getElementById('mf-contact-fields').classList.add('hidden');
   showStep('report-form');
   loadTenantContext();
+  loadAmenities();
 } else if (portalSlug) {
   document.getElementById('mf-address').setAttribute('required', 'required');
   document.getElementById('mf-name').setAttribute('required', 'required');
   document.getElementById('mf-phone').setAttribute('required', 'required');
   showStep('report-form');
   loadTenantContext();
+  loadAmenities();
 } else {
   showStep('need-code');
 }
@@ -398,8 +477,23 @@ async function submitRequest(e) {
   submitBtn.disabled = true;
   submitBtn.textContent = 'Submitting…';
 
-  const endpoint = residentToken ? RESIDENT_INTAKE_ENDPOINT : COMPANY_INTAKE_ENDPOINT;
-  const payload = residentToken
+  // A shared-amenity report goes through the agents service (which knows
+  // about amenities) instead of the normal per-unit intake, but only when
+  // the resident explicitly picked that option. Everything else, including
+  // the "my unit" choice on an experiential property, is a completely
+  // normal unit report.
+  const isAmenityReport = residentToken && reportTarget === 'amenity' && selectedAmenity;
+  const endpoint = isAmenityReport
+    ? (AGENT_BASE + '/tenant-amenity-issue')
+    : (residentToken ? RESIDENT_INTAKE_ENDPOINT : COMPANY_INTAKE_ENDPOINT);
+  const payload = isAmenityReport
+    ? {
+        token: residentToken,
+        amenityId: selectedAmenity.id,
+        description: document.getElementById('mf-description').value,
+        urgency: selectedUrgency
+      }
+    : residentToken
     ? {
         token: residentToken,
         description: document.getElementById('mf-description').value,
@@ -422,12 +516,13 @@ async function submitRequest(e) {
       body: JSON.stringify(payload)
     });
     const json = await res.json().catch(() => ({}));
-    if (!res.ok || json.success === false) {
+    if (!res.ok || json.success === false || json.ok === false) {
       throw new Error(json.error || 'Something went wrong submitting your request.');
     }
     document.getElementById('report-form').classList.add('hidden');
     document.getElementById('report-success').classList.remove('hidden');
-    document.getElementById('success-ref').textContent = json.requestId ? `Reference: ${json.requestId}` : '';
+    const ref = json.requestId || json.id;
+    document.getElementById('success-ref').textContent = ref ? `Reference: ${ref}` : '';
   } catch (err) {
     errorEl.textContent = err.message || 'Something went wrong. Please try again.';
     errorEl.classList.remove('hidden');
