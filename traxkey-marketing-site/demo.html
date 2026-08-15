@@ -25,8 +25,12 @@
   border: 1px solid rgba(255,255,255,.12);
 }
 .tk-caret::after { content:'▍'; margin-left:1px; opacity:.7; animation: tk-orb-breathe 1s ease-in-out infinite; }
+@keyframes tk-orb-kick { 0% { transform:scale(1); } 30% { transform:scale(1.12); } 100% { transform:scale(1); } }
+@keyframes tk-orb-flare { 0% { transform:scale(1); filter:brightness(1); } 25% { transform:scale(1.3); filter:brightness(1.6); } 100% { transform:scale(1); filter:brightness(1); } }
+.tk-orb.kick { animation: tk-orb-kick .3s ease-out; }
+.tk-orb.flare { animation: tk-orb-flare .45s ease-out; }
 .glow-card { box-shadow: 0 0 40px -12px rgba(45,212,191,.25); }
-@media (prefers-reduced-motion: reduce) { .tk-orb::before, .tk-caret::after { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .tk-orb::before, .tk-caret::after { animation: none; } .tk-orb.kick, .tk-orb.flare { animation: none; } }
 /* --- Light theme override -----------------------------------------------
    Dark-first site, so this is an override layer keyed off html.light rather
    than rewriting every utility to a dark: variant across three pages.
@@ -177,7 +181,7 @@ html.light .to-slate-900 { --tw-gradient-to: #ffffff !important; }
     <!-- CONCIERGE -->
     <div class="bg-gradient-to-r from-teal-500/10 to-sky-500/10 border border-teal-400/20 rounded-2xl p-6 mb-6 glow-card">
       <div class="flex items-start gap-4">
-        <span class="tk-orb"><span class="tk-orb__core"></span></span>
+        <span id="brief-orb" class="tk-orb"><span class="tk-orb__core"></span></span>
         <div class="flex-1 min-w-0">
           <p class="text-xs font-bold text-teal-300 uppercase tracking-wide mb-2">TraxKey AI</p>
           <p id="brief-lead" class="text-sm md:text-base text-slate-100 leading-relaxed tk-caret"></p>
@@ -361,6 +365,19 @@ var DOT = {
 };
 
 var typingTimer = null;
+var SENTENCE_ENDERS = ['.', '!', '?'];
+
+// Retriggers the kick/flare CSS animation. Removing the class, forcing a
+// reflow, then re-adding is what lets the same animation replay on
+// back-to-back words, a class already present does not restart on re-add
+// without the reflow in between.
+function orbPulse(big) {
+  var el = document.getElementById('brief-orb');
+  if (!el) return;
+  el.classList.remove('kick', 'flare');
+  void el.offsetWidth;
+  el.classList.add(big ? 'flare' : 'kick');
+}
 
 function showView(key) {
   var d = DATA[key];
@@ -370,29 +387,51 @@ function showView(key) {
   document.getElementById('tab-str').className = 'px-5 py-2.5 rounded-lg text-sm font-bold transition ' +
     (key === 'str' ? 'bg-teal-500 text-slate-950' : 'text-slate-400 hover:text-white');
 
-  // Briefing types word by word so it reads as written live, not pasted.
+  // Briefing types word by word, at the same 90ms cadence as the dashboard
+  // concierge, so it reads as written live rather than pasted. Bullets are
+  // typed too, not dropped in as finished blocks, same reasoning as the
+  // dashboard: the illusion breaks exactly when the reader is paying most
+  // attention if the lead sentence types but the bullets just appear.
   var lead = document.getElementById('brief-lead');
   var todos = document.getElementById('brief-todos');
   if (typingTimer) clearInterval(typingTimer);
   lead.textContent = ''; todos.innerHTML = '';
   lead.classList.add('tk-caret');
-  var words = d.lead.split(' ');
+
+  var tokens = [];
+  d.lead.split(' ').filter(Boolean).forEach(function (w, wi) { tokens.push({ li: -1, w: w, first: wi === 0 }); });
+  d.todos.forEach(function (t, ti) {
+    t.split(' ').filter(Boolean).forEach(function (w, wi) { tokens.push({ li: ti, w: w, first: wi === 0 }); });
+  });
+
+  var todoEls = [];
   var i = 0;
   typingTimer = setInterval(function () {
-    i++; lead.textContent = words.slice(0, i).join(' ');
-    if (i >= words.length) {
+    var t = tokens[i];
+    var prev = i > 0 ? tokens[i - 1] : null;
+    var isStart = i === 0 || t.first || (prev && SENTENCE_ENDERS.indexOf(prev.w.slice(-1)) > -1);
+    orbPulse(isStart);
+
+    if (t.li === -1) {
+      lead.textContent = (lead.textContent ? lead.textContent + ' ' : '') + t.w;
+    } else {
+      if (!todoEls[t.li]) {
+        var li = document.createElement('li');
+        li.className = 'flex items-start gap-2 text-sm text-slate-300';
+        li.innerHTML = '<span class="shrink-0 mt-1.5 w-1 h-1 rounded-full bg-teal-400"></span><span></span>';
+        todos.appendChild(li);
+        todoEls[t.li] = li.querySelector('span:last-child');
+      }
+      var span = todoEls[t.li];
+      span.textContent = (span.textContent ? span.textContent + ' ' : '') + t.w;
+    }
+
+    i++;
+    if (i >= tokens.length) {
       clearInterval(typingTimer);
       lead.classList.remove('tk-caret');
-      d.todos.forEach(function (t, n) {
-        setTimeout(function () {
-          var li = document.createElement('li');
-          li.className = 'flex items-start gap-2 text-sm text-slate-300';
-          li.innerHTML = '<span class="shrink-0 mt-1.5 w-1 h-1 rounded-full bg-teal-400"></span><span>' + t + '</span>';
-          todos.appendChild(li);
-        }, n * 180);
-      });
     }
-  }, 55);
+  }, 90);
 
   document.getElementById('kpis').innerHTML = d.kpis.map(function (k) {
     return '<div class="bg-slate-900 border border-white/5 rounded-2xl p-5">' +

@@ -34,7 +34,11 @@
   .tk-orb__core { position:absolute; inset:0; border-radius:9999px; z-index:1;
     background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.35), rgba(15,23,42,.85) 70%);
     border:1px solid rgba(255,255,255,.12); }
-  @media (prefers-reduced-motion: reduce) { .tk-orb::before { animation:none } }
+  @keyframes tk-orb-kick { 0% { transform:scale(1); } 30% { transform:scale(1.12); } 100% { transform:scale(1); } }
+  @keyframes tk-orb-flare { 0% { transform:scale(1); filter:brightness(1); } 25% { transform:scale(1.3); filter:brightness(1.6); } 100% { transform:scale(1); filter:brightness(1); } }
+  .tk-orb.kick { animation: tk-orb-kick .3s ease-out; }
+  .tk-orb.flare { animation: tk-orb-flare .45s ease-out; }
+  @media (prefers-reduced-motion: reduce) { .tk-orb::before { animation:none } .tk-orb.kick, .tk-orb.flare { animation: none; } }
 /* --- Light theme override -----------------------------------------------
    Dark-first site, so this is an override layer keyed off html.light rather
    than rewriting every utility to a dark: variant across three pages.
@@ -438,6 +442,45 @@ function tkChatToggle() {
   if (!p.classList.contains('hidden')) document.getElementById('tk-chat-input').focus();
 }
 
+
+function tkOrbPulse(el, big) {
+  if (!el) return;
+  el.classList.remove('kick', 'flare');
+  void el.offsetWidth;
+  el.classList.add(big ? 'flare' : 'kick');
+}
+
+var SENTENCE_ENDERS = ['.', '!', '?'];
+function tkTypeReply(el, orbEl, fullText, onDone) {
+  var lines = String(fullText || '').split('\n');
+  var tokens = [];
+  lines.forEach(function (line, li) {
+    line.trim().split(' ').filter(Boolean).forEach(function (w, wi) {
+      tokens.push({ li: li, w: w, first: wi === 0 });
+    });
+  });
+  if (!tokens.length) { el.textContent = ''; if (onDone) onDone(); return; }
+
+  var acc = lines.map(function () { return ''; });
+  var i = 0;
+  var timer = setInterval(function () {
+    var t = tokens[i];
+    var prev = i > 0 ? tokens[i - 1] : null;
+    var isStart = i === 0 || t.first || (prev && SENTENCE_ENDERS.indexOf(prev.w.slice(-1)) > -1);
+    tkOrbPulse(orbEl, isStart);
+
+    acc[t.li] = acc[t.li] ? acc[t.li] + ' ' + t.w : t.w;
+    tkRenderBody(el, acc.join('\n'));
+
+    i++;
+    if (i >= tokens.length) {
+      clearInterval(timer);
+      if (onDone) onDone();
+    }
+  }, 90);
+  return timer;
+}
+
 function tkRenderBody(el, text) {
   // Lines starting with "- " render as an actual bulleted list; everything
   // else is plain text. Keeps a one-line answer looking like a chat message
@@ -496,6 +539,7 @@ function tkChatSubmit(e) {
   document.getElementById('tk-chat-orb').classList.add('active');
   var thinking = tkAppend('assistant', 'Thinking…');
 
+  var orb = document.getElementById('tk-chat-orb');
   fetch(TK_CHAT_API, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -503,18 +547,24 @@ function tkChatSubmit(e) {
   })
     .then(function (r) { return r.json(); })
     .then(function (j) {
-      tkRenderBody(thinking, j.reply || 'Something went wrong. Use "Ask a human" below.');
+      var reply = j.reply || 'Something went wrong. Use "Ask a human" below.';
       tkHistory.push({ role: 'user', content: q });
       tkHistory.push({ role: 'assistant', content: j.reply || '' });
       if (tkHistory.length > 12) tkHistory = tkHistory.slice(-12);
+      tkBusy = false;
+      // Orb stays active (fast spin) through typing, only settles once the
+      // whole reply has been typed out, same as the dashboard concierge.
+      tkTypeReply(thinking, orb, reply, function () {
+        orb.classList.remove('active');
+        document.getElementById('tk-chat-log').scrollTop = 99999;
+      });
+      document.getElementById('tk-chat-log').scrollTop = 99999;
     })
     .catch(function () {
-      tkRenderBody(thinking, 'Could not reach the assistant. Use "Ask a human" below.');
-    })
-    .then(function () {
       tkBusy = false;
-      document.getElementById('tk-chat-orb').classList.remove('active');
-      document.getElementById('tk-chat-log').scrollTop = 99999;
+      tkTypeReply(thinking, orb, 'Could not reach the assistant. Use "Ask a human" below.', function () {
+        orb.classList.remove('active');
+      });
     });
   return false;
 }
