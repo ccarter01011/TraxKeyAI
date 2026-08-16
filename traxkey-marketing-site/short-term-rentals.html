@@ -229,6 +229,7 @@ function toggleMobileNav() {
       <a href="#str-how" class="w-full sm:w-auto border border-white/15 hover:border-teal-400/50 hover:bg-white/5 text-slate-200 font-bold px-10 py-4 rounded-xl transition active:scale-95 duration-150 text-base">See how it works</a>
     </div>
     <p class="text-xs text-slate-500 mt-5">Works alongside Hostaway, OwnerRez, or nothing at all · Read-only calendar sync</p>
+    <p class="text-xs text-slate-500 mt-2">Running a compound or micro-resort? <a href="#micro-resort" class="text-teal-400 hover:text-teal-300 underline underline-offset-4">Jump to that section →</a></p>
   </div>
 </header>
 
@@ -274,6 +275,34 @@ function toggleMobileNav() {
           <p class="text-xs text-teal-300">This is the one that turns into a 3-star review. It takes reading three things at once, which is why it gets missed.</p>
         </div>
       </div>
+    </div>
+  </div>
+</section>
+
+<!-- REVIEW PROTECTION -->
+<section class="py-24 px-6 bg-slate-900/40 border-y border-white/5">
+  <div class="max-w-5xl mx-auto grid lg:grid-cols-5 gap-10 items-center">
+    <div class="lg:col-span-3">
+      <p class="text-teal-400 font-semibold text-sm mb-3 tracking-wide uppercase">After checkout</p>
+      <h2 class="text-3xl md:text-4xl font-bold mb-4">A 3-star review is a follow-up you never sent</h2>
+      <p class="text-slate-400 mb-4">A guest had a problem mid-stay. It got handled, eventually. They checked out anyway and didn't say anything else — until the review posted. By then it's too late to fix the impression, only the wording.</p>
+      <p class="text-slate-400 mb-6">The Review-Risk Agent checks every stay that just ended against the maintenance history during it: was there an issue, was it handled fast, is it even still open. It needs the booking calendar and the repair log in the same place to know that, which is the same gap nothing else closes. When a stay looks risky, it drafts an outreach message for you to review and send — TraxKey never messages a guest on your behalf, an apology is your call, not an autopilot's.</p>
+      <div class="flex flex-wrap gap-2">
+        <span class="text-xs font-semibold px-3 py-1.5 rounded-full bg-teal-500/10 border border-teal-400/20 text-teal-300">Flags at checkout, not at review time</span>
+        <span class="text-xs font-semibold px-3 py-1.5 rounded-full bg-teal-500/10 border border-teal-400/20 text-teal-300">Drafts outreach, you send it</span>
+      </div>
+    </div>
+    <div class="lg:col-span-2 bg-slate-900 border border-white/5 rounded-2xl p-6 glow-card">
+      <p class="text-xs uppercase tracking-wide text-slate-500 mb-3">Unit 4B · checked out today</p>
+      <div class="flex items-center gap-2 mb-4">
+        <span class="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-red-500/15 text-red-400">Review risk</span>
+        <span class="text-xs text-slate-500">AC request open 30+ hrs of a 2-night stay</span>
+      </div>
+      <p class="text-xs text-slate-500 mb-1">Suggested outreach — review before sending</p>
+      <div class="bg-slate-950 border border-white/10 rounded-lg px-3 py-2 mb-3">
+        <p class="text-xs text-slate-300">Sorry the AC took longer than it should have during your stay. Wanted to check in and see if you'd let us make it right.</p>
+      </div>
+      <p class="text-[11px] text-slate-500">Drafted, not sent. You decide.</p>
     </div>
   </div>
 </section>
@@ -354,6 +383,41 @@ function toggleMobileNav() {
   </div>
 </section>
 
+<!-- DYNAMIC PRICING -->
+<section class="py-24 px-6 bg-slate-950">
+  <div class="max-w-5xl mx-auto">
+    <div class="grid lg:grid-cols-5 gap-10 items-center">
+      <div class="lg:col-span-2 bg-slate-900 border border-white/5 rounded-2xl p-6 glow-card order-2 lg:order-1">
+        <p class="text-xs uppercase tracking-wide text-slate-500 mb-3">Saturday, Oct 17</p>
+        <div class="flex items-baseline gap-2 mb-4">
+          <span class="text-3xl font-bold text-teal-300">$284</span>
+          <span class="text-xs text-slate-500">suggested</span>
+          <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-500/15 text-indigo-300">Market</span>
+        </div>
+        <p class="text-xs text-slate-500 mb-2">Why this price</p>
+        <ul class="space-y-1.5">
+          <li class="text-xs text-slate-400">· Base rate $220</li>
+          <li class="text-xs text-slate-400">· Weekend night, +18%</li>
+          <li class="text-xs text-slate-400">· Property 78% booked this week, +15%</li>
+          <li class="text-xs text-slate-400">· Market comp average $340 across 41 comparable listings, above this rate, adjusted +9% toward it</li>
+        </ul>
+      </div>
+      <div class="lg:col-span-3 order-1 lg:order-2">
+        <p class="text-teal-400 font-semibold text-sm mb-3 tracking-wide uppercase">Dynamic pricing, no per-listing charge</p>
+        <h2 class="text-2xl md:text-3xl font-bold mb-4">Most pricing tools hand you a number. This one shows its work — and doesn't bill you per listing to see it.</h2>
+        <p class="text-slate-400 mb-4">Every night on your direct-booking calendar gets a suggested rate, and every suggestion comes with the reasoning attached: base rate, weekend lift, how full the property already is that week, and what comparable listings in your market are actually charging.</p>
+        <p class="text-slate-400 mb-4">Already on <span class="text-teal-300 font-semibold">PriceLabs</span>? Map the listing and TraxKey uses their recommendation instead. No market data connected? You still get occupancy-aware pricing, and the calendar tells you plainly that it's rules rather than market intelligence. Every night is labeled with which of the three produced it — nothing pretends to be smarter than it is.</p>
+        <p class="text-slate-400 mb-6">The part worth naming directly: the standalone revenue-management tools all bill per listing, on top of whatever PMS you already pay for. PriceLabs and Wheelhouse are both $19.99 per listing per month at small portfolio sizes; Beyond runs 1&ndash;1.25% of revenue, which on a $5,000/month listing is roughly $50&ndash;60. TraxKey's pricing engine lives inside your existing subscription tier &mdash; no per-listing surcharge, because it isn't a bolt-on, it's part of the platform.</p>
+        <p class="text-xs text-slate-500 mb-6">Their pricing as published in 2026; all three discount at higher listing counts (PriceLabs to about $5.99/listing past 100 units), and all three offer a revenue-share option instead. Worth checking their current rates yourself &mdash; and worth saying plainly: their pricing engines are more mature than ours.</p>
+        <div class="flex flex-wrap gap-2">
+          <span class="text-xs font-semibold px-3 py-1.5 rounded-full bg-teal-500/10 border border-teal-400/20 text-teal-300">No per-listing pricing fee</span>
+          <span class="text-xs font-semibold px-3 py-1.5 rounded-full bg-teal-500/10 border border-teal-400/20 text-teal-300">Every rate shows its reasoning</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- MICRO-RESORT / EXPERIENTIAL -->
 <section id="micro-resort" class="py-24 px-6 bg-slate-950">
   <div class="max-w-5xl mx-auto">
@@ -382,6 +446,40 @@ function toggleMobileNav() {
         <p class="text-[11px] text-slate-500">Notified 6 of 6 active guests by email.</p>
       </div>
     </div>
+  </div>
+</section>
+
+<!-- VS HOSTAWAY / GUESTY -->
+<section class="py-24 px-6 bg-slate-900/40 border-y border-white/5">
+  <div class="max-w-5xl mx-auto">
+    <div class="text-center mb-14">
+      <p class="text-teal-400 font-semibold text-sm mb-3 tracking-wide uppercase">If you're comparing us to Hostaway or Guesty</p>
+      <h2 class="text-3xl md:text-4xl font-bold mb-4">They're better at channel management. This is the part they can't do.</h2>
+      <p class="text-slate-400 max-w-2xl mx-auto">Fair fight, not a dismissal. Hostaway and Guesty are excellent at listing syndication, and both now ship their own AI (Hostaway calls theirs "AI CoHost"). Here's exactly where that AI runs into a wall neither product can get past.</p>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-5">
+      <div class="bg-slate-900 border border-white/5 rounded-2xl p-6">
+        <h3 class="font-bold mb-2">Their AI has no lease table</h3>
+        <p class="text-sm text-slate-400">Hostaway and Guesty were built for the booking calendar side. Neither has a concept of a lease, a tenant, or a long-term unit. If you run any mix of long-term and short-term, their AI is answering with half your portfolio missing — structurally, not as a roadmap gap.</p>
+      </div>
+      <div class="bg-slate-900 border border-white/5 rounded-2xl p-6">
+        <h3 class="font-bold mb-2">Maintenance coordination isn't the product</h3>
+        <p class="text-sm text-slate-400">Channel managers are built to get you bookings and sync calendars across platforms. Diagnosing a reported problem, matching a vendor by real performance, and gating dispatch on cost is a different job — one Breezeway and Turno built for years, and Hostaway/Guesty haven't.</p>
+      </div>
+      <div class="bg-slate-900 border border-white/5 rounded-2xl p-6">
+        <h3 class="font-bold mb-2">No compound or shared-amenity concept</h3>
+        <p class="text-sm text-slate-400">A single-listing STR tool has no idea a pool exists. If you run a compound, glamping site, or micro-resort, there's nowhere in either product to track a shared amenity, notify every current guest at once, or book a whole-property buyout.</p>
+      </div>
+      <div class="bg-slate-900 border border-white/5 rounded-2xl p-6">
+        <h3 class="font-bold mb-2">Pricing intelligence, without the per-listing tax</h3>
+        <p class="text-sm text-slate-400">Neither includes dynamic pricing outright — you connect PriceLabs, Wheelhouse, or Beyond, each billing per listing on top of your channel-manager subscription. TraxKey's pricing tier is inside your subscription, with no separate per-listing line item.</p>
+      </div>
+    </div>
+
+    <p class="text-xs text-slate-500 text-center mt-8 max-w-2xl mx-auto">
+      Where they're ahead: syndication across more channels, more mature guest messaging, and years more polish on the booking side. If listing distribution is your bottleneck, they're the right tool. If maintenance, mixed portfolios, or compounds are, that's what TraxKey was built for.
+    </p>
   </div>
 </section>
 
