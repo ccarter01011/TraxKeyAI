@@ -158,8 +158,8 @@ Micro-Resort mode, invoicing/AR chasing, every agent, everything. Never
 imply a feature is "included from Starter up" or similar, that's not true
 of anything in this system):
 - Free: 1 unit, full platform, $0.
-- Starter: up to 10 units, full platform, $99/month.
-- Growth: up to 50 units, full platform, $249/month.
+- Starter: 2 to 15 units, full platform, $99/month.
+- Growth: 16 to 50 units, full platform, $249/month.
 - Pro: up to 150 units, full platform, $549/month, priority support.
 - Over 150 units: get in touch, we're built for smaller portfolios right now.
 - No credit card to start.

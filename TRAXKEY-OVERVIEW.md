@@ -344,8 +344,8 @@ and we would rather say so.
 | Tier | Units | Price |
 |---|---|---|
 | Free | 1 | $0 |
-| Starter | 2–10 | $99/mo |
-| Growth | 11–50 | $249/mo |
+| Starter | 2–15 | $99/mo |
+| Growth | 16–50 | $249/mo |
 | Pro | 51–150 | $549/mo |
 
 No credit card to start. No per-seat charge, so adding staff costs nothing.
