@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>TraxKey AI for Short-Term Rentals — Same-Day Turnarounds, Guest-Aware Maintenance</title>
-<meta name="description" content="TraxKey AI syncs your Airbnb and Vrbo calendars, opens a cleaning turn the moment a guest checks out, flags same-day turnarounds, and warns you when a unit isn't ready before the next arrival." />
+<title>TraxKey AI for Short-Term Rentals & Micro-Resorts — Guest-Aware Maintenance</title>
+<meta name="description" content="TraxKey AI syncs your Airbnb and Vrbo calendars, opens a cleaning turn the moment a guest checks out, and flags same-day turnarounds. Also built for compounds and micro-resorts: shared-amenity tracking, notify-all-guests, and whole-property buyouts most STR tools have never heard of." />
 <link rel="canonical" href="https://traxkey.ai/short-term-rentals" />
 <meta property="og:type" content="website" />
 <meta property="og:title" content="TraxKey AI — AI Maintenance Coordinator for Property Management" />
@@ -222,7 +222,7 @@ function toggleMobileNav() {
       Your calendar knows.<br/><span class="bg-gradient-to-r from-teal-300 to-sky-400 bg-clip-text text-transparent">Now your maintenance does too.</span>
     </h1>
     <p class="text-base md:text-xl text-slate-300 max-w-2xl mx-auto mb-6 md:mb-10 fade-up" style="animation-delay:0.1s">
-      TraxKey AI reads your Airbnb and Vrbo calendars, so it knows when someone's actually in the unit. A broken AC with a guest inside is an emergency. The same AC in a unit that's empty for two weeks isn't.
+      TraxKey AI reads your Airbnb and Vrbo calendars, so it knows when someone's actually in the unit. A broken AC with a guest inside is an emergency. The same AC in a unit that's empty for two weeks isn't. One listing or a seven-cabin compound with a shared pool — TraxKey knows the difference and runs each one the way it actually operates.
     </p>
     <div class="flex flex-col sm:flex-row items-center justify-center gap-3 fade-up" style="animation-delay:0.15s">
       <a href="https://app.traxkey.ai/signup" class="w-full sm:w-auto bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold px-10 py-4 rounded-xl transition active:scale-95 duration-150 text-base shadow-lg shadow-teal-500/20">Start Free Trial →</a>
@@ -346,15 +346,42 @@ function toggleMobileNav() {
         <h3 class="font-bold mb-2">Guests kept in the loop</h3>
         <p class="text-sm text-slate-400">A guest who reports something gets emailed when a vendor is assigned and again when it's done. No portal, no login, no app to download.</p>
       </div>
-      <div class="bg-gradient-to-b from-teal-500/10 to-slate-900 border border-teal-400/20 rounded-2xl p-6">
-        <h3 class="font-bold mb-2">Run a compound? Flip one switch.</h3>
-        <p class="text-sm text-slate-400">Multiple cabins sharing a pool, dock, or clubhouse is a different operation than one listing. A per-property <em class="not-italic text-teal-300">Experiential / Micro-Resort</em> mode adds shared-amenity status, a one-click "notify every guest on-site" for the pool heater that just died, and whole-property buyouts for the reunion that books all seven cabins at once.</p>
-      </div>
     </div>
 
     <p class="text-xs text-slate-500 text-center mt-8 max-w-2xl mx-auto">
       Being straight about the trade: Breezeway and Turno have been building turnover tooling for years and theirs is deeper than ours. What they can't do is run the maintenance and the long-term side of your portfolio in the same system.
     </p>
+  </div>
+</section>
+
+<!-- MICRO-RESORT / EXPERIENTIAL -->
+<section id="micro-resort" class="py-24 px-6 bg-slate-950">
+  <div class="max-w-5xl mx-auto">
+    <div class="grid lg:grid-cols-5 gap-10 items-center">
+      <div class="lg:col-span-3">
+        <p class="text-teal-400 font-semibold text-sm mb-3 tracking-wide uppercase">A niche nobody else built for</p>
+        <h2 class="text-3xl md:text-4xl font-bold mb-4">5 acres, 7 cabins, one pool. That's not a normal STR listing.</h2>
+        <p class="text-slate-400 mb-4">A single-unit STR tool has no idea a pool exists. Hotel PMS is built for 80 rooms and a front desk, not 7 cabins run by two people. A compound, a glamping site, or a micro-resort is a different <em class="not-italic text-slate-300">operation</em> from a normal listing, not just a bigger one — every amenity issue affects every current guest at once, not one cabin's maintenance ticket, and the busiest bookings are for the whole property, not one unit at a time.</p>
+        <p class="text-slate-400 mb-6">TraxKey's property→units model already fits a compound the way it fits any mixed portfolio. Flip a property to <span class="text-teal-300 font-semibold">Experiential / Micro-Resort</span> mode and it gains what a compound actually needs on top: shared amenities with their own status and maintenance thread, one click to tell every current guest the pool heater is out, and whole-property buyout bookings for a wedding or reunion that blocks every cabin at once.</p>
+        <div class="flex flex-wrap gap-2">
+          <span class="text-xs font-semibold px-3 py-1.5 rounded-full bg-teal-500/10 border border-teal-400/20 text-teal-300">Shared amenity tracking</span>
+          <span class="text-xs font-semibold px-3 py-1.5 rounded-full bg-teal-500/10 border border-teal-400/20 text-teal-300">Notify every guest on-site</span>
+          <span class="text-xs font-semibold px-3 py-1.5 rounded-full bg-teal-500/10 border border-teal-400/20 text-teal-300">Whole-property buyouts</span>
+        </div>
+      </div>
+      <div class="lg:col-span-2 bg-slate-900 border border-white/5 rounded-2xl p-6 glow-card">
+        <p class="text-xs uppercase tracking-wide text-slate-500 mb-3">Main pool</p>
+        <div class="flex items-center gap-2 mb-4">
+          <span class="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400">Maintenance</span>
+          <span class="text-xs text-slate-500">Heater repair, back Thursday</span>
+        </div>
+        <p class="text-xs text-slate-500 mb-1">Notify guests currently on the property</p>
+        <div class="bg-slate-950 border border-white/10 rounded-lg px-3 py-2 mb-3">
+          <p class="text-xs text-slate-300">Pool heater is being repaired, back online Thursday.</p>
+        </div>
+        <p class="text-[11px] text-slate-500">Notified 6 of 6 active guests by email.</p>
+      </div>
+    </div>
   </div>
 </section>
 

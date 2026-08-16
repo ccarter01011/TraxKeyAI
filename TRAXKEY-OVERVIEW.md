@@ -3,13 +3,14 @@
 *Written for someone who has not seen the code.*
 
 **Live Google Doc:**
-https://docs.google.com/document/d/1_D7RtDMF5wKSyNJDyOv06Oxsz9jS2FHMw-Vt79f7SkI/edit
-(v6 — v1 through v5 are superseded and can be deleted. v4 in particular
+https://docs.google.com/document/d/1XgZ-q9ZzAGU2o8WAX4MPeF4OADlPewmvSQPfeUOvjKQ/edit
+(v7 — v1 through v6 are superseded and can be deleted. v4 in particular
 rendered as raw escaped markdown text, not real Doc formatting — the
 create_file call used contentMimeType text/plain, which uploads literal
 characters rather than parsing markdown syntax. Fixed in v5/v6 by
 generating real HTML with contentMimeType text/html instead, which Drive's
-converter turns into actual headings, bold, and tables.)
+converter turns into actual headings, bold, and tables. v7 carries forward
+the same three logo images from v6, unchanged.)
 
 This markdown file is the source. There is no way to update a Doc's content
 in place (Drive's update tool only changes title/location, not the body),
@@ -23,16 +24,19 @@ the old one. Update this link when that happens.
 ## 1. What TraxKey AI is
 
 A dedicated team of **10 specialized AI agents** that work a rental portfolio 24/7,
-across both long-term units and short-term rentals, in one system.
+across both long-term units and short-term rentals, in one system — plus a
+conversational analyst that answers questions across both halves on demand.
 
 They diagnose repairs, dispatch vendors, turn units between guests, and
 watch every lease. Short-term tools don't do leases. Property software
 doesn't do calendars. TraxKey does both, which is why it knows a guest is
-in the unit when the AC fails.
+in the unit when the AC fails — and why an operator can ask "which units
+earned the least this quarter" and get leases and nightly bookings compared
+in the same answer.
 
-Not a single bot bolted onto a ticketing tool. Each of the ten owns one
-workflow end to end, and they share the portfolio, the vendor network, and
-the operator's rules. Section 4 names all ten.
+Not a single bot bolted onto a ticketing tool. Each of the ten agents owns
+one workflow end to end, and they share the portfolio, the vendor network,
+and the operator's rules. Section 4 names all ten, plus the analyst.
 
 Most property software is a filing cabinet: it records what happened and
 leaves a human to make every decision. TraxKey decides the ones that are
@@ -56,6 +60,11 @@ your business and a platform that runs alongside it.
   healthy** — which vendor is worth keeping, which unit is underpriced,
   which turn pattern is costing them nights. TraxKey's Insights Agent
   surfaces exactly this, unprompted, from the portfolio's own history.
+- **A unit that's earning less than it should**, with no easy way to see
+  whether converting it from a lease to a short-term rental would actually
+  pay off — because that comparison needs the lease system and the booking
+  calendar in one place, and nowhere else keeps both. (§3, §4, Portfolio
+  Assistant)
 
 ---
 
@@ -82,6 +91,7 @@ all in their head.
 | Finding out a unit was not ready when the guest arrives | Checked before arrival, flagged while there is still time |
 | Discovering at renewal that a unit has been under-rented for a year | Surfaced 90 days out, with the gap against your own average |
 | Not knowing which vendor is quietly getting worse, or which unit keeps breaking | The Insights Agent watches for it and tells you, unprompted |
+| Not knowing whether a unit would earn more as a lease or a nightly rental | Ask the Portfolio Assistant — it compares both, in dollars, per unit |
 
 ### Why nobody has solved it for this operator
 
@@ -140,10 +150,11 @@ including the reason for each decision.
 | **Orders** | Parts and materials a job is waiting on, flagged when late, and when late means a turn will slip. Suppliers are chased by email once an item goes past its expected date, with a CC address and an on/off switch per item. Adapted from our own supply-chain product, TraxSail AI, which chases suppliers on purchase orders. |
 | **Property profile (onboarding)** | The nuances only the operator knows, captured once per property: water shutoff and panel locations, HVAC filter size, which quirks are normal, trash day, emergency info, insurance carrier and deductible. Feeds the resident assistant and the damage assessment. |
 | **Property inventory** | What is actually in each unit: appliances and furniture with brand, model, price, purchase date, warranty, condition, and a replacement link. Used for replace-on-breakage and to check warranty before anyone pays for a repair. |
-| **Direct booking & pricing (prototype)** | A reservation system outside Airbnb/Vrbo, with nightly rate suggestions from a vendor-agnostic pricing engine (weekend lift, last-minute discount, occupancy adjustment). No PriceLabs MCP or API is connected — no such connector exists to connect. Built vendor-agnostic so a real provider can be swapped in later without a rebuild. Marked as a test feature on the dashboard. |
+| **Direct booking & pricing (test)** | A reservation system outside Airbnb/Vrbo, with a month-grid calendar showing a suggested rate for every night. Three pricing tiers, picked per unit: a real PriceLabs recommendation for a mapped listing; the internal heuristic pulled toward a comp-set market average when AirROI market data is connected; or the plain heuristic (weekend lift, last-minute discount, occupancy adjustment) with neither connected. Every night is labeled with which tier produced it and why, so a rule-of-thumb price is never mistaken for market intelligence. Built vendor-agnostic so a real provider can be swapped in without a rebuild — which is now done in code; as of this writing neither a PriceLabs API key nor an AirROI API key is configured in production, so live pricing still runs on the heuristic tier. Marked as a test feature on the dashboard. |
+| **Portfolio Assistant** | A conversational analyst that answers plain-language questions spanning both rental types — "which units earned least," "where did maintenance cost most per dollar earned," "which leases end soon, and would those units earn more short-term." It reads from fixed, tenant-scoped queries only; it cannot write its own SQL and cannot see another company's data under any input. Every number it states comes from a query result, never an estimate. |
 | **Experiential STR / micro-resort mode** | A per-property toggle (on the Onboarding page, next to the property picker) for multi-unit properties sharing amenities — a compound with a pool, dock, or clubhouse across several cabins. Adds shared-amenity tracking with its own status and maintenance thread, a "notify every guest currently on the property" action, and whole-property buyout bookings for weddings and retreats that block every unit at once. |
 | **Invoices** | What you're owed, bucketed by how overdue it is, with reminders sent automatically until someone answers. CC address and auto-reminder switch per customer, overridable per invoice. TraxKey tracks and chases; it never processes a payment or holds funds. |
-| **Analytics & Reporting** | Occupancy trend, rental activity rollups, spend by property and vendor, and owner statements — how the business is doing over a period, distinct from the daily-action dashboard. |
+| **Analytics & Reporting** | Occupancy trend, rental activity rollups, spend by property and vendor, and owner statements — how the business is doing over a period, distinct from the daily-action dashboard and from the Portfolio Assistant's on-demand answers. |
 | **Supplies & damage** | Consumables per unit with reorder levels; checkout damage tied to the stay it happened during. |
 | **Vendor portal** | Vendors log in, see their jobs, mark them in progress. |
 | **Owner portal** | Owners you manage for see occupancy, spend, and activity for their own properties, read-only. Never see another owner's properties or any tenant's identity. |
@@ -170,19 +181,31 @@ makes them a platform rather than a bundle of features.
 | **Vendor Chase Agent** | Nudge a dispatched vendor who has gone silent, escalate to you after two tries | Every 15 min |
 | **Damage Assessor** | On a broken item, gathers cost, deductible, warranty, inventory match and who was in the unit, then recommends occupant charge, insurance claim, or owner cost. Names what is missing rather than guessing. Recommends; never decides. | On demand |
 | **Invoice Chase Agent** | Remind a customer an invoice is past due, and a supplier that a part is late; hand both to you after two tries | Hourly |
+| **Pricing Engine** | Suggests a nightly rate for every unpriced night, picking PriceLabs, AirROI-blended, or plain-heuristic pricing per unit, and records why | On demand, per unit |
 
-### The three assistants, and why they sound different
+### The four voices, and why they sound different
 
-Three separate AI personalities, because they are talking to three different
-people in three different situations. Using one voice for all three would be
-a mistake.
+Four separate AI personalities, because they are talking to four different
+people (or answering four different kinds of question) in four different
+situations. Using one voice for all of them would be a mistake.
 
 **1. The operator concierge** (dashboard). Briefs a professional on their own
 portfolio. Terse, ranked by urgency, no softening. Opens with the single most
 important thing, then a short list of what to do today. Every number in it is
 counted from real data, never estimated.
 
-**2. The resident and guest assistant** (reporting page). Talks to someone
+**2. The Portfolio Assistant** (the "Ask" page). Answers a specific question
+instead of delivering a fixed briefing — "which units earned least," "should
+I convert this lease," "where is maintenance eating my margin." It works
+across both rental types by design: it has six fixed, tenant-scoped queries
+to draw from, and it decides which to run, but it never writes its own SQL
+and the operator's company_id is supplied by the server, not by anything the
+assistant can see or change. It is told to state which kind of number a
+figure is — contracted rent is a promise, realized short-term revenue is
+what actually happened over a window — and to flag a thin sample rather than
+let a handful of booked nights read as a trend.
+
+**3. The resident and guest assistant** (reporting page). Talks to someone
 who may be cold, flooded, or locked out, and who never chose this software.
 Warm, short sentences, acknowledges the problem before solving it. Helps them
 describe the fault clearly, which is what gets the right trade sent first
@@ -200,7 +223,7 @@ before anything else. A "talk to a person" button is always one tap away, and
 if the operator has switched off automated handling for that resident, the AI
 step is skipped entirely.
 
-**3. The sales assistant** (public site). Answers prospect questions from a
+**4. The sales assistant** (public site). Answers prospect questions from a
 fixed product brief with no database access. It is instructed to name
 competitors where they are genuinely better, and it does.
 
@@ -229,8 +252,9 @@ rows, which is why it is inspectable and reversible.
 **The AI classifies. Software decides.**
 
 The only thing the AI is trusted with is reading a free-text description
-written by a stressed human and working out what it means. That is a genuine
-language problem and AI is good at it.
+written by a stressed human — or a free-text question written by an
+operator — and working out what it means. That is a genuine language
+problem and AI is good at it.
 
 Everything after that is ordinary, testable logic:
 
@@ -243,10 +267,14 @@ Everything after that is ordinary, testable logic:
 | Is this unit ready for the next arrival | Checklist state |
 | Is this vendor slower than they used to be | Their own history |
 | Should a damaged item be billed to the occupant, claimed on insurance, or absorbed | Cost, deductible, warranty and occupancy compared in SQL; AI only classifies whether the description reads as accidental, misuse, wear, or mechanical failure |
+| "Which units earned least this quarter" | **AI** picks which fixed query to run; the comparison itself is SQL |
 
 This matters commercially, not just technically. It is why TraxKey can show
 an operator the reason for every decision, and why the AI **cannot** invent a
-cost, choose a vendor it likes, or quietly change a rule the operator set.
+cost, choose a vendor it likes, quietly change a rule the operator set, or
+reach into another company's data — the Portfolio Assistant's tools are
+fixed queries with the company scope supplied by the server, not a
+parameter the AI can set.
 
 ---
 
@@ -259,11 +287,18 @@ Stated plainly because it is a strategy, not a gap:
 | Rent collection, trust accounting | Regulated, and a mistake is the operator's legal problem. It sits alongside whatever already moves their money. |
 | Tenant screening scores | Governed by fair-credit law. We would integrate a licensed provider, never score anyone ourselves. |
 | Deposit deduction amounts | Governed by state law that varies everywhere. TraxKey records what changed and a human decides. |
-| Real market-data pricing | A prototype pricing engine exists (§3), but it is a deterministic heuristic, not real market intelligence. No revenue-management vendor is connected, and no PriceLabs MCP exists to connect to. Built vendor-agnostic so one can be swapped in without a rebuild. |
 | Writing back to Airbnb/Vrbo | Requires partner agreements we do not have. Reading their calendars does not, and is enough. |
 
 The pattern: **TraxKey handles operations. It never handles money or makes a
 legal determination.**
+
+Real market-data pricing used to be on this list; it no longer fully is. The
+pricing engine (§3) now has a market-data tier — the heuristic pulled toward
+a comp-set average from AirROI — built and code-complete, alongside a real
+PriceLabs tier for any unit mapped to a live PriceLabs listing. What's still
+true: neither provider's API key is configured in production today, so
+every live unit prices on the plain heuristic until one is connected. That's
+a configuration step now, not a build.
 
 ---
 
@@ -295,7 +330,10 @@ No credit card to start. No per-seat charge, so adding staff costs nothing.
 The comparison that matters is not TraxKey against any single competitor. A
 mixed operator today pays for a short-term platform **and** a property
 management system, often with a maintenance tool on top. TraxKey is one
-subscription covering both.
+subscription covering both — and, unlike PriceLabs' Customer API at
+$1/listing/month on top of whatever PMS you're already paying for, TraxKey's
+market-data pricing tier will ride inside the existing subscription once a
+provider key is connected, with no per-listing surcharge planned.
 
 ---
 
@@ -308,9 +346,11 @@ are established businesses with large teams. Their short-term turnover
 tooling and their accounting are more mature than ours. All five have also
 shipped their own AI assistant (Hostaway calls theirs "AI CoHost"), so AI
 alone is no longer a differentiator in this market. What TraxKey's concierge
-has that a single-purpose assistant cannot: it reads leases and booking
-calendars together, so it can tell an operator a guest is in the unit where
-the AC just failed.
+and Portfolio Assistant have that a single-purpose assistant cannot: they
+read leases and booking calendars together, so one can tell an operator a
+guest is in the unit where the AC just failed, and the other can compare
+what a unit earns as a lease against what it would earn nightly — a question
+Hostaway's AI literally cannot ask, because Hostaway has no lease table.
 
 **Where we are genuinely ahead.**
 
@@ -321,11 +361,22 @@ the AC just failed.
    is treated differently from the same fault in a unit empty for two weeks.
    This requires the booking calendar and the maintenance engine in the same
    system, which is exactly what nobody else has.
-3. **A readable audit trail.** Every AI decision is logged with its reasoning
-   in plain language. Most AI tools cannot show this.
-4. **AI that cannot overrule the operator.** Rules are facts the AI obeys and
-   never rewrites. It can suggest raising a limit. It cannot raise one.
-5. **Chasing without touching money.** Invoice/AR and supplier POs are
+3. **A cross-portfolio analyst, not just a cross-portfolio dashboard.** The
+   Portfolio Assistant answers "which unit should I convert" or "where is
+   maintenance costing me most per dollar earned" by joining lease and
+   booking data live, per question. No STR platform or LTR PMS holds both
+   halves to join.
+4. **A readable audit trail.** Every AI decision is logged with its reasoning
+   in plain language. Most AI tools cannot show this — including the pricing
+   engine, where every suggested rate is labeled with the tier that produced
+   it and the specific factors (weekend lift, occupancy, comp-set average)
+   behind the number.
+5. **AI that cannot overrule the operator.** Rules are facts the AI obeys and
+   never rewrites. It can suggest raising a limit. It cannot raise one. The
+   same boundary holds for the Portfolio Assistant: it answers from fixed
+   queries scoped to the caller's own company, and there is no input that
+   lets it see or compare against another company's data.
+6. **Chasing without touching money.** Invoice/AR and supplier POs are
    tracked and chased by email on the same deterministic ladder as the
    Vendor Chase Agent. TraxKey never processes a payment or holds funds —
    this is visibility and follow-up, not accounting.
@@ -357,7 +408,7 @@ Onboarding (Step 1, includes the Standard STR / Experiential-Micro-Resort
 toggle) · Calendar · AI Activity · Turns · Orders · Invoicing · Analytics &
 Reporting · Inspections · Properties & Units · Residents & Guests · Leases ·
 Insights · Supplies & Damage · Vendors · Owners · Business Memory · Direct
-Booking & Pricing (test) · Connect Airbnb & Vrbo
+Booking & Pricing (test) · Ask (Portfolio Assistant) · Connect Airbnb & Vrbo
 
 Behind them: a workflow engine handling web requests, a separate always-on
 service running the AI and the scheduled work, and a Postgres database. The
@@ -367,7 +418,9 @@ one cannot take down the other.
 Every company's data is isolated at the database level on every single query.
 Residents, vendors, staff, owners, and administrators use separate login
 systems that never share a session, so a compromise in one cannot reach
-another.
+another. The Portfolio Assistant follows the same rule structurally: its
+tools take the caller's company as a server-supplied value, not something
+the AI can set, so there is no prompt that reaches another tenant's data.
 
 ---
 
@@ -380,5 +433,5 @@ another.
 | Tenant logins for long-term residents | Request history, documents, renewal offers. Short-term guests keep the no-login link. |
 | Subscription billing | Plans exist; taking payment does not yet. |
 | Document storage | Leases, insurance, notices. Unglamorous and its absence is disqualifying. |
-| A real revenue-management connection | The pricing engine (§3, §6) is vendor-agnostic by design; connecting PriceLabs or a similar provider replaces the heuristic with real market intelligence. No such connector exists today. |
+| Connect a live market-data or PriceLabs key | The pricing engine's market-data and PriceLabs tiers (§3, §6) are built and code-complete; what's left is provisioning an API key in production and confirming the first live response matches what the client expects, not a rebuild. |
 | STR setup & procurement | A separate, adjacent product (not a TraxKey feature): a project-management and procurement platform for furnishing a rental before launch — FF&E/OS&E scope, budget, purchase orders, delivery tracking, launch-readiness. Shares TraxKey's ordered-items engine and property inventory as the spine between the two products. Recorded in the roadmap, not yet validated with customer interviews. |

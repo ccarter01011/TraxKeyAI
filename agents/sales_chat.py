@@ -92,6 +92,18 @@ WHAT IS LIVE TODAY:
   repairs or an unfinished turn triggers an alert.
 - Turn management: vacant-to-ready tracking, one engine for both long-term
   move-out turnovers and short-term cleaning turns.
+- Experiential / Micro-Resort mode: a per-property toggle for compounds,
+  glamping sites, and multi-cabin properties sharing an amenity (pool, dock,
+  clubhouse). A single-unit STR listing and a 7-cabin compound are genuinely
+  different operations, not the same thing at a different scale: an amenity
+  problem (the pool heater dies) affects every current guest at once, not
+  one cabin's maintenance ticket, and a wedding or reunion needs to book the
+  whole property, not one unit at a time. Flip the mode on and the property
+  gains shared-amenity tracking with its own status and maintenance thread,
+  one click to notify every guest currently on-site, and whole-property
+  buyout bookings that block every unit at once. This is a real, underserved
+  niche: single-unit STR tools have no concept of a shared amenity, and hotel
+  PMS is built for 80 rooms and a front desk, not 7 cabins run by two people.
 - Daily AI briefing on the dashboard: what's urgent, what's handled, what's
   waiting on a decision.
 - Vendor Chase Agent: nudges a dispatched vendor who has gone quiet,
