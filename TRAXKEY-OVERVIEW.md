@@ -1,10 +1,33 @@
 # TraxKey AI — Product Overview
 
+## Tracks everything. Holds the key.
+
+The name is the pitch. **Trax** is the tracking — every request, every vendor,
+every lease, every booking, every dollar owed, logged with the reasoning
+attached. **Key** is the part nobody else holds: the one system that opens both
+halves of a mixed portfolio, long-term and short-term, at the same time.
+
+Positioning note for anyone writing copy from this document: TraxKey is not
+the rebel in this market and should not be written as one. Every competitor
+here is a real business doing real work, and several are better than us at
+their own specialty. What TraxKey did was notice that the market split
+long-term and short-term into two product categories, and that a growing
+number of operators live in the seam between them with no software built for
+where they actually are. That is the disruption, and it is architectural
+rather than attitudinal: one schema holding both rental types is a thing
+competitors cannot bolt on, not a thing they were too timid to try.
+
+Write from evidence, not attitude. The strongest line on the site is not a
+boast, it is "you can check this in ten minutes."
+
 *Written for someone who has not seen the code.*
 
 **Live Google Doc:**
 https://docs.google.com/document/d/1XgZ-q9ZzAGU2o8WAX4MPeF4OADlPewmvSQPfeUOvjKQ/edit
-(v7 — v1 through v6 are superseded and can be deleted. v4 in particular
+(Published Doc is v7. The "Tracks everything. Holds the key." section above
+is in this source but NOT yet in the published Doc — it publishes as v8
+alongside the AirROI wording update, so the Doc is regenerated once rather
+than twice. v1 through v6 are superseded and can be deleted. v4 in particular
 rendered as raw escaped markdown text, not real Doc formatting — the
 create_file call used contentMimeType text/plain, which uploads literal
 characters rather than parsing markdown syntax. Fixed in v5/v6 by
