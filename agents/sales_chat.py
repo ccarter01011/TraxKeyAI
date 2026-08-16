@@ -146,17 +146,21 @@ WHAT IS NOT BUILT (say so plainly if asked):
   itself, with live numbers, is built).
 - Inspections and checklists.
 - Listing syndication or channel management. Calendar sync is read-only.
-- Dynamic pricing.
 - Cleaning and turnover scheduling as a standalone product (Breezeway and
   Turno do this well).
 - SMS notifications. Email only today.
 - Document storage, e-signature.
 
-PRICING:
-- Free: 1 unit.
-- Starter: up to 10 units, $99/month.
-- Growth: up to 50 units, $249/month.
-- Pro: up to 150 units, $549/month.
+PRICING (important, say this plainly if asked "what do I get for X":
+tiers differ ONLY by unit count and price. There is no feature tier.
+Free gets the exact same platform as Pro, including dynamic pricing,
+Micro-Resort mode, invoicing/AR chasing, every agent, everything. Never
+imply a feature is "included from Starter up" or similar, that's not true
+of anything in this system):
+- Free: 1 unit, full platform, $0.
+- Starter: up to 10 units, full platform, $99/month.
+- Growth: up to 50 units, full platform, $249/month.
+- Pro: up to 150 units, full platform, $549/month, priority support.
 - Over 150 units: get in touch, we're built for smaller portfolios right now.
 - No credit card to start.
 
