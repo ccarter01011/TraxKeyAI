@@ -23,11 +23,8 @@ boast, it is "you can check this in ten minutes."
 *Written for someone who has not seen the code.*
 
 **Live Google Doc:**
-https://docs.google.com/document/d/1XgZ-q9ZzAGU2o8WAX4MPeF4OADlPewmvSQPfeUOvjKQ/edit
-(Published Doc is v7. The "Tracks everything. Holds the key." section above
-is in this source but NOT yet in the published Doc — it publishes as v8
-alongside the AirROI wording update, so the Doc is regenerated once rather
-than twice. v1 through v6 are superseded and can be deleted. v4 in particular
+https://docs.google.com/document/d/1Hymif0PIfSBTXV9oRGWbORrfBbq8T4X3PdIlWtg1oAU/edit
+(v1 through v7 are superseded and can be deleted. v4 in particular
 rendered as raw escaped markdown text, not real Doc formatting — the
 create_file call used contentMimeType text/plain, which uploads literal
 characters rather than parsing markdown syntax. Fixed in v5/v6 by
@@ -40,7 +37,7 @@ in place (Drive's update tool only changes title/location, not the body),
 so a material change here means a NEW Doc and a new link, not an edit to
 the old one. Update this link when that happens.
 
-**Last updated:** 15 August 2026
+**Last updated:** 17 August 2026
 
 ---
 
@@ -173,7 +170,7 @@ including the reason for each decision.
 | **Orders** | Parts and materials a job is waiting on, flagged when late, and when late means a turn will slip. Suppliers are chased by email once an item goes past its expected date, with a CC address and an on/off switch per item. Adapted from our own supply-chain product, TraxSail AI, which chases suppliers on purchase orders. |
 | **Property profile (onboarding)** | The nuances only the operator knows, captured once per property: water shutoff and panel locations, HVAC filter size, which quirks are normal, trash day, emergency info, insurance carrier and deductible. Feeds the resident assistant and the damage assessment. |
 | **Property inventory** | What is actually in each unit: appliances and furniture with brand, model, price, purchase date, warranty, condition, and a replacement link. Used for replace-on-breakage and to check warranty before anyone pays for a repair. |
-| **Direct booking & pricing (test)** | A reservation system outside Airbnb/Vrbo, with a month-grid calendar showing a suggested rate for every night. Three pricing tiers, picked per unit: a real PriceLabs recommendation for a mapped listing; the internal heuristic pulled toward a comp-set market average when AirROI market data is connected; or the plain heuristic (weekend lift, last-minute discount, occupancy adjustment) with neither connected. Every night is labeled with which tier produced it and why, so a rule-of-thumb price is never mistaken for market intelligence. Built vendor-agnostic so a real provider can be swapped in without a rebuild — which is now done in code; as of this writing neither a PriceLabs API key nor an AirROI API key is configured in production, so live pricing still runs on the heuristic tier. Marked as a test feature on the dashboard. |
+| **Direct booking & pricing (test)** | A reservation system outside Airbnb/Vrbo, with a month-grid calendar showing a suggested rate for every night. Three pricing tiers, picked per unit: a real PriceLabs recommendation for a mapped listing; the internal heuristic pulled toward a comp-set market average from AirROI, live in production as of 2026-08-17; or the plain heuristic (weekend lift, last-minute discount, occupancy adjustment) when neither is available for a given unit's market. Every night is labeled with which tier produced it and why, so a rule-of-thumb price is never mistaken for market intelligence. Built vendor-agnostic so a real provider can be swapped in without a rebuild. Marked as a test feature on the dashboard. |
 | **Portfolio Assistant** | A conversational analyst that answers plain-language questions spanning both rental types — "which units earned least," "where did maintenance cost most per dollar earned," "which leases end soon, and would those units earn more short-term." It reads from fixed, tenant-scoped queries only; it cannot write its own SQL and cannot see another company's data under any input. Every number it states comes from a query result, never an estimate. |
 | **Experiential STR / micro-resort mode** | A per-property toggle (on the Onboarding page, next to the property picker) for multi-unit properties sharing amenities — a compound with a pool, dock, or clubhouse across several cabins. Adds shared-amenity tracking with its own status and maintenance thread, a "notify every guest currently on the property" action, and whole-property buyout bookings for weddings and retreats that block every unit at once. |
 | **Invoices** | What you're owed, bucketed by how overdue it is, with reminders sent automatically until someone answers. CC address and auto-reminder switch per customer, overridable per invoice. TraxKey tracks and chases; it never processes a payment or holds funds. |
@@ -315,13 +312,12 @@ Stated plainly because it is a strategy, not a gap:
 The pattern: **TraxKey handles operations. It never handles money or makes a
 legal determination.**
 
-Real market-data pricing used to be on this list; it no longer fully is. The
-pricing engine (§3) now has a market-data tier — the heuristic pulled toward
-a comp-set average from AirROI — built and code-complete, alongside a real
-PriceLabs tier for any unit mapped to a live PriceLabs listing. What's still
-true: neither provider's API key is configured in production today, so
-every live unit prices on the plain heuristic until one is connected. That's
-a configuration step now, not a build.
+Real market-data pricing used to be on this list; it no longer is. The
+pricing engine (§3) has a market-data tier — the heuristic pulled toward a
+comp-set average from AirROI — live in production as of 2026-08-17,
+alongside a real PriceLabs tier for any unit mapped to a live PriceLabs
+listing. A unit still falls back to the plain heuristic only if AirROI has
+no coverage for its market or PriceLabs isn't mapped.
 
 ---
 
@@ -355,8 +351,8 @@ mixed operator today pays for a short-term platform **and** a property
 management system, often with a maintenance tool on top. TraxKey is one
 subscription covering both — and, unlike PriceLabs' Customer API at
 $1/listing/month on top of whatever PMS you're already paying for, TraxKey's
-market-data pricing tier will ride inside the existing subscription once a
-provider key is connected, with no per-listing surcharge planned.
+AirROI-backed market-data pricing tier already rides inside the existing
+subscription, with no per-listing surcharge.
 
 ---
 
@@ -456,5 +452,5 @@ the AI can set, so there is no prompt that reaches another tenant's data.
 | Tenant logins for long-term residents | Request history, documents, renewal offers. Short-term guests keep the no-login link. |
 | Subscription billing | Plans exist; taking payment does not yet. |
 | Document storage | Leases, insurance, notices. Unglamorous and its absence is disqualifying. |
-| Connect a live market-data or PriceLabs key | The pricing engine's market-data and PriceLabs tiers (§3, §6) are built and code-complete; what's left is provisioning an API key in production and confirming the first live response matches what the client expects, not a rebuild. |
+| Connect a live PriceLabs key | AirROI market-data pricing (§3, §6) went live 2026-08-17. The PriceLabs tier is still code-complete but unconnected — what's left is provisioning an API key in production, not a rebuild. |
 | STR setup & procurement | A separate, adjacent product (not a TraxKey feature): a project-management and procurement platform for furnishing a rental before launch — FF&E/OS&E scope, budget, purchase orders, delivery tracking, launch-readiness. Shares TraxKey's ordered-items engine and property inventory as the spine between the two products. Recorded in the roadmap, not yet validated with customer interviews. |
