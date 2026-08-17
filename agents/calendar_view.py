@@ -35,7 +35,8 @@ def get_calendar(company_id, days=DEFAULT_DAYS):
             """
             SELECT u.id, u.unit_number, u.status,
                    p.name AS property_name, p.id AS property_id,
-                   EXISTS (SELECT 1 FROM traxkey.unit_calendars uc WHERE uc.unit_id = u.id) AS is_str,
+                   (EXISTS (SELECT 1 FROM traxkey.unit_calendars uc WHERE uc.unit_id = u.id)
+                    OR EXISTS (SELECT 1 FROM traxkey.direct_reservations dr WHERE dr.unit_id = u.id AND dr.status = 'confirmed')) AS is_str,
                    EXISTS (SELECT 1 FROM traxkey.leases l WHERE l.unit_id = u.id AND l.status = 'active') AS is_ltr
             FROM traxkey.units u
             JOIN traxkey.properties p ON p.id = u.property_id
@@ -77,6 +78,35 @@ def get_calendar(company_id, days=DEFAULT_DAYS):
                 "checkout": r["checkout_date"].isoformat(),
                 "label": r["guest_label"],
                 "isBlocked": r["is_blocked"],
+            })
+
+        # Direct reservations (schema_v31), overlapping the window. Kept in
+        # a separate table from the iCal `bookings` mirror above on purpose
+        # (see that schema's own comment), but a guest booked through
+        # TraxKey's own pricing page is exactly as real as one booked
+        # through Airbnb, and belongs on the same "everything, one
+        # timeline" grid — this was a genuine gap before this query existed.
+        cur.execute(
+            """
+            SELECT dr.unit_id, dr.checkin_date, dr.checkout_date, dr.guest_name
+            FROM traxkey.direct_reservations dr
+            JOIN traxkey.units u ON u.id = dr.unit_id
+            JOIN traxkey.properties p ON p.id = u.property_id
+            WHERE p.company_id = %s AND dr.status = 'confirmed'
+              AND dr.checkout_date >= %s AND dr.checkin_date <= %s
+            ORDER BY dr.checkin_date
+            """,
+            (company_id, start, end),
+        )
+        for r in cur.fetchall():
+            u = by_unit.get(str(r["unit_id"]))
+            if not u:
+                continue
+            u["bookings"].append({
+                "checkin": r["checkin_date"].isoformat(),
+                "checkout": r["checkout_date"].isoformat(),
+                "label": r["guest_name"],
+                "isBlocked": False,
             })
 
         # Open turns, so a cleaning deadline sits on the same row as the
