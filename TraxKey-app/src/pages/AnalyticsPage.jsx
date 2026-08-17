@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import FlowHelp from '../components/FlowHelp.jsx';
+import AnimatedNumber from '../components/AnimatedNumber.jsx';
+import { RevealBar, useInView } from '../components/AnimatedBar.jsx';
 
 const AGENT_BASE = 'https://langgraph-production-42ef.up.railway.app';
 const hdrs = () => ({ Authorization: `Bearer ${localStorage.getItem('tk_token')}` });
@@ -9,11 +11,16 @@ const money = n => (n === null || n === undefined ? '—'
 
 const TABS = ['Occupancy', 'Rental Activity', 'Financial', 'Owner Statements'];
 
-function StatTile({ label, value, tone = 'text-slate-900 dark:text-white' }) {
+// `raw` + `format` animates a single number (occupancy %, a count, a dollar
+// total). Composite displays like "3 / 10" pass `value` as plain text
+// instead, since there's no single number to tick toward.
+function StatTile({ label, value, raw, format, tone = 'text-slate-900 dark:text-white' }) {
   return (
     <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-xl p-4">
       <p className="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500 mb-1">{label}</p>
-      <p className={`text-2xl font-bold ${tone}`}>{value}</p>
+      <p className={`text-2xl font-bold ${tone}`}>
+        {raw !== undefined ? <AnimatedNumber value={raw} format={format} /> : value}
+      </p>
     </div>
   );
 }
@@ -27,10 +34,10 @@ function OccupancyView({ d }) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatTile label="Occupancy" value={`${d.occupancyPct}%`} tone="text-teal-600 dark:text-teal-400" />
+        <StatTile label="Occupancy" raw={d.occupancyPct} format={v => `${Math.round(v)}%`} tone="text-teal-600 dark:text-teal-400" />
         <StatTile label="Occupied units" value={`${d.occupied} / ${d.totalUnits}`} />
-        <StatTile label="Turns completed (90d)" value={d.turnsCompleted90d} />
-        <StatTile label="Avg days vacant (90d)" value={d.avgDaysVacant90d ?? '—'} />
+        <StatTile label="Turns completed (90d)" raw={d.turnsCompleted90d} />
+        <StatTile label="Avg days vacant (90d)" value={d.avgDaysVacant90d ?? '—'} raw={d.avgDaysVacant90d ?? undefined} />
       </div>
       <Card>
         <h3 className="font-bold mb-3">By property</h3>
@@ -43,14 +50,40 @@ function OccupancyView({ d }) {
                   <span className="text-sm">{p.name}</span>
                   <span className="text-xs text-slate-500">{p.occupied} / {p.units} · {pct}%</span>
                 </div>
-                <div className="h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-                  <div className="h-full bg-teal-400 rounded-full" style={{ width: `${pct}%` }} />
-                </div>
+                <RevealBar pct={pct} />
               </div>
             );
           })}
         </div>
       </Card>
+    </div>
+  );
+}
+
+// Columns grow from the baseline (scaleY, transform-origin bottom) once the
+// chart scrolls into view, and each count ticks up alongside its own bar
+// rather than appearing pre-filled the instant the numbers load.
+function WeeklyBarChart({ weekly }) {
+  const { ref, shown: played } = useInView();
+  const max = Math.max(...weekly.map(x => x.opened), 1);
+  return (
+    <div ref={ref} className="flex items-end gap-2 h-32">
+      {weekly.map((w, i) => (
+        <div key={w.week} className="flex-1 flex flex-col items-center justify-end h-full">
+          <div
+            className="w-full bg-teal-400 rounded-t origin-bottom"
+            style={{
+              height: `${(w.opened / max) * 100}%`,
+              minHeight: w.opened ? '4px' : 0,
+              transform: played ? 'scaleY(1)' : 'scaleY(0)',
+              transition: `transform 500ms cubic-bezier(.22,.61,.36,1) ${i * 40}ms`,
+            }}
+          />
+          <span className="text-[10px] text-slate-500 mt-1">
+            {played ? <AnimatedNumber value={w.opened} duration={500} /> : 0}
+          </span>
+        </div>
+      ))}
     </div>
   );
 }
@@ -61,27 +94,17 @@ function RentalActivityView({ d }) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        <StatTile label="Leases started" value={t.leases_started} />
-        <StatTile label="Renewals offered" value={t.renewals_offered} />
-        <StatTile label="Turns completed" value={t.turns_completed} />
-        <StatTile label="Requests opened" value={t.requests_opened} />
-        <StatTile label="Requests closed" value={t.requests_closed} />
+        <StatTile label="Leases started" raw={t.leases_started} />
+        <StatTile label="Renewals offered" raw={t.renewals_offered} />
+        <StatTile label="Turns completed" raw={t.turns_completed} />
+        <StatTile label="Requests opened" raw={t.requests_opened} />
+        <StatTile label="Requests closed" raw={t.requests_closed} />
       </div>
       <Card>
         <h3 className="font-bold mb-1">Requests opened by week</h3>
         <p className="text-xs text-slate-500 mb-4">Last {d.period_days} days.</p>
         {d.weekly.length === 0 ? <p className="text-sm text-slate-400">Nothing in this period.</p> : (
-          <div className="flex items-end gap-2 h-32">
-            {d.weekly.map(w => {
-              const max = Math.max(...d.weekly.map(x => x.opened), 1);
-              return (
-                <div key={w.week} className="flex-1 flex flex-col items-center justify-end h-full">
-                  <div className="w-full bg-teal-400 rounded-t" style={{ height: `${(w.opened / max) * 100}%`, minHeight: w.opened ? '4px' : 0 }} />
-                  <span className="text-[10px] text-slate-500 mt-1">{w.opened}</span>
-                </div>
-              );
-            })}
-          </div>
+          <WeeklyBarChart weekly={d.weekly} />
         )}
       </Card>
     </div>
@@ -93,9 +116,9 @@ function FinancialView({ d }) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        <StatTile label="Total spend" value={money(d.totalSpend)} tone="text-slate-900 dark:text-white" />
-        <StatTile label="Maintenance" value={money(d.maintenanceSpend)} />
-        <StatTile label="Orders (parts/materials)" value={money(d.orderSpend)} />
+        <StatTile label="Total spend" raw={d.totalSpend} format={money} tone="text-slate-900 dark:text-white" />
+        <StatTile label="Maintenance" raw={d.maintenanceSpend} format={money} />
+        <StatTile label="Orders (parts/materials)" raw={d.orderSpend} format={money} />
       </div>
       <Card>
         <h3 className="font-bold mb-3">Spend by property</h3>
@@ -153,15 +176,17 @@ function OwnerStatementsView({ d }) {
             <div className="grid grid-cols-3 gap-3 text-sm">
               <div>
                 <p className="text-xs text-slate-400">Scheduled rent / mo</p>
-                <p className="font-bold">{money(o.scheduledRentMonthly)}</p>
+                <p className="font-bold"><AnimatedNumber value={o.scheduledRentMonthly} format={money} /></p>
               </div>
               <div>
                 <p className="text-xs text-slate-400">Spend ({d.period_days}d)</p>
-                <p className="font-bold text-red-600 dark:text-red-400">{money(o.spendPeriod)}</p>
+                <p className="font-bold text-red-600 dark:text-red-400"><AnimatedNumber value={o.spendPeriod} format={money} /></p>
               </div>
               <div>
                 <p className="text-xs text-slate-400">Estimated net</p>
-                <p className={`font-bold ${net >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>{money(net)}</p>
+                <p className={`font-bold ${net >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                  <AnimatedNumber value={net} format={money} />
+                </p>
               </div>
             </div>
           </Card>

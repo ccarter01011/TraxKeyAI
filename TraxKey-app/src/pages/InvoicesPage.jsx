@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import FlowHelp from '../components/FlowHelp.jsx';
 import ImportExport from '../components/ImportExport.jsx';
 import FilterBar, { useFiltered } from '../components/FilterBar.jsx';
+import AnimatedNumber from '../components/AnimatedNumber.jsx';
+import { AgingBar } from '../components/AnimatedBar.jsx';
 
 const STATUS_OPTIONS = [
   { value: 'open', label: 'Open' },
@@ -193,6 +195,17 @@ function InvoiceRow({ inv, onChanged }) {
   );
 }
 
+function AgingTile({ label, value, tone }) {
+  return (
+    <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-xl p-3">
+      <p className="text-[10px] uppercase tracking-wide text-slate-400 font-semibold">{label}</p>
+      <p className={`text-lg font-bold mt-0.5 ${tone}`}>
+        <AnimatedNumber value={value} format={money} />
+      </p>
+    </div>
+  );
+}
+
 export default function InvoicesPage() {
   const [data, setData] = useState(null);
   const [tab, setTab] = useState('invoices');
@@ -242,19 +255,32 @@ export default function InvoicesPage() {
           <ImportExport kind="invoices" onImported={load} />
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
           {[
             ['Outstanding', s.total_open, 'text-slate-900 dark:text-white'],
             ['Not yet due', s.current_amt, 'text-slate-500'],
-            ['1–30 days over', s.overdue_1_30, 'text-amber-600 dark:text-amber-400'],
+            ['1–30 days over', s.overdue_1_30, 'text-amber-500 dark:text-amber-400'],
+            ['31–60 days over', s.overdue_31_60, 'text-orange-600 dark:text-orange-400'],
             ['60+ days over', s.overdue_60_plus, 'text-red-600 dark:text-red-400'],
           ].map(([label, val, tone]) => (
-            <div key={label} className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-xl p-3">
-              <p className="text-[10px] uppercase tracking-wide text-slate-400 font-semibold">{label}</p>
-              <p className={`text-lg font-bold mt-0.5 ${tone}`}>{money(val)}</p>
-            </div>
+            <AgingTile key={label} label={label} value={val} tone={tone} />
           ))}
         </div>
+
+        {s.total_open > 0 && (
+          <div className="mb-6 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-xl p-4">
+            <p className="text-[10px] uppercase tracking-wide text-slate-400 font-semibold mb-2.5">Aging, as a share of what's outstanding</p>
+            <AgingBar
+              segments={[
+                { label: 'Not yet due', value: Number(s.current_amt) || 0, cls: 'bg-slate-400 dark:bg-slate-500' },
+                { label: '1–30 days', value: Number(s.overdue_1_30) || 0, cls: 'bg-amber-400' },
+                { label: '31–60 days', value: Number(s.overdue_31_60) || 0, cls: 'bg-orange-500' },
+                { label: '60+ days', value: Number(s.overdue_60_plus) || 0, cls: 'bg-red-500' },
+              ]}
+              total={Number(s.total_open) || 0}
+            />
+          </div>
+        )}
 
         <div className="flex gap-1 mb-4 border-b border-slate-200 dark:border-white/10">
           {['invoices', 'customers'].map(t => (

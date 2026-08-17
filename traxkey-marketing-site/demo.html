@@ -163,6 +163,13 @@ html.light .to-slate-900 { --tw-gradient-to: #ffffff !important; }
   html { scroll-behavior: smooth; }
   [id] { scroll-margin-top: 6.5rem; }
   @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  /* Vendor reliability bars and the chart's own drawn lines. */
+  .tk-bar { transition: transform .7s cubic-bezier(.22,.61,.36,1); }
+  .tk-chart-line { transition: stroke-dashoffset .8s cubic-bezier(.22,.61,.36,1); }
+  .tk-chart-dot { transition: transform .3s ease-out, opacity .3s ease-out; transform-origin: center; }
+  @media (prefers-reduced-motion: reduce) {
+    .tk-bar, .tk-chart-line, .tk-chart-dot { transition: none !important; }
+  }
 </style>
 <script>
   // Set before paint so no element starts animating and then stalls mid-way.
@@ -364,6 +371,121 @@ html.light .to-slate-900 { --tw-gradient-to: #ffffff !important; }
 </footer>
 
 <script>
+var TK_REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+var TK_EASE_OUT_EXPO = function (t) { return t === 1 ? 1 : 1 - Math.pow(2, -10 * t); };
+
+// Counts every ".tk-count" inside `root` up from 0 to its data-final value.
+// The value can carry a % suffix or be non-numeric ("4.1h" is animated on
+// its numeric part, "h" stays fixed) — parsed once per element rather than
+// requiring callers to pre-split prefix/suffix.
+// requestAnimationFrame does not run in a hidden/backgrounded tab, so any
+// element still mid-animation when this fires (a hard 1.5s backstop, well
+// past every animation's own duration) is snapped straight to its resting
+// value instead of staying stuck wherever the rAF chain left it. Runs
+// against the whole document rather than a specific root, since it's cheap
+// and it means every render path is covered by one call.
+function tkFinishStuckAnimations() {
+  setTimeout(function () {
+    document.querySelectorAll('.tk-count').forEach(function (el) {
+      var final = el.getAttribute('data-final');
+      if (final && el.textContent !== final) el.textContent = final;
+    });
+    document.querySelectorAll('.tk-bar').forEach(function (bar) {
+      var pct = Number(bar.getAttribute('data-pct')) || 0;
+      bar.style.transform = 'scaleX(' + (pct / 100) + ')';
+    });
+    document.querySelectorAll('.tk-chart-line').forEach(function (l) { l.style.strokeDashoffset = 0; });
+    document.querySelectorAll('.tk-chart-dot').forEach(function (d) { d.style.opacity = '1'; d.style.transform = 'scale(1)'; });
+  }, 1500);
+}
+
+function animateCounts(root) {
+  tkFinishStuckAnimations();
+  var els = root.querySelectorAll('.tk-count');
+  els.forEach(function (el) {
+    var final = el.getAttribute('data-final') || '';
+    var delay = Number(el.getAttribute('data-delay')) || 0;
+    // Thousands separators break the leading-number match ("$18,400" would
+    // otherwise animate as "18" and leave ",400" static), so strip them for
+    // parsing and reinsert them when formatting whole numbers back out.
+    var clean = final.replace(/,/g, '');
+    var m = clean.match(/-?[\d.]+/);
+    if (!m) { el.textContent = final; return; } // nothing numeric to animate (e.g. "Not started")
+    var target = parseFloat(m[0]);
+    var prefix = clean.slice(0, m.index);
+    var suffix = clean.slice(m.index + m[0].length);
+    var decimals = (m[0].split('.')[1] || '').length;
+    var fmt = function (v) {
+      return decimals ? v.toFixed(decimals) : Math.round(v).toLocaleString();
+    };
+
+    if (TK_REDUCED_MOTION) { el.textContent = final; return; }
+
+    el.textContent = prefix + fmt(0) + suffix;
+    setTimeout(function () {
+      var start = performance.now(), duration = 700;
+      function tick(now) {
+        var t = Math.min(1, (now - start) / duration);
+        var v = target * TK_EASE_OUT_EXPO(t);
+        el.textContent = prefix + fmt(v) + suffix;
+        if (t < 1) requestAnimationFrame(tick);
+        else el.textContent = final;
+      }
+      requestAnimationFrame(tick);
+    }, delay);
+  });
+}
+
+// Grows every ".tk-bar" from scaleX(0) to its data-pct width. A two-frame
+// wait matters here: the bar is inserted at scaleX(0) via inline style, and
+// starting the transition in the same frame it's added can get coalesced by
+// the browser into no transition at all.
+function animateBars(root) {
+  var bars = root.querySelectorAll('.tk-bar');
+  bars.forEach(function (bar) {
+    var pct = Number(bar.getAttribute('data-pct')) || 0;
+    var delay = Number(bar.getAttribute('data-delay')) || 0;
+    if (TK_REDUCED_MOTION) { bar.style.transform = 'scaleX(' + (pct / 100) + ')'; return; }
+    setTimeout(function () {
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () { bar.style.transform = 'scaleX(' + (pct / 100) + ')'; });
+      });
+    }, delay);
+  });
+}
+
+// Draws each polyline in from the left using the classic stroke-dasharray /
+// dashoffset trick, then fades and scales the point markers in behind it so
+// the line appears to be plotting itself rather than popping in complete.
+function animateChart(root) {
+  var svg = root.querySelector('svg');
+  if (!svg) return;
+  var lines = svg.querySelectorAll('polyline');
+  var dots = svg.querySelectorAll('circle');
+  if (TK_REDUCED_MOTION) return;
+
+  lines.forEach(function (line, i) {
+    var len = line.getTotalLength();
+    line.classList.add('tk-chart-line');
+    line.style.strokeDasharray = len;
+    line.style.strokeDashoffset = len;
+    setTimeout(function () {
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () { line.style.strokeDashoffset = 0; });
+      });
+    }, i * 150);
+  });
+  dots.forEach(function (dot, i) {
+    dot.classList.add('tk-chart-dot');
+    dot.style.opacity = '0';
+    dot.style.transform = 'scale(0)';
+    setTimeout(function () {
+      dot.style.opacity = '1';
+      dot.style.transform = 'scale(1)';
+    }, 700 + i * 40);
+  });
+}
+
 // Two portfolios, deliberately different shapes. The long-term view is about
 // tenancy and cost control over months; the short-term view is about hours
 // and guest experience. Showing the same metrics twice would undercut the
@@ -580,20 +702,20 @@ var ANALYTICS = {
 
 function renderAnalytics(key) {
   var d = ANALYTICS[key];
-  var tiles = d.tiles.map(function (t) {
+  var tiles = d.tiles.map(function (t, i) {
     return '<div class="bg-slate-900 border border-white/5 rounded-2xl p-5">' +
       '<p class="text-xs uppercase tracking-wide text-slate-500 mb-1">' + t.label + '</p>' +
-      '<p class="text-2xl font-bold ' + TONE[t.tone] + '">' + t.value + '</p>' +
+      '<p class="text-2xl font-bold ' + TONE[t.tone] + '"><span class="tk-count" data-final="' + t.value + '" data-delay="' + (i * 90) + '">0</span></p>' +
       '<p class="text-xs text-slate-500 mt-1">' + t.sub + '</p></div>';
   }).join('');
 
-  var occ = d.occupancy.map(function (o) {
+  var occ = d.occupancy.map(function (o, i) {
     var pct = Math.round((o.occupied / o.units) * 100);
     return '<div class="mb-3"><div class="flex items-baseline justify-between mb-1">' +
       '<span class="text-sm">' + o.name + '</span>' +
       '<span class="text-xs text-slate-500">' + o.occupied + ' / ' + o.units + ' · ' + pct + '%</span></div>' +
       '<div class="h-1.5 bg-slate-800 rounded-full overflow-hidden">' +
-      '<div class="h-full bg-teal-400 rounded-full" style="width:' + pct + '%"></div></div></div>';
+      '<div class="tk-bar h-full bg-teal-400 rounded-full origin-left" style="transform:scaleX(0)" data-pct="' + pct + '" data-delay="' + (i * 90) + '"></div></div></div>';
   }).join('');
 
   var spend = d.spend.map(function (s) {
@@ -608,6 +730,8 @@ function renderAnalytics(key) {
       '<div class="bg-slate-900 border border-white/5 rounded-2xl p-6"><h4 class="font-bold mb-4">' + d.spendLabel + '</h4>' + spend + '</div>' +
     '</div>' +
     '<p class="text-xs text-slate-500 mt-5">' + d.note + '</p>';
+  animateCounts(document.getElementById('analytics-body'));
+  animateBars(document.getElementById('analytics-body'));
 }
 
 function renderTurns(key) {
@@ -711,17 +835,19 @@ function showView(key) {
     }
   }, 90);
 
-  document.getElementById('kpis').innerHTML = d.kpis.map(function (k) {
+  document.getElementById('kpis').innerHTML = d.kpis.map(function (k, i) {
     return '<div class="bg-slate-900 border border-white/5 rounded-2xl p-5">' +
       '<p class="text-xs uppercase tracking-wide text-slate-500 mb-1">' + k.label + '</p>' +
-      '<p class="text-3xl font-bold ' + TONE[k.tone] + '">' + k.value + '</p>' +
+      '<p class="text-3xl font-bold ' + TONE[k.tone] + '"><span class="tk-count" data-final="' + k.value + '" data-delay="' + (i * 90) + '">0</span></p>' +
       '<p class="text-xs text-slate-500 mt-1">' + k.sub + '</p></div>';
   }).join('');
+  animateCounts(document.getElementById('kpis'));
 
   document.getElementById('chart-title').textContent = d.chartTitle;
   document.getElementById('chart-sub').textContent = d.chartSub;
   document.getElementById('chart-note').textContent = d.chartNote;
   document.getElementById('chart').innerHTML = lineChart(d.series, d.xLabels);
+  animateChart(document.getElementById('chart'));
 
   document.getElementById('queue').innerHTML = d.queue.map(function (q) {
     return '<div class="flex items-start gap-3 bg-slate-950/50 rounded-xl px-4 py-3">' +
@@ -731,15 +857,17 @@ function showView(key) {
       '<span class="shrink-0 text-xs text-slate-600">' + q.time + '</span></div>';
   }).join('');
 
-  document.getElementById('vendors').innerHTML = d.vendors.map(function (v) {
+  document.getElementById('vendors').innerHTML = d.vendors.map(function (v, i) {
     var bar = v.score >= 90 ? 'bg-teal-400' : v.score >= 80 ? 'bg-amber-400' : 'bg-red-400';
     return '<div><div class="flex items-baseline justify-between mb-1">' +
       '<span class="text-sm">' + v.name + '</span>' +
-      '<span class="text-xs text-slate-500">' + v.score + '%</span></div>' +
+      '<span class="text-xs text-slate-500"><span class="tk-count" data-final="' + v.score + '%" data-delay="' + (i * 90) + '">0%</span></span></div>' +
       '<div class="h-1.5 bg-slate-800 rounded-full overflow-hidden">' +
-      '<div class="h-full ' + bar + ' rounded-full" style="width:' + v.score + '%"></div></div>' +
+      '<div class="tk-bar h-full ' + bar + ' rounded-full origin-left" style="transform:scaleX(0)" data-pct="' + v.score + '" data-delay="' + (i * 90) + '"></div></div>' +
       '<p class="text-xs text-slate-600 mt-1">' + v.trade + ' · ' + v.jobs + ' jobs</p></div>';
   }).join('');
+  animateCounts(document.getElementById('vendors'));
+  animateBars(document.getElementById('vendors'));
 
   document.getElementById('side-panel').innerHTML =
     '<h3 class="font-bold mb-4">' + d.sideTitle + '</h3>' +
