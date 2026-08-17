@@ -486,6 +486,33 @@ function animateChart(root) {
   });
 }
 
+// Runs `cb` once, the first time `el` scrolls into view — not immediately
+// when the section is rendered. Counters and bars used to fire the instant
+// a tab was switched or the page loaded, animating a section the reader
+// hadn't scrolled to yet and had already finished by the time they did.
+// Same IntersectionObserver + hidden-document sweep pattern as .fade-up and
+// #stack-collapse elsewhere on this page, so it's consistent under a
+// background tab and under reduced motion (the callee handles that itself).
+function tkOnVisible(el, cb) {
+  if (!el) return;
+  var played = false;
+  function play() { if (played) return; played = true; cb(); }
+  if (!('IntersectionObserver' in window)) { play(); return; }
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) { if (e.isIntersecting) { play(); io.disconnect(); } });
+  }, { threshold: 0.3 });
+  io.observe(el);
+  function sweep() {
+    if (played) return;
+    var h = window.innerHeight || document.documentElement.clientHeight;
+    if (!h) { play(); return; }
+    var r = el.getBoundingClientRect();
+    if (r.top < h * 0.95 && r.bottom > 0) play();
+  }
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) sweep(); });
+  setTimeout(sweep, 1500);
+}
+
 // Two portfolios, deliberately different shapes. The long-term view is about
 // tenancy and cost control over months; the short-term view is about hours
 // and guest experience. Showing the same metrics twice would undercut the
@@ -730,8 +757,11 @@ function renderAnalytics(key) {
       '<div class="bg-slate-900 border border-white/5 rounded-2xl p-6"><h4 class="font-bold mb-4">' + d.spendLabel + '</h4>' + spend + '</div>' +
     '</div>' +
     '<p class="text-xs text-slate-500 mt-5">' + d.note + '</p>';
-  animateCounts(document.getElementById('analytics-body'));
-  animateBars(document.getElementById('analytics-body'));
+  var analyticsEl = document.getElementById('analytics-body');
+  tkOnVisible(analyticsEl, function () {
+    animateCounts(analyticsEl);
+    animateBars(analyticsEl);
+  });
 }
 
 function renderTurns(key) {
@@ -841,13 +871,17 @@ function showView(key) {
       '<p class="text-3xl font-bold ' + TONE[k.tone] + '"><span class="tk-count" data-final="' + k.value + '" data-delay="' + (i * 90) + '">0</span></p>' +
       '<p class="text-xs text-slate-500 mt-1">' + k.sub + '</p></div>';
   }).join('');
-  animateCounts(document.getElementById('kpis'));
+  tkOnVisible(document.getElementById('kpis'), function () {
+    animateCounts(document.getElementById('kpis'));
+  });
 
   document.getElementById('chart-title').textContent = d.chartTitle;
   document.getElementById('chart-sub').textContent = d.chartSub;
   document.getElementById('chart-note').textContent = d.chartNote;
   document.getElementById('chart').innerHTML = lineChart(d.series, d.xLabels);
-  animateChart(document.getElementById('chart'));
+  tkOnVisible(document.getElementById('chart'), function () {
+    animateChart(document.getElementById('chart'));
+  });
 
   document.getElementById('queue').innerHTML = d.queue.map(function (q) {
     return '<div class="flex items-start gap-3 bg-slate-950/50 rounded-xl px-4 py-3">' +
@@ -866,8 +900,11 @@ function showView(key) {
       '<div class="tk-bar h-full ' + bar + ' rounded-full origin-left" style="transform:scaleX(0)" data-pct="' + v.score + '" data-delay="' + (i * 90) + '"></div></div>' +
       '<p class="text-xs text-slate-600 mt-1">' + v.trade + ' · ' + v.jobs + ' jobs</p></div>';
   }).join('');
-  animateCounts(document.getElementById('vendors'));
-  animateBars(document.getElementById('vendors'));
+  var vendorsEl = document.getElementById('vendors');
+  tkOnVisible(vendorsEl, function () {
+    animateCounts(vendorsEl);
+    animateBars(vendorsEl);
+  });
 
   document.getElementById('side-panel').innerHTML =
     '<h3 class="font-bold mb-4">' + d.sideTitle + '</h3>' +

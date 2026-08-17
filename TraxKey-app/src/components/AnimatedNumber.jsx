@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useInView } from './AnimatedBar.jsx';
 
 function usePrefersReducedMotion() {
   const [reduced, setReduced] = useState(
@@ -50,11 +51,21 @@ export function useAnimatedNumber(target, { duration = 700 } = {}) {
   return valid ? display : target;
 }
 
-/** Formatted count-up. Pass a `format` function for currency, percent, etc. */
+/**
+ * Formatted count-up. Pass a `format` function for currency, percent, etc.
+ *
+ * Held at 0 until the element scrolls into view, then ticks up to `value` —
+ * a stat tile that's already showing its final number the instant the page
+ * loads has nothing left to animate by the time anyone actually looks at
+ * it. Held, not skipped: this is what makes a below-the-fold dashboard
+ * number count up on first sight rather than just sitting there static.
+ */
 export default function AnimatedNumber({ value, format, duration = 700, className }) {
-  const display = useAnimatedNumber(value, { duration });
+  const { ref, shown } = useInView();
   const numeric = Number(value);
-  if (!Number.isFinite(numeric)) return <span className={className}>{value ?? '—'}</span>;
-  const shown = format ? format(display) : Math.round(display).toLocaleString();
-  return <span className={className}>{shown}</span>;
+  const valid = Number.isFinite(numeric);
+  const display = useAnimatedNumber(shown ? numeric : 0, { duration });
+  if (!valid) return <span ref={ref} className={className}>{value ?? '—'}</span>;
+  const out = format ? format(display) : Math.round(display).toLocaleString();
+  return <span ref={ref} className={className}>{out}</span>;
 }
