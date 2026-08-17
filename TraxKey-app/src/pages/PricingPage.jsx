@@ -47,55 +47,9 @@ function ReservationForm({ unitId, onCreated }) {
   );
 }
 
-function PriceLabsMapping({ unitId, currentListingId, onSet }) {
-  const [configured, setConfigured] = useState(null);
-  const [editing, setEditing] = useState(false);
-  const [listingId, setListingId] = useState(currentListingId || '');
-  const [err, setErr] = useState('');
-
-  useEffect(() => {
-    fetch(`${AGENT_BASE}/pricelabs`, { headers: hdrs() })
-      .then(r => r.json()).then(j => setConfigured(!!j.configured)).catch(() => setConfigured(false));
-  }, []);
-  useEffect(() => { setListingId(currentListingId || ''); }, [currentListingId, unitId]);
-
-  async function save(e) {
-    e.preventDefault(); setErr('');
-    const { ok, j } = await post('/pricelabs', { unitId, listingId });
-    if (!ok) { setErr(j.error || 'Could not save'); return; }
-    setEditing(false); onSet();
-  }
-
-  if (configured === null) return null;
-
-  if (!configured) {
-    return (
-      <p className="text-[11px] text-slate-400">
-        PriceLabs isn't connected (no <code className="bg-slate-100 dark:bg-slate-950 px-1 rounded">PRICELABS_API_KEY</code> set). Every unit uses the internal heuristic until it is.
-      </p>
-    );
-  }
-
-  if (!editing) {
-    return (
-      <button onClick={() => setEditing(true)} className="text-xs text-slate-500 hover:text-slate-900 dark:hover:text-white">
-        PriceLabs listing: <span className="font-bold text-slate-700 dark:text-slate-200">{currentListingId || 'not mapped'}</span> · edit
-      </button>
-    );
-  }
-  return (
-    <form onSubmit={save} className="flex items-center gap-2">
-      <input value={listingId} onChange={e => setListingId(e.target.value)} placeholder="PriceLabs listing ID" className={`${fld} w-40`} />
-      <button type="submit" className="bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs px-2.5 py-1.5 rounded-lg">Save</button>
-      <button type="button" onClick={() => setEditing(false)} className="text-xs text-slate-500">Cancel</button>
-      {err && <span className="text-xs text-red-500">{err}</span>}
-    </form>
-  );
-}
-
 const SOURCE_BADGE = {
-  pricelabs: { label: 'PriceLabs', cls: 'bg-sky-500/15 text-sky-600 dark:text-sky-400' },
   market_heuristic: { label: 'Market', cls: 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400' },
+  heuristic: { label: 'Rule-based', cls: 'bg-slate-500/15 text-slate-600 dark:text-slate-400' },
 };
 
 // Sunday-first grid of whole weeks covering every month the rates span, so
@@ -129,6 +83,50 @@ function monthGrids(rates) {
   return grids;
 }
 
+// A quick read on the 30-day window before scanning the grid: what it's
+// projected to earn, how full it already is, how many nights still need a
+// decision, and whether the market pull is nudging rates up or down.
+function PricingStats({ rates, isBooked, bookedRate }) {
+  let projected = 0, bookedNights = 0, pendingNights = 0, marketPulls = 0, marketPullSum = 0;
+  for (const r of rates) {
+    const day = r.stay_date.slice(0, 10);
+    if (isBooked(day)) {
+      bookedNights += 1;
+      projected += Number(bookedRate(day)) || 0;
+    } else if (r.applied_rate) {
+      projected += Number(r.applied_rate);
+    } else {
+      pendingNights += 1;
+      projected += Number(r.suggested_rate) || 0;
+    }
+    if (r.source === 'market_heuristic' && r.base_rate && r.suggested_rate) {
+      marketPulls += 1;
+      marketPullSum += (Number(r.suggested_rate) - Number(r.base_rate)) / Number(r.base_rate);
+    }
+  }
+  const nights = rates.length;
+  const occupancy = nights ? Math.round((bookedNights / nights) * 100) : 0;
+  const avgPull = marketPulls ? Math.round((marketPullSum / marketPulls) * 100) : null;
+
+  const Stat = ({ label, value, sub }) => (
+    <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-xl px-4 py-3">
+      <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500 mb-1">{label}</p>
+      <p className="text-lg font-black">{value}</p>
+      {sub && <p className="text-[11px] text-slate-400 dark:text-slate-500">{sub}</p>}
+    </div>
+  );
+
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+      <Stat label="Projected, 30 nights" value={money(projected)} sub={`${bookedNights} booked, ${pendingNights} pending`} />
+      <Stat label="Occupancy" value={`${occupancy}%`} sub={`${bookedNights} of ${nights} nights`} />
+      <Stat label="Needs a decision" value={pendingNights} sub={pendingNights ? 'Suggested, not yet applied' : 'All caught up'} />
+      <Stat label="Market pull" value={avgPull === null ? '—' : `${avgPull > 0 ? '+' : ''}${avgPull}%`}
+        sub={avgPull === null ? 'No AirROI coverage this window' : 'Avg. shift from comp-set data'} />
+    </div>
+  );
+}
+
 function RateCalendar({ rates, isBooked, bookedRate, onApply }) {
   const [selected, setSelected] = useState(null);
   const byDay = Object.fromEntries(rates.map(r => [r.stay_date.slice(0, 10), r]));
@@ -137,31 +135,41 @@ function RateCalendar({ rates, isBooked, bookedRate, onApply }) {
 
   return (
     <div className="space-y-6">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3">
+        <span className="font-bold text-[10px] uppercase tracking-wide text-slate-400 dark:text-slate-500">Legend</span>
+        <span className="inline-flex items-center gap-1.5"><span className="inline-block w-3 h-3 rounded bg-teal-500/30 border-2 border-teal-500" />Booked</span>
+        <span className="inline-flex items-center gap-1.5"><span className="inline-block w-3 h-3 rounded bg-green-500/20 border-2 border-green-500" />Applied rate</span>
+        <span className="inline-flex items-center gap-1.5"><span className="inline-block w-3 h-3 rounded bg-indigo-500/20 border-2 border-indigo-500" />Market comp data</span>
+        <span className="inline-flex items-center gap-1.5"><span className="inline-block w-3 h-3 rounded bg-slate-400/20 border-2 border-slate-400" />Rule-based estimate</span>
+      </div>
+
       {grids.map(g => (
         <div key={g.label}>
           <p className="text-sm font-bold mb-2">{g.label}</p>
-          <div className="grid grid-cols-7 gap-1">
+          <div className="grid grid-cols-7 gap-1.5">
             {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
-              <div key={d} className="text-[10px] font-bold text-slate-400 text-center py-1">{d}</div>
+              <div key={d} className="text-[10px] font-bold text-slate-400 dark:text-slate-500 text-center py-1">{d}</div>
             ))}
             {g.cells.map((day, i) => {
               const r = day && byDay[day];
-              if (!r) return <div key={i} className="aspect-square rounded-lg bg-slate-50/50 dark:bg-slate-900/30" />;
+              if (!r) return <div key={i} className="aspect-square rounded-xl bg-slate-50/40 dark:bg-slate-900/20" />;
               const booked = isBooked(day);
+              const weekend = new Date(`${day}T00:00:00`).getDay() % 6 === 0;
               const badge = SOURCE_BADGE[r.source];
               const shown = booked ? bookedRate(day) : (r.applied_rate ?? r.suggested_rate);
+              const sourceRing = booked ? 'border-teal-500' : r.applied_rate ? 'border-green-500'
+                : r.source === 'market_heuristic' ? 'border-indigo-400/70' : 'border-slate-300 dark:border-white/10';
               return (
                 <button
                   key={i}
                   onClick={() => setSelected(selected === day ? null : day)}
                   title={(r.factors || []).join(' · ')}
-                  className={`aspect-square rounded-lg border p-1 flex flex-col items-center justify-center gap-0.5 transition
-                    ${booked
-                      ? 'bg-teal-500/10 border-teal-400/30'
-                      : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/5 hover:border-teal-400/50'}
-                    ${selected === day ? 'ring-2 ring-teal-400' : ''}`}
+                  className={`aspect-square rounded-xl border-2 p-1 flex flex-col items-center justify-center gap-0.5 transition shadow-sm hover:shadow-md hover:-translate-y-0.5
+                    ${booked ? 'bg-teal-500/10' : r.applied_rate ? 'bg-green-500/5' : weekend ? 'bg-slate-100/70 dark:bg-slate-800/40' : 'bg-slate-50 dark:bg-slate-900'}
+                    ${sourceRing}
+                    ${selected === day ? 'ring-2 ring-offset-1 ring-teal-400 dark:ring-offset-slate-950' : ''}`}
                 >
-                  <span className="text-[10px] text-slate-400 leading-none">{Number(day.slice(8))}</span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 leading-none">{Number(day.slice(8))}</span>
                   <span className={`text-xs font-bold leading-none ${booked
                     ? 'text-teal-700 dark:text-teal-400'
                     : r.applied_rate ? 'text-green-700 dark:text-green-400' : 'text-slate-900 dark:text-slate-100'}`}>
@@ -176,13 +184,6 @@ function RateCalendar({ rates, isBooked, bookedRate, onApply }) {
           </div>
         </div>
       ))}
-
-      <div className="flex flex-wrap gap-3 text-[10px] text-slate-500">
-        <span><span className="inline-block w-2 h-2 rounded-sm bg-teal-500/40 mr-1" />Booked</span>
-        <span><span className="inline-block w-2 h-2 rounded-sm bg-green-500/40 mr-1" />Applied rate</span>
-        <span><span className="inline-block w-2 h-2 rounded-sm bg-indigo-500/40 mr-1" />Market comp data</span>
-        <span><span className="inline-block w-2 h-2 rounded-sm bg-sky-500/40 mr-1" />PriceLabs</span>
-      </div>
 
       {detail && (
         <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl p-4">
@@ -382,11 +383,11 @@ export default function PricingPage() {
                 title="What this is"
                 steps={[
                   'A reservation system separate from Airbnb and Vrbo, for direct bookings TraxKey controls the price on.',
-                  'Each night gets a suggested rate from a pricing engine, adjusted for weekend demand, lead time, and how full the property already is that week.',
-                  'Three pricing tiers, picked per unit. A unit mapped to a real PriceLabs listing (with PRICELABS_API_KEY set) gets a PriceLabs recommendation. Otherwise, if AIRROI_API_KEY is set, the internal heuristic is pulled toward the comp-set average for that market. Otherwise the plain heuristic runs on its own.',
+                  'Each night gets a suggested rate from the pricing engine, adjusted for weekend demand, lead time, and how full the property already is that week.',
+                  'When AirROI has coverage for a unit\'s market, the internal heuristic is pulled toward the real comp-set average for that market. Otherwise the plain rule-based estimate runs on its own.',
                   'Accepting a suggestion locks it as the applied rate for that night. A booked night keeps the rate it was actually booked at.',
                 ]}
-                note="Each night is labeled with the tier that produced it, so a rule-of-thumb number is never mistaken for market intelligence. Market-data nights show how far the comp set moved the rate and how many comparable listings were behind it; the pull is capped so one thin market can't produce an absurd price."
+                note="Each night is labeled with the tier that produced it, so a rule-of-thumb number is never mistaken for market intelligence. Market-data nights show how far the comp set moved the rate and how many active listings were behind it; the pull is capped so one thin market can't produce an absurd price."
               />
             </h1>
           </div>
@@ -419,11 +420,13 @@ export default function PricingPage() {
           <>
             <div className="mb-3 flex flex-wrap items-center gap-3">
               <BaseRateForm unitId={unitId} currentRate={calendar?.rates?.[0]?.base_rate ?? unit?.base_nightly_rate} onSet={loadCalendar} />
-              <PriceLabsMapping unitId={unitId} currentListingId={calendar?.pricelabsListingId} onSet={loadCalendar} />
               <MarketDataStatus />
               <ReservationForm unitId={unitId} onCreated={loadCalendar} />
               <BuyoutForm propertyId={unit?.propertyId} onCreated={loadCalendar} />
             </div>
+            {calendar?.rates?.length > 0 && (
+              <PricingStats rates={calendar.rates} isBooked={isBooked} bookedRate={bookedRate} />
+            )}
             {calendar?.rates?.length > 0 ? (
               <RateCalendar rates={calendar.rates} isBooked={isBooked} bookedRate={bookedRate} onApply={applyRate} />
             ) : (

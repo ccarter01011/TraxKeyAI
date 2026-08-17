@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './lib/AuthContext.jsx';
 import { ThemeProvider } from './lib/ThemeContext.jsx';
+import ThemeToggle from './components/ThemeToggle.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import SignupPage from './pages/SignupPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
@@ -43,6 +44,9 @@ function App() {
     <ThemeProvider>
     <AuthProvider>
       <BrowserRouter>
+        <div className="fixed top-4 right-4 z-[100]">
+          <ThemeToggle />
+        </div>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />

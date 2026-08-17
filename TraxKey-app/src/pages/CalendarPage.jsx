@@ -64,11 +64,11 @@ export default function CalendarPage() {
           <button onClick={() => setOffset(o => o + 7)}
             className="text-xs border border-slate-200 dark:border-white/10 rounded-lg px-2.5 py-1.5 hover:border-teal-400/50 transition">→</button>
         </div>
-        <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500 dark:text-slate-400">
-          <Legend cls="bg-sky-500/70" label="Guest booking" />
-          <Legend cls="bg-slate-500/50" label="Owner block" />
-          <Legend cls="bg-teal-500/60" label="Lease" />
-          <Legend cls="bg-amber-400" label="Turn due" />
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5">
+          <Legend cls="bg-sky-500/70 border-2 border-sky-500" label="Guest booking" />
+          <Legend cls="bg-slate-500/40 border-2 border-slate-500" label="Owner block" />
+          <Legend cls="bg-teal-500/45 border-2 border-teal-500" label="Lease" />
+          <Legend cls="bg-amber-400 border-2 border-amber-400" label="Turn due" />
         </div>
       </div>
 
@@ -115,7 +115,7 @@ export default function CalendarPage() {
 }
 
 function Legend({ cls, label }) {
-  return <span className="inline-flex items-center gap-1.5"><span className={`w-3 h-2 rounded ${cls}`} />{label}</span>;
+  return <span className="inline-flex items-center gap-1.5"><span className={`w-3 h-3 rounded ${cls}`} />{label}</span>;
 }
 
 function UnitRow({ unit, days, todayIso }) {
