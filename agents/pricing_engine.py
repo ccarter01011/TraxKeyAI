@@ -134,7 +134,7 @@ class MarketHeuristicProvider:
         count = result.get("listing_count")
         if count is not None and count < self.MIN_COMPS:
             self._cache_error[key] = (
-                f"AirROI found only {count} comparable listings in this market, "
+                f"AirROI found only {count} active listings in this market, "
                 f"too few to price against."
             )
             return
@@ -158,7 +158,7 @@ class MarketHeuristicProvider:
 
         direction = "above" if comp > rate else "below"
         count = market.get("listing_count")
-        detail = f" across {count} comparable listings" if count else ""
+        detail = f" across {count} active listings" if count else ""
         # The matched market is named so a wrong match (AirROI resolving to a
         # different town of the same name) is visible in the UI rather than
         # silently priced against the wrong comp set.
