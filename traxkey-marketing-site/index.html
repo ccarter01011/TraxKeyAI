@@ -361,57 +361,7 @@ function toggleMobileNav() {
     <div class="bg-slate-900/60 border border-white/10 rounded-xl px-6 py-5 max-w-3xl mx-auto">
       <p class="text-sm text-slate-300 mb-3">We'd rather be checkable than loud. Everywhere on this site that we're behind, we say so: Breezeway's turnover tooling is deeper than ours, the big platforms' accounting is more mature, and Hostaway and Guesty are better at getting your listing in front of people.</p>
       <p class="text-sm text-slate-400 mb-3">None of that is the gap we're pointing at. Open any of those products and look for a lease table next to a booking calendar. That takes about ten minutes, and it's the whole argument.</p>
-      <p class="text-sm text-slate-400">And the price comparison worth doing isn't against one of them, it's against two. At ten units, a Buildium seat plus a Hostaway seat runs about <span class="text-slate-300 font-semibold">$237 a month</span><a href="#price-note" class="text-teal-400 no-underline">*</a> for two systems that can't see each other. TraxKey is <span class="text-slate-300 font-semibold">$99</span> for one that can.</p>
-    </div>
-
-    <div class="max-w-3xl mx-auto mt-8">
-      <p class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-3 text-center">What the same ten units cost elsewhere</p>
-      <div class="overflow-x-auto border border-white/10 rounded-xl">
-        <table class="w-full text-sm">
-          <thead>
-            <tr class="bg-slate-900/80 text-slate-400">
-              <th class="text-left font-semibold px-4 py-2.5">Product</th>
-              <th class="text-left font-semibold px-4 py-2.5">~10 units / month</th>
-              <th class="text-left font-semibold px-4 py-2.5">What it covers</th>
-            </tr>
-          </thead>
-          <tbody class="text-slate-400">
-            <tr class="border-t border-white/5 bg-teal-500/5">
-              <td class="px-4 py-2.5 font-semibold text-teal-300">TraxKey Starter</td>
-              <td class="px-4 py-2.5 font-semibold text-teal-300">$99 flat</td>
-              <td class="px-4 py-2.5">Both. Leases and bookings, one system</td>
-            </tr>
-            <tr class="border-t border-white/5">
-              <td class="px-4 py-2.5">Hostaway</td>
-              <td class="px-4 py-2.5">$175&ndash;250</td>
-              <td class="px-4 py-2.5">Short-term only</td>
-            </tr>
-            <tr class="border-t border-white/5">
-              <td class="px-4 py-2.5">Guesty</td>
-              <td class="px-4 py-2.5">~$200</td>
-              <td class="px-4 py-2.5">Short-term only</td>
-            </tr>
-            <tr class="border-t border-white/5">
-              <td class="px-4 py-2.5">Breezeway</td>
-              <td class="px-4 py-2.5">~$200</td>
-              <td class="px-4 py-2.5">Turnovers &amp; maintenance only</td>
-            </tr>
-            <tr class="border-t border-white/5">
-              <td class="px-4 py-2.5">AppFolio</td>
-              <td class="px-4 py-2.5">$298 minimum</td>
-              <td class="px-4 py-2.5">Long-term only</td>
-            </tr>
-            <tr class="border-t border-white/5">
-              <td class="px-4 py-2.5">Buildium Essential</td>
-              <td class="px-4 py-2.5 text-slate-300">$62 + fees</td>
-              <td class="px-4 py-2.5">Long-term only &mdash; cheaper than us</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <p id="price-note" class="text-xs text-slate-500 mt-3">
-        * Their published rates as of 2026, at roughly ten units. Hostaway and AppFolio are quote-only, so those are the ranges operators report rather than a list price, and Hostaway adds a $300&ndash;1,000 onboarding fee and a 1% fee on payments it processes. Guesty's cheapest tier stops at three listings, so ten units lands on a higher plan. Breezeway publishes $19.99/unit up to four units and quotes privately above that. Buildium bills transaction fees on top of the $62. Worth pricing yourself &mdash; and worth saying plainly: <span class="text-slate-400">if you only run long-term units, Buildium is cheaper than we are, and we'd tell you to take it.</span> The comparison above is for operators running both.
-      </p>
+      <p class="text-sm text-slate-400">And the price comparison worth doing isn't against one of them, it's against two. At ten units, a Buildium seat plus a Hostaway seat runs about <span class="text-slate-300 font-semibold">$237 a month</span> for two systems that can't see each other. TraxKey is <span class="text-slate-300 font-semibold">$99</span> for one that can. <a href="#pricing" class="text-teal-400 underline">The full comparison, with their published rates &rarr;</a></p>
     </div>
   </div>
 </section>
@@ -1102,10 +1052,98 @@ teaser('pm');
         </ul>
       </div>
     </div>
-    <div class="max-w-2xl mx-auto mt-10 bg-slate-900 border border-white/10 rounded-2xl p-6 text-center">
-      <p class="text-sm font-bold mb-2">Running both? Compare it to what you pay now.</p>
-      <p class="text-sm text-slate-400 mb-4">A mixed operator today pays for an STR platform <em>and</em> a property management system, plus a maintenance tool on top. TraxKey is one subscription covering both sides. That's the comparison worth doing, not our price against any single one of them.</p>
-      <p class="text-sm text-slate-400">Dynamic pricing is the clearest example. PriceLabs and Wheelhouse both list at $19.99 per listing per month, and Beyond runs 1&ndash;1.25% of revenue &mdash; charged on top of whatever PMS you already pay for. At ten units that's roughly $200 a month for pricing alone, before anyone has coordinated a repair. TraxKey's pricing engine is part of the tier, with no per-listing line item.</p>
+    <div id="compare" class="max-w-3xl mx-auto mt-12">
+      <div class="text-center mb-6">
+        <p class="text-sm font-bold mb-2">Running both? Compare it to what you pay now.</p>
+        <p class="text-sm text-slate-400">A mixed operator today pays for an STR platform <em>and</em> a property management system, plus a maintenance tool, plus a pricing tool on top. That stack is the comparison worth doing &mdash; not our price against any single one of them.</p>
+      </div>
+
+      <p class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-3">The platform, at roughly ten units</p>
+      <div class="overflow-x-auto border border-white/10 rounded-xl mb-8">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-slate-900/80 text-slate-400">
+              <th class="text-left font-semibold px-4 py-2.5">Product</th>
+              <th class="text-left font-semibold px-4 py-2.5">Per month</th>
+              <th class="text-left font-semibold px-4 py-2.5">What it covers</th>
+            </tr>
+          </thead>
+          <tbody class="text-slate-400">
+            <tr class="border-t border-white/5 bg-teal-500/5">
+              <td class="px-4 py-2.5 font-semibold text-teal-300">TraxKey Starter</td>
+              <td class="px-4 py-2.5 font-semibold text-teal-300">$99 flat</td>
+              <td class="px-4 py-2.5">Both. Leases and bookings, one system</td>
+            </tr>
+            <tr class="border-t border-white/5">
+              <td class="px-4 py-2.5">Hostaway</td>
+              <td class="px-4 py-2.5">$175&ndash;250</td>
+              <td class="px-4 py-2.5">Short-term only</td>
+            </tr>
+            <tr class="border-t border-white/5">
+              <td class="px-4 py-2.5">Guesty</td>
+              <td class="px-4 py-2.5">~$200</td>
+              <td class="px-4 py-2.5">Short-term only</td>
+            </tr>
+            <tr class="border-t border-white/5">
+              <td class="px-4 py-2.5">Breezeway</td>
+              <td class="px-4 py-2.5">~$200</td>
+              <td class="px-4 py-2.5">Turnovers &amp; maintenance only</td>
+            </tr>
+            <tr class="border-t border-white/5">
+              <td class="px-4 py-2.5">AppFolio</td>
+              <td class="px-4 py-2.5">$298 minimum</td>
+              <td class="px-4 py-2.5">Long-term only</td>
+            </tr>
+            <tr class="border-t border-white/5">
+              <td class="px-4 py-2.5">Buildium Essential</td>
+              <td class="px-4 py-2.5 text-slate-300">$62 + fees</td>
+              <td class="px-4 py-2.5">Long-term only &mdash; cheaper than us</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-3">Dynamic pricing, billed on top of all of the above</p>
+      <div class="overflow-x-auto border border-white/10 rounded-xl mb-6">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-slate-900/80 text-slate-400">
+              <th class="text-left font-semibold px-4 py-2.5">Tool</th>
+              <th class="text-left font-semibold px-4 py-2.5">What it charges</th>
+              <th class="text-left font-semibold px-4 py-2.5">At ten units</th>
+            </tr>
+          </thead>
+          <tbody class="text-slate-400">
+            <tr class="border-t border-white/5 bg-teal-500/5">
+              <td class="px-4 py-2.5 font-semibold text-teal-300">TraxKey</td>
+              <td class="px-4 py-2.5 font-semibold text-teal-300">Included in the tier</td>
+              <td class="px-4 py-2.5 font-semibold text-teal-300">$0 extra</td>
+            </tr>
+            <tr class="border-t border-white/5">
+              <td class="px-4 py-2.5">PriceLabs</td>
+              <td class="px-4 py-2.5">$19.99 / listing</td>
+              <td class="px-4 py-2.5">~$200</td>
+            </tr>
+            <tr class="border-t border-white/5">
+              <td class="px-4 py-2.5">Wheelhouse</td>
+              <td class="px-4 py-2.5">$19.99 / listing</td>
+              <td class="px-4 py-2.5">~$200</td>
+            </tr>
+            <tr class="border-t border-white/5">
+              <td class="px-4 py-2.5">Beyond</td>
+              <td class="px-4 py-2.5">1&ndash;1.25% of revenue</td>
+              <td class="px-4 py-2.5">~$50&ndash;60 per listing</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="bg-slate-900/60 border border-white/10 rounded-xl px-5 py-4">
+        <p class="text-sm text-slate-300 mb-2">Stack it up: a Buildium seat plus a Hostaway seat plus PriceLabs runs roughly <span class="font-semibold">$437 a month</span> at ten units, across three systems that don't share a database. TraxKey is <span class="font-semibold">$99</span>.</p>
+        <p class="text-xs text-slate-500">
+          Their published rates as of 2026. Hostaway and AppFolio are quote-only, so those are the ranges operators report rather than list prices, and Hostaway adds a $300&ndash;1,000 onboarding fee plus 1% on payments it processes. Guesty's cheapest tier stops at three listings, so ten units lands on a higher plan. Breezeway publishes $19.99/unit up to four units and quotes privately above that. Buildium bills transaction fees on top of the $62. The pricing tools all discount at higher listing counts (PriceLabs to about $5.99/listing past 100 units) and all offer revenue-share instead. Worth pricing yourself &mdash; and worth saying plainly: <span class="text-slate-400">if you only run long-term units, Buildium is cheaper than we are and we'd tell you to take it, and their pricing engines are more mature than ours.</span> This comparison is for operators running both sides.
+        </p>
+      </div>
     </div>
     <p class="text-xs text-slate-500 text-center mt-8">More than 150 units? We're built for smaller portfolios right now, <a href="mailto:hello@traxkey.ai" class="text-teal-400 underline">reach out</a> and we'll be honest about whether we're a fit yet.</p>
   </div>
