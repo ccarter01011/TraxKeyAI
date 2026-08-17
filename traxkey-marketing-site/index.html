@@ -22,6 +22,33 @@
   .glow-card { box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 20px 60px -20px rgba(13,148,136,0.35); }
   .fade-up { opacity: 0; transform: translateY(10px); animation: fadeUp 0.5s ease both; }
   @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+  /* Without JS these animate on load, as they always did. With JS we pause
+     them and let the observer below start each one as it scrolls into view,
+     because a reveal that fires above the fold is a reveal nobody sees. */
+  html.js-reveal .fade-up { animation-play-state: paused; }
+  html.js-reveal .fade-up.in { animation-play-state: running; }
+
+  /* Hero calendar reveal. The argument this whole page makes is that leases
+     and bookings live on one grid, so the calendar draws the bookings first
+     — which is all any competitor could show — then brings the lease rows in
+     underneath. The claim happens before the reader reaches the sentence
+     making it. Transform and opacity only, so nothing reflows mid-sequence. */
+  /* The finished grid is the default state and the collapsed one is applied
+     only while :not(.playing). If the reveal never starts — throttled rAF in
+     a background tab, a JS error, an old browser — the calendar still renders
+     complete rather than blank, which matters because it is the hero. */
+  .hero-bar { transform-origin: left center;
+    transition: transform .38s cubic-bezier(.22,.61,.36,1); }
+  .hero-mark { transition: opacity .3s ease-out; }
+  .hero-rowlabel { transition: opacity .45s ease-out; }
+  #hero-cal:not(.playing) .hero-bar { transform: scaleX(0); }
+  #hero-cal:not(.playing) .hero-mark { opacity: 0; }
+  #hero-cal:not(.playing) .hero-rowlabel { opacity: .3; }
+  @media (prefers-reduced-motion: reduce) {
+    #hero-cal .hero-bar { transform: none !important; transition: none !important; }
+    #hero-cal .hero-mark { opacity: 1 !important; transition: none !important; }
+    #hero-cal .hero-rowlabel { opacity: 1 !important; transition: none !important; }
+  }
   @media (prefers-reduced-motion: reduce) { .fade-up { animation: none; opacity: 1; transform: none; } }
   @keyframes tk-orb-spin { to { transform: rotate(360deg); } }
   @keyframes tk-orb-breathe { 0%,100% { opacity:.45 } 50% { opacity:.75 } }
@@ -171,6 +198,13 @@ html.light .to-purple-500\/40 {
 }
 html.light .to-slate-900 { --tw-gradient-to: #ffffff !important; }
 </style>
+<script>
+  // Set before paint so no element starts animating and then stalls mid-way.
+  if ('IntersectionObserver' in window &&
+      !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    document.documentElement.classList.add('js-reveal');
+  }
+</script>
 </head>
 <body class="bg-slate-950 text-slate-100 antialiased min-h-screen">
 
@@ -619,30 +653,56 @@ function drawHeroCal() {
   }
   head += '</div></div>';
 
+  // Two-phase reveal. Phase 1 is everything a bookings-only platform holds;
+  // phase 2 is the lease layer that only exists here. Delays are per day
+  // column rather than per cell, so the grid fills left to right instead of
+  // popping in an order that reads as random.
+  var COL = 24;                       // stagger between day columns
+  var BAR = 380;                      // must match .hero-bar transition
+  var PHASE2 = (DAYS - 1) * COL + BAR + 240;   // let phase 1 land, then a beat
+
   var body = HERO_ROWS.map(function (r) {
     var cells = '';
     for (var d = 0; d < DAYS; d++) {
-      var fill = '';
-      if (r.lease && d >= r.lease[0] && d <= r.lease[1]) fill = 'bg-teal-500/45';
-      (r.book || []).forEach(function (b) { if (d >= b[0] && d < b[1]) fill = 'bg-sky-500/60'; });
-      (r.block || []).forEach(function (b) { if (d >= b[0] && d < b[1]) fill = 'bg-slate-500/40'; });
+      var fill = '', phase = 1;
+      if (r.lease && d >= r.lease[0] && d <= r.lease[1]) { fill = 'bg-teal-500/45'; phase = 2; }
+      (r.book || []).forEach(function (b) { if (d >= b[0] && d < b[1]) { fill = 'bg-sky-500/60'; phase = 1; } });
+      (r.block || []).forEach(function (b) { if (d >= b[0] && d < b[1]) { fill = 'bg-slate-500/40'; phase = 1; } });
       var turn = (r.turn || []).indexOf(d) > -1;
       var lend = r.leaseEnd === d;
+      var barDelay = (phase === 2 ? PHASE2 : 0) + d * COL;
+      var markDelay = barDelay + BAR * 0.55;
       cells += '<div class="flex-1 h-7 border-l border-white/5 relative">' +
-        (fill ? '<div class="absolute inset-y-1 inset-x-0 ' + fill + '"></div>' : '') +
-        (turn ? '<div class="absolute inset-x-0 bottom-0.5 mx-auto w-1.5 h-1.5 rounded-full bg-amber-400"></div>' : '') +
-        (lend ? '<div class="absolute inset-y-0 right-0 w-0.5 bg-amber-400"></div>' : '') +
+        (fill ? '<div class="hero-bar absolute inset-y-1 inset-x-0 ' + fill +
+                '" style="transition-delay:' + barDelay + 'ms"></div>' : '') +
+        (turn ? '<div class="hero-mark absolute inset-x-0 bottom-0.5 mx-auto w-1.5 h-1.5 rounded-full bg-amber-400"' +
+                ' style="transition-delay:' + (d * COL + BAR * 0.55) + 'ms"></div>' : '') +
+        (lend ? '<div class="hero-mark absolute inset-y-0 right-0 w-0.5 bg-amber-400"' +
+                ' style="transition-delay:' + (PHASE2 + d * COL + BAR * 0.55) + 'ms"></div>' : '') +
         '</div>';
     }
+    var isLtr = r.kind !== 'STR';
     var badge = r.kind === 'STR'
       ? '<span class="text-[8px] font-bold px-1 py-0.5 rounded bg-sky-500/15 text-sky-400">STR</span>'
       : '<span class="text-[8px] font-bold px-1 py-0.5 rounded bg-teal-500/15 text-teal-400">LTR</span>';
-    return '<div class="flex border-t border-white/5"><div class="w-20 shrink-0 flex items-center gap-1 px-1 py-1">' +
+    // Long-term rows sit dimmed until their phase, so the moment the grid
+    // gains a half no competitor has is visible rather than just stated.
+    var label = '<div class="w-20 shrink-0 flex items-center gap-1 px-1 py-1' +
+      (isLtr ? ' hero-rowlabel" style="transition-delay:' + PHASE2 + 'ms"' : '"') + '>';
+    return '<div class="flex border-t border-white/5">' + label +
       '<span class="text-[10px] truncate">' + r.unit + '</span>' + badge + '</div>' +
       '<div class="flex-1 flex">' + cells + '</div></div>';
   }).join('');
 
   el.innerHTML = head + body;
+
+  // Two frames: the first paints the collapsed state, the second starts the
+  // transition. Without this the browser can coalesce both and skip straight
+  // to the end. The timeout is a backstop, not a duplicate — rAF does not run
+  // in a background tab, and this must not depend on the page being looked at.
+  var start = function () { el.classList.add('playing'); };
+  requestAnimationFrame(function () { requestAnimationFrame(start); });
+  setTimeout(start, 200);
 }
 drawHeroCal();
 
@@ -1547,6 +1607,52 @@ function toggleTheme() {
   var saved = null;
   try { saved = localStorage.getItem('tk_theme'); } catch (e) {}
   applyTheme(saved || (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'));
+})();
+</script>
+<script>
+// Scroll-triggered reveal. The .fade-up markup already existed but ran on page
+// load, so everything below the fold finished animating before it was ever
+// visible. Each element is unobserved once shown: this is an entrance, not a
+// scroll-linked effect that replays.
+(function () {
+  if (!document.documentElement.classList.contains('js-reveal')) return;
+  var els = [].slice.call(document.querySelectorAll('.fade-up'));
+  if (!els.length) return;
+
+  function show(el) {
+    if (el.classList.contains('in')) return;
+    el.classList.add('in');
+    io.unobserve(el);
+  }
+
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) { if (e.isIntersecting) show(e.target); });
+  }, { rootMargin: '0px 0px -10% 0px', threshold: 0.1 });
+  els.forEach(function (el) { io.observe(el); });
+
+  // Failsafe. These elements start at opacity 0, so anything that stops the
+  // observer from reporting leaves the page blank rather than merely
+  // un-animated. A hidden tab is the common case: IntersectionObserver does
+  // not report intersections for a hidden document, so a page opened in a
+  // background tab has revealed nothing by the time it is first painted.
+  // Measuring rects directly covers that and any other observer failure.
+  function sweep() {
+    var h = window.innerHeight || document.documentElement.clientHeight;
+    els.forEach(function (el) {
+      if (el.classList.contains('in')) return;
+      // A zero-height viewport (hidden tab, some webviews) makes every rect
+      // test fail, which would hide the whole page instead of protecting it.
+      // With nothing measurable to go on, show the content.
+      if (!h) { show(el); return; }
+      var r = el.getBoundingClientRect();
+      if (r.top < h * 0.95 && r.bottom > 0) show(el);
+    });
+  }
+  window.addEventListener('load', sweep);
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) sweep();
+  });
+  setTimeout(sweep, 1200);
 })();
 </script>
 </body>

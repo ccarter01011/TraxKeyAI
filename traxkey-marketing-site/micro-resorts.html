@@ -22,6 +22,11 @@
   .glow-card { box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 20px 60px -20px rgba(13,148,136,0.35); }
   .fade-up { opacity: 0; transform: translateY(10px); animation: fadeUp 0.5s ease both; }
   @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+  /* Without JS these animate on load, as they always did. With JS we pause
+     them and let the observer below start each one as it scrolls into view,
+     because a reveal that fires above the fold is a reveal nobody sees. */
+  html.js-reveal .fade-up { animation-play-state: paused; }
+  html.js-reveal .fade-up.in { animation-play-state: running; }
   @media (prefers-reduced-motion: reduce) { .fade-up { animation: none; opacity: 1; transform: none; } }
   @keyframes tk-orb-spin { to { transform: rotate(360deg); } }
   @keyframes tk-orb-breathe { 0%,100% { opacity:.45 } 50% { opacity:.75 } }
@@ -159,6 +164,13 @@ html.light .to-purple-500\/40 {
 }
 html.light .to-slate-900 { --tw-gradient-to: #ffffff !important; }
 </style>
+<script>
+  // Set before paint so no element starts animating and then stalls mid-way.
+  if ('IntersectionObserver' in window &&
+      !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    document.documentElement.classList.add('js-reveal');
+  }
+</script>
 </head>
 <body class="bg-slate-950 text-slate-100 antialiased min-h-screen">
 
@@ -649,6 +661,52 @@ function toggleTheme() {
   var saved = null;
   try { saved = localStorage.getItem('tk_theme'); } catch (e) {}
   applyTheme(saved || (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'));
+})();
+</script>
+<script>
+// Scroll-triggered reveal. The .fade-up markup already existed but ran on page
+// load, so everything below the fold finished animating before it was ever
+// visible. Each element is unobserved once shown: this is an entrance, not a
+// scroll-linked effect that replays.
+(function () {
+  if (!document.documentElement.classList.contains('js-reveal')) return;
+  var els = [].slice.call(document.querySelectorAll('.fade-up'));
+  if (!els.length) return;
+
+  function show(el) {
+    if (el.classList.contains('in')) return;
+    el.classList.add('in');
+    io.unobserve(el);
+  }
+
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) { if (e.isIntersecting) show(e.target); });
+  }, { rootMargin: '0px 0px -10% 0px', threshold: 0.1 });
+  els.forEach(function (el) { io.observe(el); });
+
+  // Failsafe. These elements start at opacity 0, so anything that stops the
+  // observer from reporting leaves the page blank rather than merely
+  // un-animated. A hidden tab is the common case: IntersectionObserver does
+  // not report intersections for a hidden document, so a page opened in a
+  // background tab has revealed nothing by the time it is first painted.
+  // Measuring rects directly covers that and any other observer failure.
+  function sweep() {
+    var h = window.innerHeight || document.documentElement.clientHeight;
+    els.forEach(function (el) {
+      if (el.classList.contains('in')) return;
+      // A zero-height viewport (hidden tab, some webviews) makes every rect
+      // test fail, which would hide the whole page instead of protecting it.
+      // With nothing measurable to go on, show the content.
+      if (!h) { show(el); return; }
+      var r = el.getBoundingClientRect();
+      if (r.top < h * 0.95 && r.bottom > 0) show(el);
+    });
+  }
+  window.addEventListener('load', sweep);
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) sweep();
+  });
+  setTimeout(sweep, 1200);
 })();
 </script>
 </body>
