@@ -252,7 +252,7 @@ export default function DashboardPage() {
             tone={c.dueToday ? 'urgent' : 'attention'}
           />
           <Tile
-            to="/orders" title="Orders & email chase"
+            to="/orders" title="Purchase Orders & email chase"
             blurb="Parts and materials a job is waiting on. Flagged when late, and when late means a turn will slip."
           />
           <Tile

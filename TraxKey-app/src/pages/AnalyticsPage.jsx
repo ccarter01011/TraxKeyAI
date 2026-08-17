@@ -118,7 +118,7 @@ function FinancialView({ d }) {
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <StatTile label="Total spend" raw={d.totalSpend} format={money} tone="text-slate-900 dark:text-white" />
         <StatTile label="Maintenance" raw={d.maintenanceSpend} format={money} />
-        <StatTile label="Orders (parts/materials)" raw={d.orderSpend} format={money} />
+        <StatTile label="Purchase orders (parts/materials)" raw={d.orderSpend} format={money} />
       </div>
       <Card>
         <h3 className="font-bold mb-3">Spend by property</h3>

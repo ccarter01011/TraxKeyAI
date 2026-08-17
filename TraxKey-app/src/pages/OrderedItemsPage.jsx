@@ -222,7 +222,7 @@ export default function OrderedItemsPage() {
         <Link to="/" className="text-xs text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white">← Operator Dashboard</Link>
         <div className="flex items-center justify-between mb-6 mt-2">
           <div>
-            <p className="text-xs text-teal-600 dark:text-teal-400 font-semibold uppercase tracking-wide mb-1">Orders</p>
+            <p className="text-xs text-teal-600 dark:text-teal-400 font-semibold uppercase tracking-wide mb-1">Purchase Orders</p>
             <h1 className="text-2xl font-bold inline-flex items-center gap-2">
               What you're waiting on
               <FlowHelp
