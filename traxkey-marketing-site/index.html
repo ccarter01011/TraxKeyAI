@@ -203,6 +203,28 @@ html.light .to-slate-900 { --tw-gradient-to: #ffffff !important; }
   html { scroll-behavior: smooth; }
   [id] { scroll-margin-top: 6.5rem; }
   @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+  /* Stack-collapse: three separate-subscription chips give way to the $437
+     sum, which itself gives way to TraxKey at $99 — the same argument the
+     paragraph below it makes, played out instead of only read. Absolutely
+     positioned so the mid/final states overlay the chips rather than
+     reflowing the row; #stack-collapse's own min-height reserves the space. */
+  #stack-collapse { position: relative; }
+  .sc-chip { transition: opacity .35s ease-out, transform .35s ease-out; }
+  .sc-sum, .sc-final {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    opacity: 0; transform: scale(.85); transition: opacity .4s ease-out, transform .4s cubic-bezier(.22,.61,.36,1);
+    pointer-events: none;
+  }
+  #stack-collapse.sc-p2 .sc-chip { opacity: 0; transform: scale(.8); }
+  #stack-collapse.sc-p2 .sc-sum { opacity: 1; transform: scale(1); }
+  #stack-collapse.sc-p3 .sc-sum { opacity: 0; transform: scale(.85); }
+  #stack-collapse.sc-p3 .sc-final { opacity: 1; transform: scale(1); }
+  @media (prefers-reduced-motion: reduce) {
+    #stack-collapse .sc-chip { display: none; }
+    #stack-collapse .sc-sum { display: none; }
+    #stack-collapse .sc-final { opacity: 1 !important; transform: none !important; position: static; }
+  }
 </style>
 <script>
   // Set before paint so no element starts animating and then stalls mid-way.
@@ -713,6 +735,53 @@ function drawHeroCal() {
 }
 drawHeroCal();
 
+// Stack-collapse. Plays once, the first time it scrolls into view; a chart
+// that replays every time a reader scrolls past it reads as a glitch, not
+// as emphasis. Same reduced-motion (CSS handles it directly) and
+// hidden-tab backstop pattern as the rest of this page's motion.
+function initStackCollapse() {
+  var el = document.getElementById('stack-collapse');
+  if (!el) return;
+  var played = false;
+  function play() {
+    if (played) return;
+    played = true;
+    setTimeout(function () { el.classList.add('sc-p2'); }, 500);
+    setTimeout(function () { el.classList.add('sc-p3'); }, 1500);
+  }
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) { if (e.isIntersecting) { play(); io.disconnect(); } });
+    }, { threshold: 0.5 });
+    io.observe(el);
+    // IntersectionObserver does not report for a hidden document, same gap
+    // .fade-up had. This one is legitimately scroll-gated (it shouldn't play
+    // before it's in view), so the fallback checks geometry rather than
+    // playing immediately — but a zero-height viewport means nothing is
+    // measurable, and the same zero-height bug that briefly broke .fade-up's
+    // sweep applies here too: fail toward playing, not toward staying stuck.
+    function sweep() {
+      if (played) return;
+      var h = window.innerHeight || document.documentElement.clientHeight;
+      if (!h) { play(); return; }
+      var r = el.getBoundingClientRect();
+      if (r.top < h * 0.95 && r.bottom > 0) play();
+    }
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) sweep(); });
+    setTimeout(sweep, 1500);
+  } else {
+    play();
+  }
+}
+// The element lives far below this script block in the page (deep in the
+// pricing section), so getElementById here would return null if called
+// immediately — same class of bug a script-position mismatch always risks.
+// DOMContentLoaded guarantees the whole document has parsed first.
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initStackCollapse);
+} else {
+  initStackCollapse();
+}
 </script>
 
 <!-- DEMO TEASER -->
@@ -1245,6 +1314,13 @@ teaser('pm');
       </div>
 
       <div class="bg-slate-900/60 border border-white/10 rounded-xl px-5 py-4">
+        <div id="stack-collapse" class="flex items-center justify-center gap-2.5 flex-wrap min-h-[3rem] mb-4" aria-hidden="true">
+          <span class="sc-chip sc-chip--1 text-xs font-semibold px-3 py-1.5 rounded-full border border-white/15 text-slate-300 bg-slate-900">Buildium $62</span>
+          <span class="sc-chip sc-chip--2 text-xs font-semibold px-3 py-1.5 rounded-full border border-white/15 text-slate-300 bg-slate-900">Hostaway $175</span>
+          <span class="sc-chip sc-chip--3 text-xs font-semibold px-3 py-1.5 rounded-full border border-white/15 text-slate-300 bg-slate-900">PriceLabs $200</span>
+          <span class="sc-sum text-sm font-bold px-4 py-1.5 rounded-full bg-slate-800 text-slate-300">$437/mo, three systems</span>
+          <span class="sc-final text-sm font-bold px-4 py-1.5 rounded-full bg-teal-500 text-slate-950">TraxKey $99/mo, one system</span>
+        </div>
         <p class="text-sm text-slate-300 mb-2">Stack it up: a Buildium seat plus a Hostaway seat plus PriceLabs runs roughly <span class="font-semibold">$437 a month</span> at ten units, across three systems that don't share a database. TraxKey is <span class="font-semibold">$99</span>, month to month.</p>
         <p class="text-xs text-slate-500 mb-3">
           Rates checked August 2026. Hostaway and AppFolio are quote-only, so those are the ranges operators report rather than list prices, and Hostaway adds a $300&ndash;1,000 onboarding fee plus 1% on payments it processes. Guesty's cheapest tier stops at three listings, so ten units lands on a higher plan. Breezeway publishes $19.99/unit up to four units and quotes privately above that. Buildium bills transaction fees on top of the $62. The pricing tools all discount at higher listing counts (PriceLabs to about $5.99/listing past 100 units) and all offer revenue-share instead. On signup terms we've described only what each vendor publishes &mdash; onboarding fees, demo requirements, and annual-vs-monthly rates &mdash; not their contract lengths, which aren't public for the quote-only ones. Worth pricing yourself &mdash; and worth saying plainly: <span class="text-slate-400">if you only run long-term units, Buildium is cheaper than we are and we'd tell you to take it, and their pricing engines are more mature than ours.</span> This comparison is for operators running both sides.
