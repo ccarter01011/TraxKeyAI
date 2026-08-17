@@ -163,6 +163,12 @@ html.light .to-purple-500\/40 {
   --tw-gradient-to: rgba(168,85,247,.5) !important;
 }
 html.light .to-slate-900 { --tw-gradient-to: #ffffff !important; }
+  /* The navbar is fixed, so without this every anchor link parks its target
+     underneath it. Smooth scrolling is opt-out for anyone who asks for less
+     motion, since scroll animation is a common migraine trigger. */
+  html { scroll-behavior: smooth; }
+  [id] { scroll-margin-top: 6.5rem; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 </style>
 <script>
   // Set before paint so no element starts animating and then stalls mid-way.
@@ -175,6 +181,7 @@ html.light .to-slate-900 { --tw-gradient-to: #ffffff !important; }
 <body class="bg-slate-950 text-slate-100 antialiased min-h-screen">
 
 <!-- NAV -->
+<a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:bg-teal-500 focus:text-slate-950 focus:font-bold focus:text-sm focus:px-4 focus:py-2.5 focus:rounded-lg">Skip to content</a>
 <nav class="fixed top-0 w-full z-50 backdrop-blur-md bg-slate-950/70 border-b border-white/5">
   <div class="max-w-7xl mx-auto px-4 md:px-6 py-4 flex items-center justify-between">
     <div class="flex items-center gap-2">
@@ -226,7 +233,7 @@ function toggleMobileNav() {
 </script>
 
 <!-- HERO -->
-<header class="dot-pattern pt-24 md:pt-40 pb-16 md:pb-24 px-6 relative overflow-hidden">
+<header id="main" class="dot-pattern pt-24 md:pt-40 pb-16 md:pb-24 px-6 relative overflow-hidden">
   <div class="max-w-5xl mx-auto text-center relative z-10">
     <div class="inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-4 py-1.5 text-xs text-teal-300 mb-5 md:mb-8 fade-up">
       <span class="w-1.5 h-1.5 bg-teal-400 rounded-full animate-pulse"></span>
@@ -677,6 +684,12 @@ function toggleTheme() {
     if (el.classList.contains('in')) return;
     el.classList.add('in');
     io.unobserve(el);
+    // Drop the classes once finished. An animation with fill-mode "both" keeps
+    // asserting its final transform, which outranks any later declaration and
+    // would silently kill hover lifts like .hover:-translate-y-1 on the cards.
+    el.addEventListener('animationend', function () {
+      el.classList.remove('fade-up', 'in');
+    }, { once: true });
   }
 
   var io = new IntersectionObserver(function (entries) {

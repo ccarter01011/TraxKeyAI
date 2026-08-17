@@ -150,10 +150,31 @@ html.light .to-purple-500\/40 {
   --tw-gradient-to: rgba(168,85,247,.5) !important;
 }
 html.light .to-slate-900 { --tw-gradient-to: #ffffff !important; }
+  .fade-up { opacity: 0; transform: translateY(10px); animation: fadeUp 0.5s ease both; }
+  @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+  /* Without JS these animate on load, as they always did. With JS we pause
+     them and let the observer below start each one as it scrolls into view,
+     because a reveal that fires above the fold is a reveal nobody sees. */
+  html.js-reveal .fade-up { animation-play-state: paused; }
+  html.js-reveal .fade-up.in { animation-play-state: running; }
+  @media (prefers-reduced-motion: reduce) { .fade-up { animation: none; opacity: 1; transform: none; } }
+  /* This page's bar is sticky rather than fixed, but anchor targets still
+     need clearance, and smooth scrolling is opt-out for reduced motion. */
+  html { scroll-behavior: smooth; }
+  [id] { scroll-margin-top: 6.5rem; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 </style>
+<script>
+  // Set before paint so no element starts animating and then stalls mid-way.
+  if ('IntersectionObserver' in window &&
+      !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    document.documentElement.classList.add('js-reveal');
+  }
+</script>
 </head>
 <body class="bg-slate-950 text-slate-100 antialiased">
 
+<a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:bg-teal-500 focus:text-slate-950 focus:font-bold focus:text-sm focus:px-4 focus:py-2.5 focus:rounded-lg">Skip to content</a>
 <header class="border-b border-white/5 sticky top-0 bg-slate-950/90 backdrop-blur z-40">
   <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
     <a href="/" class="flex items-center gap-2">
@@ -174,8 +195,8 @@ html.light .to-slate-900 { --tw-gradient-to: #ffffff !important; }
   </div>
 </header>
 
-<section class="pt-16 pb-8 px-6">
-  <div class="max-w-6xl mx-auto text-center">
+<section id="main" class="pt-16 pb-8 px-6">
+  <div class="max-w-6xl mx-auto text-center fade-up">
     <p class="text-teal-400 font-semibold text-sm mb-3 tracking-wide uppercase">The dashboard</p>
     <h1 class="text-3xl md:text-5xl font-bold mb-4 tracking-tight">One portfolio. Both kinds of rental.</h1>
     <p class="text-slate-400 max-w-2xl mx-auto mb-8">
@@ -323,7 +344,7 @@ html.light .to-slate-900 { --tw-gradient-to: #ffffff !important; }
 </section>
 
 <section class="py-20 px-6 border-t border-white/5">
-  <div class="max-w-2xl mx-auto text-center">
+  <div class="max-w-2xl mx-auto text-center fade-up">
     <h2 class="text-2xl md:text-3xl font-bold mb-4">Your first unit is free</h2>
     <p class="text-slate-400 mb-8">No card. Add a property, invite a resident, and watch it handle the first request.</p>
     <a href="https://app.traxkey.ai/signup" class="inline-block bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold px-8 py-3.5 rounded-xl transition">Start free →</a>
@@ -840,6 +861,50 @@ function toggleTheme() {
   var saved = null;
   try { saved = localStorage.getItem('tk_theme'); } catch (e) {}
   applyTheme(saved || (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'));
+})();
+</script>
+<script>
+// Scroll-triggered reveal. Deliberately not applied inside the tab-switched
+// views on this page: an element in a display:none panel has no rect, so it
+// would never reveal and would sit invisible once its tab was opened.
+(function () {
+  if (!document.documentElement.classList.contains('js-reveal')) return;
+  var els = [].slice.call(document.querySelectorAll('.fade-up'));
+  if (!els.length) return;
+
+  function show(el) {
+    if (el.classList.contains('in')) return;
+    el.classList.add('in');
+    io.unobserve(el);
+    // Drop the classes once finished. An animation with fill-mode "both" keeps
+    // asserting its final transform, which outranks any later declaration and
+    // would silently kill hover lifts like .hover:-translate-y-1 on the cards.
+    el.addEventListener('animationend', function () {
+      el.classList.remove('fade-up', 'in');
+    }, { once: true });
+  }
+
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) { if (e.isIntersecting) show(e.target); });
+  }, { rootMargin: '0px 0px -10% 0px', threshold: 0.1 });
+  els.forEach(function (el) { io.observe(el); });
+
+  // Failsafe: these start at opacity 0, so a stalled observer would blank the
+  // page rather than just skip an animation. A hidden tab is the common case.
+  function sweep() {
+    var h = window.innerHeight || document.documentElement.clientHeight;
+    els.forEach(function (el) {
+      if (el.classList.contains('in')) return;
+      if (!h) { show(el); return; }
+      var r = el.getBoundingClientRect();
+      if (r.top < h * 0.95 && r.bottom > 0) show(el);
+    });
+  }
+  window.addEventListener('load', sweep);
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) sweep();
+  });
+  setTimeout(sweep, 1200);
 })();
 </script>
 </body>

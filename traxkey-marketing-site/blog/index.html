@@ -25,10 +25,32 @@
   .prose ul { margin: 0 0 1.15rem 1.1rem; list-style: disc; }
   .prose li { margin-bottom: .5rem; line-height: 1.7; color: #cbd5e1; }
   .prose strong { color: #fff; }
+  .fade-up { opacity: 0; transform: translateY(10px); animation: fadeUp 0.5s ease both; }
+  @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+  /* Without JS these animate on load, as they always did. With JS we pause
+     them and let the observer below start each one as it scrolls into view,
+     because a reveal that fires above the fold is a reveal nobody sees. */
+  html.js-reveal .fade-up { animation-play-state: paused; }
+  html.js-reveal .fade-up.in { animation-play-state: running; }
+  @media (prefers-reduced-motion: reduce) { .fade-up { animation: none; opacity: 1; transform: none; } }
+  /* The navbar is fixed, so without this every anchor link parks its target
+     underneath it. Smooth scrolling is opt-out for anyone who asks for less
+     motion, since scroll animation is a common migraine trigger. */
+  html { scroll-behavior: smooth; }
+  [id] { scroll-margin-top: 6.5rem; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 </style>
+<script>
+  // Set before paint so no element starts animating and then stalls mid-way.
+  if ('IntersectionObserver' in window &&
+      !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    document.documentElement.classList.add('js-reveal');
+  }
+</script>
 </head>
 <body class="bg-slate-950 text-slate-100 antialiased">
 
+<a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:bg-teal-500 focus:text-slate-950 focus:font-bold focus:text-sm focus:px-4 focus:py-2.5 focus:rounded-lg">Skip to content</a>
 <nav class="fixed top-0 w-full z-50 backdrop-blur-md bg-slate-950/70 border-b border-white/5">
   <div class="max-w-7xl mx-auto px-4 md:px-6 py-4 flex items-center justify-between">
     <a href="/" class="flex items-center gap-2">
@@ -66,8 +88,8 @@
   </div>
 </nav>
 
-<header class="dot-pattern pt-40 pb-16 px-6 bg-gradient-to-b from-teal-950/40 to-slate-950">
-  <div class="max-w-3xl mx-auto text-center">
+<header id="main" class="dot-pattern pt-40 pb-16 px-6 bg-gradient-to-b from-teal-950/40 to-slate-950">
+  <div class="max-w-3xl mx-auto text-center fade-up">
     <p class="text-teal-400 font-semibold text-sm mb-4 tracking-wide uppercase">Blog</p>
     <h1 class="text-4xl md:text-5xl font-black tracking-tight mb-6">Tips, trends and insights for rental operators</h1>
     <p class="text-lg text-slate-300">Practical guides for people running long-term units, short-term rentals, or both. Written by the team building TraxKey AI.</p>
@@ -77,19 +99,19 @@
 <section class="px-6 pb-24">
   <div class="max-w-3xl mx-auto grid gap-5">
 
-    <a href="/blog/picking-vendors-by-data-not-memory" class="block bg-slate-900 border border-white/10 rounded-2xl p-6 hover:border-teal-400/30 hover:-translate-y-1 transition duration-300 glow-card">
+    <a href="/blog/picking-vendors-by-data-not-memory" class="fade-up block bg-slate-900 border border-white/10 rounded-2xl p-6 hover:border-teal-400/30 hover:-translate-y-1 transition duration-300 glow-card">
       <p class="text-xs text-slate-500 mb-2">August 10, 2026</p>
       <h2 class="text-xl font-bold mb-2">How to Pick a Vendor by Data Instead of by Memory</h2>
       <p class="text-sm text-slate-400">Ask a property manager who their best plumber is and you'll get an instant answer. Ask them to prove it and the answer gets vague fast. Here's why that gap matters, and what to measure instead.</p>
     </a>
 
-    <a href="/blog/guest-in-the-unit-changes-everything" class="block bg-slate-900 border border-white/10 rounded-2xl p-6 hover:border-teal-400/30 hover:-translate-y-1 transition duration-300 glow-card">
+    <a href="/blog/guest-in-the-unit-changes-everything" class="fade-up block bg-slate-900 border border-white/10 rounded-2xl p-6 hover:border-teal-400/30 hover:-translate-y-1 transition duration-300 glow-card" style="animation-delay:0.07s">
       <p class="text-xs text-slate-500 mb-2">July 27, 2026</p>
       <h2 class="text-xl font-bold mb-2">Why &quot;Is There a Guest in the Unit?&quot; Should Change How You Triage Every Repair</h2>
       <p class="text-sm text-slate-400">The same broken air conditioner is either a five-star review at risk or a routine work order. The only thing that changes the answer is whether someone is currently standing in the unit, and most maintenance software has no idea.</p>
     </a>
 
-    <a href="/blog/same-day-turnaround-playbook" class="block bg-slate-900 border border-white/10 rounded-2xl p-6 hover:border-teal-400/30 hover:-translate-y-1 transition duration-300 glow-card">
+    <a href="/blog/same-day-turnaround-playbook" class="fade-up block bg-slate-900 border border-white/10 rounded-2xl p-6 hover:border-teal-400/30 hover:-translate-y-1 transition duration-300 glow-card" style="animation-delay:0.14s">
       <p class="text-xs text-slate-500 mb-2">July 6, 2026</p>
       <h2 class="text-xl font-bold mb-2">The Same-Day Turnaround Playbook for Short-Term Rentals</h2>
       <p class="text-sm text-slate-400">Checkout at 10am, check-in at 4pm. Six hours, one cleaner, and no margin for a surprise. Here's how to make that repeatable instead of a scramble you win by luck.</p>
@@ -109,6 +131,50 @@ function toggleMobileNav() {
   document.getElementById('nav-icon-open').classList.toggle('hidden');
   document.getElementById('nav-icon-close').classList.toggle('hidden');
 }
+</script>
+<script>
+// Scroll-triggered reveal. Deliberately not applied inside the tab-switched
+// views on this page: an element in a display:none panel has no rect, so it
+// would never reveal and would sit invisible once its tab was opened.
+(function () {
+  if (!document.documentElement.classList.contains('js-reveal')) return;
+  var els = [].slice.call(document.querySelectorAll('.fade-up'));
+  if (!els.length) return;
+
+  function show(el) {
+    if (el.classList.contains('in')) return;
+    el.classList.add('in');
+    io.unobserve(el);
+    // Drop the classes once finished. An animation with fill-mode "both" keeps
+    // asserting its final transform, which outranks any later declaration and
+    // would silently kill hover lifts like .hover:-translate-y-1 on the cards.
+    el.addEventListener('animationend', function () {
+      el.classList.remove('fade-up', 'in');
+    }, { once: true });
+  }
+
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) { if (e.isIntersecting) show(e.target); });
+  }, { rootMargin: '0px 0px -10% 0px', threshold: 0.1 });
+  els.forEach(function (el) { io.observe(el); });
+
+  // Failsafe: these start at opacity 0, so a stalled observer would blank the
+  // page rather than just skip an animation. A hidden tab is the common case.
+  function sweep() {
+    var h = window.innerHeight || document.documentElement.clientHeight;
+    els.forEach(function (el) {
+      if (el.classList.contains('in')) return;
+      if (!h) { show(el); return; }
+      var r = el.getBoundingClientRect();
+      if (r.top < h * 0.95 && r.bottom > 0) show(el);
+    });
+  }
+  window.addEventListener('load', sweep);
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) sweep();
+  });
+  setTimeout(sweep, 1200);
+})();
 </script>
 </body>
 </html>
