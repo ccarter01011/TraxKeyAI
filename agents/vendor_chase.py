@@ -94,15 +94,21 @@ def _wait_hours(row):
     return max(base * (REPEAT_MULTIPLIER if row["chase_count"] else 1), 0.5)
 
 
-def _send(to, subject, html):
+REPLY_DOMAIN = os.environ.get("REPLY_DOMAIN", "notify.traxkey.ai")
+
+
+def _send(to, subject, html, reply_to=None):
     if not RESEND_API_KEY or not to:
         return False
+    payload = {"from": f"TraxKey AI Dispatch <{NOTIFY_FROM_ADDRESS}>",
+               "to": to, "subject": subject, "html": html}
+    if reply_to:
+        payload["reply_to"] = reply_to
     try:
         r = requests.post(
             "https://api.resend.com/emails",
             headers={"Authorization": f"Bearer {RESEND_API_KEY}"},
-            json={"from": f"TraxKey AI Dispatch <{NOTIFY_FROM_ADDRESS}>",
-                  "to": to, "subject": subject, "html": html},
+            json=payload,
             timeout=10,
         )
         r.raise_for_status()
@@ -132,7 +138,8 @@ def nudge_vendor(row):
 <p>Can you confirm whether you're able to take it? If not, just say so and it goes to someone else, no hard feelings.</p>
 <p style="font-size:11px;color:#94a3b8;margin-top:24px;">Sent automatically by TraxKey AI.</p>
 </div>"""
-    sent = _send(row["contact_email"], f"Still need you: {row['category'] or 'job'} at {_where(row)}", html)
+    sent = _send(row["contact_email"], f"Still need you: {row['category'] or 'job'} at {_where(row)}", html,
+                 reply_to=f"reply+mr-{row['id']}@{REPLY_DOMAIN}")
 
     with db() as conn, conn.cursor() as cur:
         cur.execute(

@@ -39,13 +39,18 @@ SUPPLIER_CHASE_AFTER_DAYS = 1
 SUPPLIER_REPEAT_GAP_DAYS = 3
 
 
-def _send(to, subject, html, cc=None):
+REPLY_DOMAIN = os.environ.get("REPLY_DOMAIN", "notify.traxkey.ai")
+
+
+def _send(to, subject, html, cc=None, reply_to=None):
     if not RESEND_API_KEY or not to:
         return False
     payload = {"from": f"TraxKey AI <{NOTIFY_FROM_ADDRESS}>",
                "to": to, "subject": subject, "html": html}
     if cc:
         payload["cc"] = cc
+    if reply_to:
+        payload["reply_to"] = reply_to
     try:
         r = requests.post(
             "https://api.resend.com/emails",
@@ -126,7 +131,8 @@ def nudge_invoice(row):
     if firm and row.get("operator_email"):
         cc = (cc or []) + [row["operator_email"]]
 
-    sent = _send([row["customer_email"]], subject, html, cc=cc)
+    sent = _send([row["customer_email"]], subject, html, cc=cc,
+                 reply_to=f"reply+inv-{row['id']}@{REPLY_DOMAIN}")
     if not sent:
         return False
 
@@ -222,7 +228,8 @@ def nudge_supplier(row):
     if firm and row.get("operator_email"):
         cc = (cc or []) + [row["operator_email"]]
 
-    if not _send([row["supplier_email"]], subject, html, cc=cc):
+    if not _send([row["supplier_email"]], subject, html, cc=cc,
+                 reply_to=f"reply+oi-{row['id']}@{REPLY_DOMAIN}"):
         return False
 
     with db() as conn, conn.cursor() as cur:

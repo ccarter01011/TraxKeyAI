@@ -240,8 +240,41 @@ mixed portfolio work without a second system.
 | `RESEND_API_KEY` | no | vendor, readiness, and lead-followup emails; without it those send silently nothing, dispatch itself still works |
 | `NOTIFY_FROM_ADDRESS` | no | defaults to `dispatch@notify.traxkey.ai` |
 | `FOLLOWUP_FROM_ADDRESS` | no | defaults to `team@notify.traxkey.ai`, used by `lead_followup.py` |
+| `REPLY_DOMAIN` | no | defaults to `notify.traxkey.ai`, used to build the plus-addressed `reply_to` on every chase email (`reply+mr-<uuid>@...` for a maintenance request, `oi-` for an ordered item, `inv-` for an invoice), see below |
 | `POLL_INTERVAL_SECONDS` | no | default 900 |
 | `CALENDAR_SYNC_INTERVAL_SECONDS` | no | default 3600 |
+
+---
+
+## Inbound email replies
+
+Every chase email `vendor_chase.py` and `invoice_chase.py` send now sets a
+`reply_to` that encodes exactly which record it's about, no fuzzy
+sender/subject matching. Resend's inbound-parse webhook lands in n8n
+(`TraxKey-18-Inbound-Reply.json`, path `traxkey-inbound-reply`), which:
+
+1. Fetches the full email body (Resend's webhook payload is metadata only).
+2. Extracts the record type + id straight from the `reply+<type>-<id>@...`
+   address, the entire matching mechanism, deliberately not something an
+   LLM has to guess.
+3. Claude classifies the reply's *content* only (confirmed/declined,
+   confirmed-date/delayed/received, promise-to-pay/dispute/claims-paid).
+4. SQL applies the result:
+   - **Maintenance requests:** sets `vendor_acknowledged_at`, which is
+     exactly the field `mr_chase_idx` already checks, so a confirmed reply
+     stops future chasing with no new logic elsewhere.
+   - **Ordered items:** updates `expected_on` from an extracted date, or
+     `status`/`received_on` if the supplier says it shipped/arrived.
+     Inventory data, safe to automate.
+   - **Invoices:** logs the reply to `invoice_events` only. **Never**
+     touches `status` or `paid_on`, even for a reply claiming payment was
+     sent, a self-reported email is not proof of payment. See "TraxKey
+     chases; it never collects" in `invoice_chase.py`'s own docstring.
+
+This requires Resend's inbound receiving enabled on `notify.traxkey.ai`
+(an MX record, added via whichever DNS host that domain uses) plus a
+webhook pointed at the n8n path above, both one-time dashboard setup, not
+something the codebase can do on its own.
 
 ---
 
