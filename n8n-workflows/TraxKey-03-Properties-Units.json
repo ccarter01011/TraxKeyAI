@@ -492,7 +492,7 @@
       ],
       "notes": "The WHERE EXISTS clause is the tenant-isolation check: the property must belong to the caller's own company, or nothing gets inserted and this returns zero rows. Same pattern as TraxSail's inline session-scoped updates.",
       "parameters": {
-        "query": "INSERT INTO traxkey.units (property_id, unit_number, bedrooms, bathrooms, status)\nSELECT\n  '{{ (String($(\"Create Unit (Webhook)\").first().json.body.propertyId || \"\")).replace(/[^a-zA-Z0-9._:-]/g, \"\") }}',\n  {{ $(\"Create Unit (Webhook)\").first().json.body.unitNumber ? \"'\" + $(\"Create Unit (Webhook)\").first().json.body.unitNumber.replace(/'/g, \"''\") + \"'\" : 'NULL' }},\n  {{ $(\"Create Unit (Webhook)\").first().json.body.bedrooms || 'NULL' }},\n  {{ $(\"Create Unit (Webhook)\").first().json.body.bathrooms || 'NULL' }},\n  'occupied'\nWHERE EXISTS (\n  SELECT 1 FROM traxkey.properties\n  WHERE id = '{{ (String($(\"Create Unit (Webhook)\").first().json.body.propertyId || \"\")).replace(/[^a-zA-Z0-9._:-]/g, \"\") }}'\n  AND company_id = '{{ $json.company_id }}'\n)\nRETURNING id;",
+        "query": "WITH guard AS (\n  SELECT\n    EXISTS (\n      SELECT 1 FROM traxkey.properties\n      WHERE id = '{{ (String($(\"Create Unit (Webhook)\").first().json.body.propertyId || \"\")).replace(/[^a-zA-Z0-9._:-]/g, \"\") }}'\n        AND company_id = '{{ $json.company_id }}'\n    ) AS owns_property,\n    traxkey.company_can_add_unit('{{ $json.company_id }}') AS under_limit,\n    traxkey.plan_unit_limit((SELECT plan FROM traxkey.companies WHERE id = '{{ $json.company_id }}')) AS unit_limit\n),\nins AS (\n  INSERT INTO traxkey.units (property_id, unit_number, bedrooms, bathrooms)\n  SELECT\n    '{{ (String($(\"Create Unit (Webhook)\").first().json.body.propertyId || \"\")).replace(/[^a-zA-Z0-9._:-]/g, \"\") }}',\n    {{ $(\"Create Unit (Webhook)\").first().json.body.unitNumber ? \"'\" + $(\"Create Unit (Webhook)\").first().json.body.unitNumber.replace(/'/g, \"''\") + \"'\" : 'NULL' }},\n    {{ $(\"Create Unit (Webhook)\").first().json.body.bedrooms || 'NULL' }},\n    {{ $(\"Create Unit (Webhook)\").first().json.body.bathrooms || 'NULL' }}\n  FROM guard\n  WHERE guard.owns_property AND guard.under_limit\n  RETURNING id\n)\nSELECT\n  COALESCE((SELECT id FROM ins)::text, '') AS id,\n  CASE\n    WHEN NOT (SELECT owns_property FROM guard) THEN 'not_found'\n    WHEN NOT (SELECT under_limit  FROM guard) THEN 'limit'\n    ELSE ''\n  END AS reason,\n  (SELECT unit_limit FROM guard) AS unit_limit;",
         "options": {},
         "operation": "executeQuery"
       },
@@ -565,10 +565,10 @@
       ],
       "parameters": {
         "options": {
-          "responseCode": 404
+          "responseCode": 409
         },
         "respondWith": "json",
-        "responseBody": "={ \"error\": \"Property not found\" }"
+        "responseBody": "={{ JSON.stringify({ error: $json.reason === \"limit\" ? \"You have reached the \" + $json.unit_limit + \"-unit limit on your plan. Upgrade your plan to add more units.\" : \"Property not found\" }) }}"
       },
       "typeVersion": 1.1
     }
