@@ -26,7 +26,7 @@ def occupancy_summary(company_id):
             """
             SELECT p.id, p.name,
                    count(u.id) AS units,
-                   count(u.id) FILTER (WHERE u.status = 'occupied') AS occupied
+                   count(u.id) FILTER (WHERE traxkey.unit_is_occupied(u.id)) AS occupied
             FROM traxkey.properties p
             LEFT JOIN traxkey.units u ON u.property_id = p.id
             WHERE p.company_id = %s

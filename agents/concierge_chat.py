@@ -71,7 +71,7 @@ def portfolio_overview(company_id):
               count(*) FILTER (WHERE l.id IS NOT NULL) AS units_with_active_lease,
               count(*) FILTER (WHERE p.rental_mode = 'experiential') AS units_at_experiential_properties,
               count(*) FILTER (WHERE u.base_nightly_rate IS NOT NULL) AS units_priced_for_short_term,
-              count(*) FILTER (WHERE u.status = 'vacant') AS vacant_units,
+              count(*) FILTER (WHERE NOT traxkey.unit_is_occupied(u.id)) AS vacant_units,
               count(DISTINCT p.id) AS properties
             FROM traxkey.units u
             JOIN traxkey.properties p ON p.id = u.property_id
@@ -253,7 +253,8 @@ def unit_detail(company_id, unit_id):
     with db() as conn, conn.cursor() as cur:
         cur.execute(
             """
-            SELECT u.id, u.unit_number, u.bedrooms, u.bathrooms, u.status,
+            SELECT u.id, u.unit_number, u.bedrooms, u.bathrooms,
+                   CASE WHEN traxkey.unit_is_occupied(u.id) THEN 'occupied' ELSE 'vacant' END AS status,
                    u.base_nightly_rate, p.name AS property_name,
                    p.city, p.state, p.rental_mode,
                    l.rent_amount, l.start_date, l.end_date, l.status AS lease_status

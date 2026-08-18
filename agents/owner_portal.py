@@ -92,7 +92,7 @@ def get_dashboard(owner_id):
             """
             SELECT p.id, p.name, p.address_line1, p.city, p.state,
                    count(u.id) AS units,
-                   count(u.id) FILTER (WHERE u.status = 'occupied') AS occupied
+                   count(u.id) FILTER (WHERE traxkey.unit_is_occupied(u.id)) AS occupied
             FROM traxkey.properties p
             LEFT JOIN traxkey.units u ON u.property_id = p.id
             WHERE p.owner_id = %s

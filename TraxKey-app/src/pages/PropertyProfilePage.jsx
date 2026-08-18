@@ -361,6 +361,23 @@ export default function PropertyProfilePage() {
           </h1>
         </div>
 
+        {/* The dashboard sends new users straight here as "Step 1", but this
+            page can only profile a property that already exists. Without this
+            branch a brand-new account landed on an empty picker with no way
+            forward, which made TraxKey's own recommended first step a dead
+            end. Send them to create one instead. */}
+        {properties.length === 0 ? (
+          <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl p-8 text-center">
+            <p className="text-sm font-bold mb-1">Add a property first</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+              This step captures the details of a property you already have on file. Once one exists, come back and it will be waiting here.
+            </p>
+            <Link to="/properties" className="inline-block bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-sm px-4 py-2.5 rounded-lg transition">
+              Add a property →
+            </Link>
+          </div>
+        ) : (
+        <>
         <div className="flex flex-wrap items-center gap-3 mb-5">
           <select value={propertyId} onChange={e => setParams({ propertyId: e.target.value })} className={`${fld} max-w-xs`}>
             {properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -457,6 +474,8 @@ export default function PropertyProfilePage() {
               </div>
             )}
           </>
+        )}
+        </>
         )}
       </div>
     </div>

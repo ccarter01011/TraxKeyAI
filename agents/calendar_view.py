@@ -33,7 +33,8 @@ def get_calendar(company_id, days=DEFAULT_DAYS):
         # listed), and is simply shown empty rather than hidden.
         cur.execute(
             """
-            SELECT u.id, u.unit_number, u.status,
+            SELECT u.id, u.unit_number,
+                   CASE WHEN traxkey.unit_is_occupied(u.id) THEN 'occupied' ELSE 'vacant' END AS status,
                    p.name AS property_name, p.id AS property_id,
                    (EXISTS (SELECT 1 FROM traxkey.unit_calendars uc WHERE uc.unit_id = u.id)
                     OR EXISTS (SELECT 1 FROM traxkey.direct_reservations dr WHERE dr.unit_id = u.id AND dr.status = 'confirmed')) AS is_str,
