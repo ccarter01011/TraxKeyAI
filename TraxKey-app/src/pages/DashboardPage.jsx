@@ -183,8 +183,12 @@ export default function DashboardPage() {
       );
       const expiring = (leases || []).filter(l => {
         if (!l.id || l.status !== 'active' || !l.end_date) return false;
-        const days = Math.round((new Date(`${l.end_date}T00:00:00`) - new Date()) / 86400000);
-        return days <= RENEWAL_WINDOW_DAYS;
+        // end_date arrives as a full ISO timestamp, so appending a time made
+        // an invalid Date and this comparison was always NaN <= 90, i.e.
+        // false. The expiring-leases badge could never fire, which quietly
+        // broke the "flagged 90 days before they end" promise.
+        const days = Math.round((new Date(`${String(l.end_date).slice(0, 10)}T00:00:00`) - new Date()) / 86400000);
+        return Number.isFinite(days) && days <= RENEWAL_WINDOW_DAYS;
       });
       const openInspections = (inspections || []).filter(i => i.id && i.status === 'in_progress');
       const needsYou = (activity || []).filter(

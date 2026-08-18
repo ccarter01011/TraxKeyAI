@@ -8,9 +8,29 @@ import FlowHelp from '../components/FlowHelp.jsx';
 // shorter means the operator is already reacting instead of deciding.
 const RENEWAL_WINDOW_DAYS = 90;
 
+// Lease dates arrive as full ISO timestamps ("2026-12-31T00:00:00.000Z"),
+// not the bare YYYY-MM-DD this page originally assumed. Appending a time to
+// an already-timestamped string produced an invalid Date, which surfaced as
+// "NaNd left" on every lease and broke the sort that orders them by urgency.
+// Taking the date part handles both shapes.
+function dateOnly(value) {
+  if (!value) return null;
+  return String(value).slice(0, 10);
+}
+
+function fmtDate(value) {
+  const d = dateOnly(value);
+  if (!d) return null;
+  const parsed = new Date(`${d}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return d;
+  return parsed.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
 function daysUntil(dateStr) {
-  if (!dateStr) return null;
-  const end = new Date(`${dateStr}T00:00:00`);
+  const d = dateOnly(dateStr);
+  if (!d) return null;
+  const end = new Date(`${d}T00:00:00`);
+  if (Number.isNaN(end.getTime())) return null;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   return Math.round((end - today) / 86400000);
@@ -231,7 +251,7 @@ function LeaseCard({ lease, onChanged }) {
         </div>
         <div>
           <p className="text-slate-400 dark:text-slate-500">Term</p>
-          <p className="font-bold">{lease.start_date} → {lease.end_date || 'open'}</p>
+          <p className="font-bold">{fmtDate(lease.start_date)} → {fmtDate(lease.end_date) || 'open'}</p>
         </div>
         <div>
           <p className="text-slate-400 dark:text-slate-500">Deposit</p>
