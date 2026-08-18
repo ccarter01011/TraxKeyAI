@@ -21,7 +21,23 @@ export function useInView() {
       { threshold: 0.4 }
     );
     io.observe(ref.current);
-    return () => io.disconnect();
+
+    // Failsafe. Callers hold their real value back until `shown` flips, so a
+    // gate that never opens does not just skip an animation — it leaves a
+    // stat tile reading $0.00 when the operator is actually owed thousands.
+    // A wrong number is far worse than an un-animated one, so anything still
+    // waiting after this point gives up and shows the truth. The common
+    // trigger is a backgrounded tab: IntersectionObserver does not report
+    // intersections for a hidden document.
+    const failsafe = setTimeout(() => setShown(true), 1200);
+    const onVisible = () => { if (!document.hidden) setShown(true); };
+    document.addEventListener('visibilitychange', onVisible);
+
+    return () => {
+      io.disconnect();
+      clearTimeout(failsafe);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [reduced]);
 
   return { ref, shown };
