@@ -44,7 +44,21 @@ export function useAnimatedNumber(target, { duration = 700 } = {}) {
       else fromRef.current = numeric;
     }
     rafRef.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafRef.current);
+
+    // requestAnimationFrame does not run while the document is hidden, so
+    // without this the tick never fires and the tile keeps rendering the
+    // value it started from — 0 — indefinitely. Landing on the real number
+    // matters more than the animation that was supposed to reach it, so
+    // anything unfinished past the animation's own duration is snapped.
+    const settle = setTimeout(() => {
+      setDisplay(numeric);
+      fromRef.current = numeric;
+    }, duration + 400);
+
+    return () => {
+      cancelAnimationFrame(rafRef.current);
+      clearTimeout(settle);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [numeric, valid, reduced, duration]);
 
