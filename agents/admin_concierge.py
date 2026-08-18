@@ -18,7 +18,10 @@ from db import db
 
 anthropic_client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
-PLAN_PRICES = {"trial": 0, "starter": 99, "growth": 249, "scale": 549}
+# Keys are the stored plan codes, which match the tier names on the public
+# pricing page exactly (schema_v36 renamed trial->free and scale->pro to end
+# a drift between the two).
+PLAN_PRICES = {"free": 0, "starter": 99, "growth": 249, "pro": 549}
 
 
 def validate_admin(token):
