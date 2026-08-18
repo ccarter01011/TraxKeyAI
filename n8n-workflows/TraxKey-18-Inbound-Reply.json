@@ -359,7 +359,8 @@
           "name": "Postgres account"
         }
       },
-      "notes": "Only ever sets vendor_acknowledged_at, which is exactly the field the existing chase-eligibility index already checks (mr_chase_idx: status='scheduled' AND vendor_acknowledged_at IS NULL), so a confirmed reply stops future chasing with no new logic needed elsewhere."
+      "notes": "Only ever sets vendor_acknowledged_at, which is exactly the field the existing chase-eligibility index already checks (mr_chase_idx: status='scheduled' AND vendor_acknowledged_at IS NULL), so a confirmed reply stops future chasing with no new logic needed elsewhere.",
+      "alwaysOutputData": true
     },
     {
       "parameters": {
@@ -380,7 +381,8 @@
           "id": "rkxeF9x9C0rWEeWV",
           "name": "Postgres account"
         }
-      }
+      },
+      "alwaysOutputData": true
     },
     {
       "parameters": {
@@ -474,7 +476,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE traxkey.ordered_items\nSET expected_on = {{ $json.newExpectedDate ? \"'\" + $json.newExpectedDate + \"'\" : 'expected_on' }},\n    status = CASE WHEN '{{ $json.classification }}' = 'received' THEN 'received' ELSE status END,\n    received_on = CASE WHEN '{{ $json.classification }}' = 'received' THEN COALESCE({{ $json.newExpectedDate ? \"'\" + $json.newExpectedDate + \"'\" : 'NULL' }}, CURRENT_DATE) ELSE received_on END\nWHERE id = '{{ $json.recordId }}';",
+        "query": "UPDATE traxkey.ordered_items\nSET expected_on = COALESCE(NULLIF('{{ $json.newExpectedDate || \"\" }}','')::date, expected_on),\n    status = CASE WHEN '{{ $json.classification }}' = 'received' THEN 'received' ELSE status END,\n    received_on = CASE WHEN '{{ $json.classification }}' = 'received'\n                       THEN COALESCE(NULLIF('{{ $json.newExpectedDate || \"\" }}','')::date, CURRENT_DATE)\n                       ELSE received_on END\nWHERE id = '{{ $json.recordId }}';",
         "options": {}
       },
       "id": "oi05-update",
@@ -491,7 +493,8 @@
           "name": "Postgres account"
         }
       },
-      "notes": "Safe to automate: inventory/date fields only, never money. 'received' only gets set from an explicit classification, a vague reply defaults to 'other' and touches nothing."
+      "notes": "Safe to automate: inventory/date fields only, never money. 'received' only gets set from an explicit classification, a vague reply defaults to 'other' and touches nothing.",
+      "alwaysOutputData": true
     },
     {
       "parameters": {
@@ -512,7 +515,8 @@
           "id": "rkxeF9x9C0rWEeWV",
           "name": "Postgres account"
         }
-      }
+      },
+      "alwaysOutputData": true
     },
     {
       "parameters": {
@@ -623,7 +627,8 @@
           "name": "Postgres account"
         }
       },
-      "notes": "Deliberately never writes to invoices.status or paid_on here, even for 'claims_paid'. Matches the project rule stated in invoice_chase.py's own docstring: 'TraxKey chases; it never collects.' A self-reported email claim of payment is not proof of payment, marking paid requires a real, separately-verified payment record. This just logs the claim for a human to see and act on."
+      "notes": "Deliberately never writes to invoices.status or paid_on here, even for 'claims_paid'. Matches the project rule stated in invoice_chase.py's own docstring: 'TraxKey chases; it never collects.' A self-reported email claim of payment is not proof of payment, marking paid requires a real, separately-verified payment record. This just logs the claim for a human to see and act on.",
+      "alwaysOutputData": true
     },
     {
       "parameters": {
