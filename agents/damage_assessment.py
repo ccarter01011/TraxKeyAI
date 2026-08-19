@@ -198,9 +198,19 @@ def assess(company_id, request_id):
     }
 
     with db() as conn, conn.cursor() as cur:
+        # Scoped even though the SELECT above already proved this request
+        # belongs to company_id. Relying on a guard several dozen lines up is
+        # exactly how the unscoped read in pricing_engine.get_calendar
+        # survived — the write should be independently correct.
         cur.execute(
-            "UPDATE traxkey.maintenance_requests SET damage_assessment = %s WHERE id = %s::uuid",
-            (json.dumps(assessment), request_id),
+            """
+            UPDATE traxkey.maintenance_requests mr
+            SET damage_assessment = %s
+            FROM traxkey.units u
+            JOIN traxkey.properties p ON p.id = u.property_id
+            WHERE mr.id = %s::uuid AND u.id = mr.unit_id AND p.company_id = %s
+            """,
+            (json.dumps(assessment), request_id, company_id),
         )
 
     return {"ok": True, "assessment": assessment}

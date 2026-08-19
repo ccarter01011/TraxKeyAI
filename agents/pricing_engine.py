@@ -426,31 +426,55 @@ def apply_rate(company_id, unit_id, stay_date, rate):
 
 
 def get_calendar(company_id, unit_id, start_date, end_date):
+    """Read-side twin of suggest_rates. `unit_id` arrives from the query
+    string, so every statement below joins through properties and constrains
+    on company_id — a unit belonging to another operator returns nothing
+    rather than that operator's guest list.
+
+    Scoped per statement rather than behind a single ownership check up
+    front: the reservation rows carry guest names and stay dates, and one
+    guard protecting three queries is one refactor away from protecting two.
+    """
     with db() as conn, conn.cursor() as cur:
         cur.execute(
             """
-            SELECT stay_date, base_rate, suggested_rate, applied_rate, source, factors
-            FROM traxkey.unit_nightly_rates
-            WHERE unit_id = %s::uuid AND stay_date BETWEEN %s AND %s
-            ORDER BY stay_date
+            SELECT r.stay_date, r.base_rate, r.suggested_rate, r.applied_rate, r.source, r.factors
+            FROM traxkey.unit_nightly_rates r
+            JOIN traxkey.units u ON u.id = r.unit_id
+            JOIN traxkey.properties p ON p.id = u.property_id
+            WHERE r.unit_id = %s::uuid AND p.company_id = %s
+              AND r.stay_date BETWEEN %s AND %s
+            ORDER BY r.stay_date
             """,
-            (unit_id, start_date, end_date),
+            (unit_id, company_id, start_date, end_date),
         )
         rates = [dict(r) for r in cur.fetchall()]
 
         cur.execute(
             """
-            SELECT id, guest_name, checkin_date, checkout_date, nightly_rate, status, source
-            FROM traxkey.direct_reservations
-            WHERE unit_id = %s::uuid AND status = 'confirmed'
-              AND checkin_date <= %s AND checkout_date >= %s
-            ORDER BY checkin_date
+            SELECT dr.id, dr.guest_name, dr.checkin_date, dr.checkout_date,
+                   dr.nightly_rate, dr.status, dr.source
+            FROM traxkey.direct_reservations dr
+            JOIN traxkey.units u ON u.id = dr.unit_id
+            JOIN traxkey.properties p ON p.id = u.property_id
+            WHERE dr.unit_id = %s::uuid AND p.company_id = %s
+              AND dr.status = 'confirmed'
+              AND dr.checkin_date <= %s AND dr.checkout_date >= %s
+            ORDER BY dr.checkin_date
             """,
-            (unit_id, end_date, start_date),
+            (unit_id, company_id, end_date, start_date),
         )
         reservations = [dict(r) for r in cur.fetchall()]
 
-        cur.execute("SELECT pricelabs_listing_id FROM traxkey.units WHERE id = %s::uuid", (unit_id,))
+        cur.execute(
+            """
+            SELECT u.pricelabs_listing_id
+            FROM traxkey.units u
+            JOIN traxkey.properties p ON p.id = u.property_id
+            WHERE u.id = %s::uuid AND p.company_id = %s
+            """,
+            (unit_id, company_id),
+        )
         unit_row = cur.fetchone()
     return {
         "rates": rates,

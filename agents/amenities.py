@@ -238,18 +238,21 @@ def find_active_guests(company_id, property_id, on_date=None):
             SELECT dr.guest_name, dr.guest_email, u.unit_number, true AS reachable
             FROM traxkey.direct_reservations dr
             JOIN traxkey.units u ON u.id = dr.unit_id
-            WHERE u.property_id = %(p)s::uuid AND dr.status = 'confirmed'
+            JOIN traxkey.properties p ON p.id = u.property_id
+            WHERE u.property_id = %(p)s::uuid AND p.company_id = %(c)s::uuid
+              AND dr.status = 'confirmed'
               AND dr.checkin_date <= COALESCE(%(d)s, CURRENT_DATE)
               AND dr.checkout_date > COALESCE(%(d)s, CURRENT_DATE)
             UNION ALL
             SELECT b.guest_label, NULL, u.unit_number, false AS reachable
             FROM traxkey.bookings b
             JOIN traxkey.units u ON u.id = b.unit_id
-            WHERE u.property_id = %(p)s::uuid
+            JOIN traxkey.properties p ON p.id = u.property_id
+            WHERE u.property_id = %(p)s::uuid AND p.company_id = %(c)s::uuid
               AND b.checkin_date <= COALESCE(%(d)s, CURRENT_DATE)
               AND b.checkout_date > COALESCE(%(d)s, CURRENT_DATE)
             """,
-            {"p": property_id, "d": on_date},
+            {"p": property_id, "c": company_id, "d": on_date},
         )
         return [dict(r) for r in cur.fetchall()]
 
