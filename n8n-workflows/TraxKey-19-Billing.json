@@ -1,0 +1,768 @@
+{
+  "name": "TraxKey - 19 Billing",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "create-checkout-session",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "54cfd8e0-80d9-4cad-ba12-ef95afa61c52",
+      "name": "Create Checkout (Webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "create-checkout-session"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT c.id AS company_id, c.name, c.stripe_customer_id\nFROM traxkey.sessions s JOIN traxkey.companies c ON c.id = s.company_id\nWHERE s.token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\").replace(/[^a-zA-Z0-9]/g, \"\") }}' AND s.expires_at > now();",
+        "options": {},
+        "alwaysOutputData": null
+      },
+      "id": "588587f8-3efd-4476-9b41-b83f689cc3d1",
+      "name": "Validate Session (Checkout)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        220,
+        0
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "checkout-session-valid",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json.company_id }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "044c29fc-d4f0-4cab-8694-9567e8874bf5",
+      "name": "Session Valid? (Checkout)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"Unauthorized\" }",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "id": "1850af64-55aa-48fd-ab12-d40bb4d329d8",
+      "name": "Respond: Checkout Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        660,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "has-customer",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json.stripe_customer_id }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a177471e-125c-4525-96ce-9584439b2a88",
+      "name": "Has Stripe Customer?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        660,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.stripe.com/v1/customers",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "name",
+              "value": "={{ $json.name }}"
+            },
+            {
+              "name": "metadata[company_id]",
+              "value": "={{ $json.company_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "bd44487e-192e-4c18-98ea-53a83851a28b",
+      "name": "Stripe: Create Customer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        -220
+      ],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "REPLACE_WITH_TRAXKEY_STRIPE_CREDENTIAL_ID",
+          "name": "TraxKey Stripe"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE traxkey.companies SET stripe_customer_id = '{{ $json.id }}' WHERE id = '{{ $('Validate Session (Checkout)').first().json.company_id }}'\nRETURNING stripe_customer_id;",
+        "options": {},
+        "alwaysOutputData": null
+      },
+      "id": "1d3a69a6-0d62-4802-aca8-abc07c905899",
+      "name": "Save Stripe Customer Id",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        -220
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Flat monthly tiers, no metering. Price IDs are the TraxKey AI Stripe\n// sandbox's recurring prices for Starter/Growth/Pro (schema_v39 backs the\n// stripe_customer_id/stripe_subscription_id columns this workflow reads\n// and writes).\nconst priceMap = {\n  starter: 'price_1U6BUbH92vZ4jbike51YIZz0',\n  growth: 'price_1U6BWCH92vZ4jbikW6evfxAi',\n  pro: 'price_1U6BXAH92vZ4jbikMcUFLwsb',\n};\n\nconst body = $('Create Checkout (Webhook)').first().json.body;\nconst plan = (body.plan || '').toLowerCase();\nconst priceId = priceMap[plan];\nif (!priceId) throw new Error(`Unknown plan: ${plan}`);\n\nconst session = $('Validate Session (Checkout)').first().json;\n\n// $('NodeName') throws when that node never ran in this execution (e.g.\n// 'Stripe: Create Customer' on the existing-customer branch, where it's\n// skipped). Each lookup is its own try/catch so a miss on one never\n// crashes the other, working branch. Mirrors the fix already shipped in\n// TraxSail's Billing workflow after the same bug reached production there.\nlet customerId;\ntry {\n  customerId = $('Has Stripe Customer?').first()?.json?.stripe_customer_id;\n} catch (e) {}\nif (!customerId) {\n  try {\n    customerId = $('Stripe: Create Customer').first()?.json?.id;\n  } catch (e) {}\n}\nif (!customerId) throw new Error('Could not determine Stripe customer id for checkout.');\n\nreturn [{ json: { customerId, priceId, companyId: session.company_id, plan } }];\n"
+      },
+      "id": "fb2a0ec6-2dbf-4fe4-b9fc-1372a5a22cdd",
+      "name": "Build Checkout Params",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        1320,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.stripe.com/v1/checkout/sessions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "mode",
+              "value": "subscription"
+            },
+            {
+              "name": "customer",
+              "value": "={{ $json.customerId }}"
+            },
+            {
+              "name": "line_items[0][price]",
+              "value": "={{ $json.priceId }}"
+            },
+            {
+              "name": "line_items[0][quantity]",
+              "value": "1"
+            },
+            {
+              "name": "success_url",
+              "value": "https://app.traxkey.ai/?checkout=success"
+            },
+            {
+              "name": "cancel_url",
+              "value": "https://app.traxkey.ai/pricing?checkout=cancelled"
+            },
+            {
+              "name": "metadata[company_id]",
+              "value": "={{ $json.companyId }}"
+            },
+            {
+              "name": "metadata[plan]",
+              "value": "={{ $json.plan }}"
+            },
+            {
+              "name": "subscription_data[metadata][company_id]",
+              "value": "={{ $json.companyId }}"
+            },
+            {
+              "name": "subscription_data[metadata][plan]",
+              "value": "={{ $json.plan }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "86bdf12f-ad81-49a1-964d-4ce7ddcb5a84",
+      "name": "Stripe: Create Checkout Session",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        -60
+      ],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "REPLACE_WITH_TRAXKEY_STRIPE_CREDENTIAL_ID",
+          "name": "TraxKey Stripe"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ checkoutUrl: $json.url }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "c731901c-0448-4df3-b4ee-5bd7dff25cdd",
+      "name": "Respond: Checkout URL",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1760,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "billing-portal-session",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "057746cf-48ae-45bc-989e-23af89411329",
+      "name": "Billing Portal (Webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "billing-portal-session"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT c.id AS company_id, c.name, c.stripe_customer_id\nFROM traxkey.sessions s JOIN traxkey.companies c ON c.id = s.company_id\nWHERE s.token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\").replace(/[^a-zA-Z0-9]/g, \"\") }}' AND s.expires_at > now();",
+        "options": {},
+        "alwaysOutputData": null
+      },
+      "id": "de15836d-cfdc-4570-97d1-8c5b02b94383",
+      "name": "Validate Session (Portal)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        220,
+        300
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "portal-session-valid",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json.stripe_customer_id }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "af945771-4ddd-46f8-ab0b-22da3f879c2d",
+      "name": "Portal Session Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"No billing account on file yet\" }",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "id": "016606e5-2064-48ce-9461-efc13754e055",
+      "name": "Respond: Portal Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        660,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.stripe.com/v1/billing_portal/sessions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "customer",
+              "value": "={{ $json.stripe_customer_id }}"
+            },
+            {
+              "name": "return_url",
+              "value": "https://app.traxkey.ai/dashboard"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b44f7471-10d8-45bf-b59c-4a7009d83268",
+      "name": "Stripe: Create Portal Session",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        220
+      ],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "REPLACE_WITH_TRAXKEY_STRIPE_CREDENTIAL_ID",
+          "name": "TraxKey Stripe"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ portalUrl: $json.url }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "0490a507-aec2-4a84-a9a4-b0576fc46d2f",
+      "name": "Respond: Portal URL",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        880,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "leftValue": "={{ $json.type }}",
+                    "rightValue": "checkout.session.completed"
+                  }
+                ]
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "leftValue": "={{ $json.type }}",
+                    "rightValue": "customer.subscription.updated"
+                  }
+                ]
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "leftValue": "={{ $json.type }}",
+                    "rightValue": "customer.subscription.deleted"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "65cab54e-f169-4dae-aa4b-0009211a84d7",
+      "name": "Switch: Event Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        440,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE traxkey.companies\nSET plan = '{{ $json.data.object.metadata.plan }}',\n    plan_status = 'active',\n    stripe_subscription_id = '{{ $json.data.object.subscription }}'\nWHERE id = '{{ $json.data.object.metadata.company_id }}';",
+        "options": {},
+        "alwaysOutputData": null
+      },
+      "id": "5a5b4c1b-8c1a-4f2a-a24b-94e656f04e74",
+      "name": "Mark Checkout Complete",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        660,
+        460
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Syncs plan_status from Stripe's actual subscription status whenever it\n-- changes (payment failure, recovery, etc). Only maps the 3 states\n-- actively used here; anything else (canceled/unpaid/incomplete) is left\n-- as-is since true cancellation is handled by Sync Subscription Cancelled.\nUPDATE traxkey.companies\nSET stripe_subscription_id = '{{ $json.data.object.id }}',\n    plan_status = CASE '{{ $json.data.object.status }}'\n      WHEN 'active' THEN 'active'\n      WHEN 'past_due' THEN 'past_due'\n      WHEN 'trialing' THEN 'trialing'\n      ELSE plan_status\n    END\nWHERE stripe_customer_id = '{{ $json.data.object.customer }}';",
+        "options": {},
+        "alwaysOutputData": null
+      },
+      "id": "396fd16c-ff81-4a4e-a9e1-5494bf6df901",
+      "name": "Sync Subscription Updated",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        660,
+        600
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE traxkey.companies SET plan = 'free', plan_status = 'cancelled', cancelled_at = now(), stripe_subscription_id = NULL WHERE stripe_customer_id = '{{ $json.data.object.customer }}';",
+        "options": {},
+        "alwaysOutputData": null
+      },
+      "id": "d7999b1d-08ae-474b-8804-ff8d6ee8e018",
+      "name": "Sync Subscription Cancelled",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        660,
+        740
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "events": [
+          "checkout.session.completed",
+          "customer.subscription.updated",
+          "customer.subscription.deleted"
+        ]
+      },
+      "id": "aa93a8ef-7350-499e-a6ee-9ec03a56fdc0",
+      "name": "Stripe Trigger",
+      "type": "n8n-nodes-base.stripeTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        600
+      ],
+      "webhookId": "ead9751d-304a-4783-8473-c0d8d9912645",
+      "credentials": {
+        "stripeApi": {
+          "id": "REPLACE_WITH_TRAXKEY_STRIPE_API_CREDENTIAL_ID",
+          "name": "TraxKey Stripe API"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Create Checkout (Webhook)": {
+      "main": [
+        [
+          {
+            "node": "Validate Session (Checkout)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Session (Checkout)": {
+      "main": [
+        [
+          {
+            "node": "Session Valid? (Checkout)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Session Valid? (Checkout)": {
+      "main": [
+        [
+          {
+            "node": "Has Stripe Customer?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Checkout Unauthorized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Stripe Customer?": {
+      "main": [
+        [
+          {
+            "node": "Build Checkout Params",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Stripe: Create Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stripe: Create Customer": {
+      "main": [
+        [
+          {
+            "node": "Save Stripe Customer Id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Stripe Customer Id": {
+      "main": [
+        [
+          {
+            "node": "Build Checkout Params",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Checkout Params": {
+      "main": [
+        [
+          {
+            "node": "Stripe: Create Checkout Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stripe: Create Checkout Session": {
+      "main": [
+        [
+          {
+            "node": "Respond: Checkout URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Billing Portal (Webhook)": {
+      "main": [
+        [
+          {
+            "node": "Validate Session (Portal)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Session (Portal)": {
+      "main": [
+        [
+          {
+            "node": "Portal Session Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Portal Session Valid?": {
+      "main": [
+        [
+          {
+            "node": "Stripe: Create Portal Session",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Portal Unauthorized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stripe: Create Portal Session": {
+      "main": [
+        [
+          {
+            "node": "Respond: Portal URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch: Event Type": {
+      "main": [
+        [
+          {
+            "node": "Mark Checkout Complete",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sync Subscription Updated",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sync Subscription Cancelled",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stripe Trigger": {
+      "main": [
+        [
+          {
+            "node": "Switch: Event Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

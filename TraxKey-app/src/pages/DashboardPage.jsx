@@ -164,6 +164,7 @@ export default function DashboardPage() {
   const { user, logout } = useAuth();
   const [suggestOpen, setSuggestOpen] = useState(false);
   const [counts, setCounts] = useState(null);
+  const [checkoutSuccess, setCheckoutSuccess] = useState(false);
 
   // Reuses the endpoints each page already calls rather than adding a
   // dashboard-summary workflow. Three extra reads on load, and zero new n8n
@@ -208,10 +209,64 @@ export default function DashboardPage() {
 
   useEffect(() => { load(); }, []);
 
+  // Stripe sends the operator back to /?checkout=success. The plan itself is
+  // set by the billing webhook, not here, and that round trip can land a
+  // moment after the redirect — hence the delayed reload rather than
+  // trusting whatever the first render happened to fetch. The query string
+  // is stripped immediately so a refresh or a shared URL never replays the
+  // thank-you to someone who did not just pay.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('checkout') !== 'success') return;
+    setCheckoutSuccess(true);
+    window.history.replaceState({}, '', window.location.pathname);
+    const retry = setTimeout(() => load(), 2500);
+    return () => clearTimeout(retry);
+  }, []);
+
   const c = counts || {};
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 px-6 py-8">
+      {checkoutSuccess && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setCheckoutSuccess(false)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="checkout-thanks-title"
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-sm p-6 text-center relative"
+            onClick={e => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setCheckoutSuccess(false)}
+              className="absolute top-3 right-3 text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 rounded-lg transition-colors"
+              aria-label="Close"
+            >
+              ×
+            </button>
+            <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-teal-100 dark:bg-teal-500/15 flex items-center justify-center">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M8 12L11 15L16 9" stroke="#0d9488" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                <circle cx="12" cy="12" r="10" stroke="#0d9488" strokeWidth="1.5" opacity="0.3" />
+              </svg>
+            </div>
+            <h2 id="checkout-thanks-title" className="text-lg font-bold mb-1 dark:text-white">Welcome to TraxKey AI!</h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">
+              Thank you for becoming a valued customer. Your plan is activating now, this usually
+              takes just a few seconds. We're glad to have you on board.
+            </p>
+            <button
+              onClick={() => setCheckoutSuccess(false)}
+              className="bg-slate-900 dark:bg-teal-500 text-white dark:text-slate-950 font-semibold px-6 py-2.5 rounded-lg transition-all active:scale-95 duration-150"
+            >
+              Get Started
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-3xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <div>
