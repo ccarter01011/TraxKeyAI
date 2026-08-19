@@ -31,6 +31,24 @@ It fails on:
    matching zero rows emits no items and the chain dies silently.
 5. **User input interpolated raw** — `body.*` values inside SQL string
    literals with no escaping or character-class stripping.
+6. **User input in an unquoted SQL position** — e.g. `final_cost = {{ ... }}`.
+   Check 5 only ever looked *inside* quotes, so this whole class was
+   invisible to it and two injections shipped through the gap. Quote escaping
+   is no defence in an unquoted position: the attacker never needs a quote.
+   Neither is `|| 'NULL'`, which substitutes only on a falsy value and passes
+   any non-empty string through verbatim. Coerce numerics with `Number()`
+   behind a `Number.isFinite` guard.
+
+   The check distinguishes a value that can be **returned** (`v || 'NULL'`,
+   concatenation, a bare accessor) from one that only **steers a choice**
+   between fixed literals (`v ? 'true' : 'false'`). The second is safe — the
+   untrusted value is a condition, never part of the emitted SQL — and is
+   used deliberately in workflows 05 and 17.
+
+What it does **not** check: anything outside `parameters.query`. Code node
+`jsCode`, HTTP request bodies, XSS, authorization, tenant scoping, and rate
+limiting are all invisible to it. A clean run means the known traps were
+avoided, not that the change is safe. See [../SECURITY.md](../SECURITY.md).
 
 ## Importing
 

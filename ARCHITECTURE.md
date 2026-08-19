@@ -206,6 +206,26 @@ rules.
 
 ---
 
+## Security
+
+See **[SECURITY.md](SECURITY.md)** for the rules and the reasoning: trust
+boundaries, safe SQL interpolation, untrusted text in HTML, and the handling
+LLM surfaces need in both directions.
+
+The two things most often got wrong here:
+
+- **Signup is open**, so "requires a login" is close to no barrier at all.
+  Treat any-authenticated-user endpoints as near-public.
+- **An LLM's output is untrusted too**, not just its input. It is derived
+  from attacker-reachable text, so it is constrained to an allowlist before
+  it reaches the database.
+
+Run `python3 n8n-workflows/audit.py` before committing a workflow change. It
+is a floor, not a ceiling — it reads only `parameters.query` and cannot see
+XSS, authorization, or rate limiting.
+
+---
+
 ## Data model
 
 ```
