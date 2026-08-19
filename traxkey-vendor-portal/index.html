@@ -108,20 +108,40 @@ async function markInProgress(requestId, btn) {
   }
 }
 
+// This card is built as a template literal and written with innerHTML, so it
+// gets none of the escaping React would give it. `description` in particular
+// originates from the PUBLIC maintenance intake webhook — an anonymous
+// submission would otherwise execute as script here, on the origin holding
+// this vendor's auth token.
+function esc(v) {
+  if (v === null || v === undefined) return '';
+  return String(v)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function jobCard(job) {
-  const address = job.address_line1 ? `${job.address_line1}, ${job.city}, ${job.state}` : 'address on file';
-  const unitPart = job.unit_number ? `, Unit ${job.unit_number}` : '';
+  const address = job.address_line1
+    ? `${esc(job.address_line1)}, ${esc(job.city)}, ${esc(job.state)}`
+    : 'address on file';
+  const unitPart = job.unit_number ? `, Unit ${esc(job.unit_number)}` : '';
   const canStart = job.status === 'scheduled';
+  // STATUS_COLOR / URGENCY_COLOR are looked up by key and fall back to a
+  // literal, so the class attributes below can only ever be one of our own
+  // strings — the raw job.status/urgency never reaches the markup unescaped.
   return `
     <div class="bg-slate-900 border border-white/5 rounded-2xl p-4">
       <div class="flex items-start justify-between gap-3 mb-2">
-        <p class="text-sm font-medium flex-1">${job.description}</p>
-        <span class="shrink-0 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${STATUS_COLOR[job.status] || 'bg-slate-500/15 text-slate-400'}">${job.status.replace('_', ' ')}</span>
+        <p class="text-sm font-medium flex-1">${esc(job.description)}</p>
+        <span class="shrink-0 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${STATUS_COLOR[job.status] || 'bg-slate-500/15 text-slate-400'}">${esc(String(job.status).replace('_', ' '))}</span>
       </div>
-      <p class="text-xs text-slate-500 mb-3">${job.property_name || ''}${unitPart} — ${address}</p>
+      <p class="text-xs text-slate-500 mb-3">${esc(job.property_name || '')}${unitPart} — ${address}</p>
       <div class="flex items-center gap-2">
-        <span class="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${URGENCY_COLOR[job.urgency] || 'bg-slate-500/15 text-slate-400'}">${job.urgency || ''}</span>
-        ${canStart ? `<button onclick="markInProgress('${job.id}', this)" class="ml-auto bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs px-3 py-1.5 rounded-lg transition">Start job</button>` : ''}
+        <span class="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${URGENCY_COLOR[job.urgency] || 'bg-slate-500/15 text-slate-400'}">${esc(job.urgency || '')}</span>
+        ${canStart ? `<button data-job-id="${esc(job.id)}" class="js-start ml-auto bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs px-3 py-1.5 rounded-lg transition">Start job</button>` : ''}
       </div>
     </div>`;
 }
@@ -133,6 +153,16 @@ async function loadJobs() {
     const jobs = await apiRequest('traxkey-get-vendor-jobs');
     const real = jobs.filter(j => j.id);
     listEl.innerHTML = real.map(jobCard).join('');
+    // Bound here rather than as an inline onclick="...('${job.id}')". An
+    // inline handler is the one spot HTML-escaping does not save you: the
+    // parser decodes entities BEFORE the JS is parsed, so an escaped quote
+    // still closes the string. Reading the id back off a data attribute
+    // keeps it data the whole way.
+    listEl.querySelectorAll('.js-start').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        markInProgress(btn.getAttribute('data-job-id'), btn);
+      });
+    });
     emptyEl.classList.toggle('hidden', real.length > 0);
   } catch (err) {
     if (err.message === 'Unauthorized') { logout(); }
