@@ -18,6 +18,7 @@ from datetime import date
 import requests
 
 from db import db
+from escaping import esc
 
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
 NOTIFY_FROM_ADDRESS = os.environ.get("NOTIFY_FROM_ADDRESS", "dispatch@notify.traxkey.ai")
@@ -99,9 +100,9 @@ def send_alert(row, summary):
     if not RESEND_API_KEY or not row["notify_email"]:
         return
     try:
-        unit_label = f"{row['property_name']}{' Unit ' + row['unit_number'] if row['unit_number'] else ''}"
+        unit_label = f"{esc(row['property_name'])}{' Unit ' + esc(row['unit_number']) if row['unit_number'] else ''}"
         items = "".join(
-            f"<li>{i['description']} <em>({i['status'].replace('_',' ')})</em></li>"
+            f"<li>{esc(i['description'])} <em>({esc(i['status'].replace('_',' '))})</em></li>"
             for i in (row["open_items"] or [])
         )
         days = (row["checkin_date"] - date.today()).days

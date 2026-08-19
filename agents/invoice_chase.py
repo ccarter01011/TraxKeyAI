@@ -25,6 +25,7 @@ import traceback
 import requests
 
 from db import db
+from escaping import esc
 
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
 NOTIFY_FROM_ADDRESS = os.environ.get("NOTIFY_FROM_ADDRESS", "dispatch@notify.traxkey.ai")
@@ -120,12 +121,12 @@ def nudge_invoice(row):
                if firm else
                f"Reminder: invoice {row['invoice_number']} is past due")
     html = f"""
-      <p>Hi {row.get('customer_name') or 'there'},</p>
-      <p>Invoice <strong>{row['invoice_number']}</strong> for <strong>{amount}</strong>
-         was due on {row['due_on']}, which is {overdue} day{'s' if overdue != 1 else ''} ago.</p>
+      <p>Hi {esc(row.get('customer_name') or 'there')},</p>
+      <p>Invoice <strong>{esc(row['invoice_number'])}</strong> for <strong>{esc(amount)}</strong>
+         was due on {esc(row['due_on'])}, which is {overdue} day{'s' if overdue != 1 else ''} ago.</p>
       <p>{'Please let us know when we can expect payment, or reply if something is wrong with this invoice.'
           if firm else 'If it has already been sent, please ignore this note.'}</p>
-      <p>&mdash; {row.get('company_name') or 'Property management'}</p>
+      <p>&mdash; {esc(row.get('company_name') or 'Property management')}</p>
     """
     cc = [row["cc_email"]] if row.get("cc_email") else None
     if firm and row.get("operator_email"):
@@ -158,9 +159,9 @@ def escalate_invoice(row):
             [row["operator_email"]],
             f"No response on invoice {row['invoice_number']} ({amount})",
             f"""
-              <p>{row.get('customer_name')} has not responded to
+              <p>{esc(row.get('customer_name'))} has not responded to
                  {MAX_CHASES} reminders on invoice
-                 <strong>{row['invoice_number']}</strong> for <strong>{amount}</strong>,
+                 <strong>{esc(row['invoice_number'])}</strong> for <strong>{esc(amount)}</strong>,
                  now {overdue} days overdue.</p>
               <p>TraxKey has stopped chasing this one. It is yours from here.</p>
             """,
@@ -212,17 +213,17 @@ def find_late_items():
 def nudge_supplier(row):
     late = int(row.get("days_late") or 0)
     firm = (row.get("chase_count") or 0) >= 1
-    ref = f" (ref {row['reference']})" if row.get("reference") else ""
+    ref = f" (ref {esc(row['reference'])})" if row.get("reference") else ""
     subject = (f"Second request: {row['description']} is {late} days late"
                if firm else
                f"Checking on {row['description']}")
     html = f"""
-      <p>Hi {row.get('supplier') or 'there'},</p>
-      <p>We were expecting <strong>{row['description']}</strong>{ref} on
-         {row['expected_on']}, which is {late} day{'s' if late != 1 else ''} ago.</p>
+      <p>Hi {esc(row.get('supplier') or 'there')},</p>
+      <p>We were expecting <strong>{esc(row['description'])}</strong>{ref} on
+         {esc(row['expected_on'])}, which is {late} day{'s' if late != 1 else ''} ago.</p>
       <p>{'This is holding up work on our end. Can you confirm a firm ship date?'
           if firm else 'Could you confirm when it will ship?'}</p>
-      <p>&mdash; {row.get('company_name') or 'Property management'}</p>
+      <p>&mdash; {esc(row.get('company_name') or 'Property management')}</p>
     """
     cc = [row["cc_email"]] if row.get("cc_email") else None
     if firm and row.get("operator_email"):
@@ -251,7 +252,7 @@ def escalate_item(row):
             [row["operator_email"]],
             f"No response from {row.get('supplier') or 'supplier'} on {row['description']}",
             f"""
-              <p><strong>{row['description']}</strong> is {late} days late and the
+              <p><strong>{esc(row['description'])}</strong> is {late} days late and the
                  supplier has not answered {MAX_CHASES} requests.</p>
               <p>TraxKey has stopped chasing. If this is blocking a turn, you may
                  want to source it elsewhere.</p>

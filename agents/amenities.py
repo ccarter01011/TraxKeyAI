@@ -16,6 +16,7 @@ import traceback
 import requests
 
 from db import db
+from escaping import esc
 
 CATEGORIES = ("pool", "water", "fire", "sport", "gathering", "other")
 
@@ -280,7 +281,10 @@ def notify_active_guests(company_id, amenity_id, message):
         ok = _send(
             g["guest_email"],
             f"Update about {amenity['name']}",
-            f"<p>Hi {g['guest_name'] or 'there'},</p><p>{message}</p>",
+            # `message` is operator-authored free text going to their guests
+            # from a domain we DKIM-sign. Escaped so an operator cannot embed
+            # markup or a link that reads as if TraxKey sent it.
+            f"<p>Hi {esc(g['guest_name'] or 'there')},</p><p>{esc(message)}</p>",
         )
         if ok:
             sent += 1

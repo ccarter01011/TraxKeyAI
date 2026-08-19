@@ -15,6 +15,7 @@ import traceback
 import requests
 
 from db import db
+from escaping import esc
 
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
 FOLLOWUP_FROM_ADDRESS = os.environ.get("FOLLOWUP_FROM_ADDRESS", "team@notify.traxkey.ai")
@@ -44,7 +45,7 @@ def find_leads_due_for_followup():
 def send_followup(lead):
     first_name = (lead["name"] or "").split(" ")[0] or "there"
     html = f"""<div style="font-family: Arial, sans-serif; font-size:14px; color:#1e293b; max-width:520px;">
-<p>Hi {first_name},</p>
+<p>Hi {esc(first_name)},</p>
 <p>You reached out about TraxKey AI a couple of days ago. No pressure, just
 checking in, we'd rather ask directly than assume.</p>
 <p>Two things:</p>

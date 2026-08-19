@@ -20,6 +20,7 @@ from anthropic import Anthropic
 from langgraph.graph import StateGraph, END
 
 from db import db
+from escaping import esc
 from business_memory import (
     load_rules, effective_threshold, forces_approval, in_quiet_hours, preferred_vendor_id,
 )
@@ -437,15 +438,15 @@ def notify_vendor(request_id: str) -> None:
         if not row or not row["contact_email"]:
             return
 
-        address = f"{row['address_line1']}, {row['city']}, {row['state']}" if row["address_line1"] else "address on file"
-        unit_part = f", Unit {row['unit_number']}" if row["unit_number"] else ""
+        address = f"{esc(row['address_line1'])}, {esc(row['city'])}, {esc(row['state'])}" if row["address_line1"] else "address on file"
+        unit_part = f", Unit {esc(row['unit_number'])}" if row["unit_number"] else ""
         cost_part = f"<p>Estimated cost: ${row['quoted_cost']:.0f}</p>" if row["quoted_cost"] else ""
 
         html = f"""<div style="font-family: Arial, sans-serif; font-size:14px; color:#1e293b;">
-<p>Hi {row['vendor_name']},</p>
-<p>New {row['category']} job dispatched to you, urgency: <strong>{row['urgency']}</strong>.</p>
-<p><strong>Location:</strong> {row['property_name'] or ''}{unit_part} — {address}</p>
-<p><strong>Issue:</strong> {row['description']}</p>
+<p>Hi {esc(row['vendor_name'])},</p>
+<p>New {esc(row['category'])} job dispatched to you, urgency: <strong>{esc(row['urgency'])}</strong>.</p>
+<p><strong>Location:</strong> {esc(row['property_name'] or '')}{unit_part} — {address}</p>
+<p><strong>Issue:</strong> {esc(row['description'])}</p>
 {cost_part}
 <p style="font-size:11px;color:#94a3b8;margin-top:24px;">Sent automatically by TraxKey AI.</p>
 </div>"""

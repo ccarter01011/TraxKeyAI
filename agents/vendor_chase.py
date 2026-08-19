@@ -27,6 +27,7 @@ from datetime import datetime, timezone
 import requests
 
 from db import db
+from escaping import esc
 
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
 NOTIFY_FROM_ADDRESS = os.environ.get("NOTIFY_FROM_ADDRESS", "dispatch@notify.traxkey.ai")
@@ -128,12 +129,12 @@ def nudge_vendor(row):
     if row.get("guest_in_unit"):
         urgent_note = "<p><strong>There is a guest in the unit right now.</strong></p>"
     elif row.get("turn_deadline"):
-        urgent_note = f"<p><strong>This unit has to be ready by {row['turn_deadline']}.</strong></p>"
+        urgent_note = f"<p><strong>This unit has to be ready by {esc(row['turn_deadline'])}.</strong></p>"
 
     html = f"""<div style="font-family: Arial, sans-serif; font-size:14px; color:#1e293b;">
-<p>Hi {row['vendor_name']},</p>
-<p>Following up on the {row['category'] or ''} job at {_where(row)}, sent {n} message{'s' if n > 1 else ''} ago with no reply yet.</p>
-<p><strong>Issue:</strong> {row['description']}</p>
+<p>Hi {esc(row['vendor_name'])},</p>
+<p>Following up on the {esc(row['category'] or '')} job at {esc(_where(row))}, sent {n} message{'s' if n > 1 else ''} ago with no reply yet.</p>
+<p><strong>Issue:</strong> {esc(row['description'])}</p>
 {urgent_note}
 <p>Can you confirm whether you're able to take it? If not, just say so and it goes to someone else, no hard feelings.</p>
 <p style="font-size:11px;color:#94a3b8;margin-top:24px;">Sent automatically by TraxKey AI.</p>
@@ -185,8 +186,8 @@ def escalate(row):
 
     if row.get("operator_email"):
         html = f"""<div style="font-family: Arial, sans-serif; font-size:14px; color:#1e293b;">
-<p>{row['vendor_name']} hasn't responded to the {row['category'] or ''} job at {_where(row)} after {MAX_CHASES} follow-ups.</p>
-<p><strong>Issue:</strong> {row['description']}</p>
+<p>{esc(row['vendor_name'])} hasn't responded to the {esc(row['category'] or '')} job at {esc(_where(row))} after {MAX_CHASES} follow-ups.</p>
+<p><strong>Issue:</strong> {esc(row['description'])}</p>
 <p>It's back to needing a vendor. {suggestion}</p>
 <p><a href="https://app.traxkey.ai/activity">Open it in TraxKey</a></p>
 <p style="font-size:11px;color:#94a3b8;margin-top:24px;">Sent automatically by TraxKey AI.</p>

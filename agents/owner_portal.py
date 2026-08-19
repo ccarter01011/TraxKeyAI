@@ -22,6 +22,7 @@ import secrets
 from datetime import datetime, timedelta, timezone
 
 from db import db
+from escaping import esc
 
 SESSION_DAYS = 30
 
@@ -333,7 +334,7 @@ def send_reset_email(name, email, token):
     from_addr = os.environ.get("NOTIFY_FROM_ADDRESS", "dispatch@notify.traxkey.ai")
     first = (name or "").split(" ")[0] or "there"
     html = f"""<div style="font-family: Arial, sans-serif; font-size:14px; color:#1e293b;">
-<p>Hi {first},</p>
+<p>Hi {esc(first)},</p>
 <p>Click below to reset your TraxKey owner portal password. This link expires in 1 hour.</p>
 <p><a href="https://owners.traxkey.ai/?reset={token}">Reset password</a></p>
 <p style="font-size:11px;color:#94a3b8;margin-top:24px;">Didn't request this? You can ignore this email.</p>

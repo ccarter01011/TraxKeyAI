@@ -17,6 +17,7 @@ import traceback
 import requests
 
 from db import db
+from escaping import esc
 
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
 NOTIFY_FROM_ADDRESS = os.environ.get("NOTIFY_FROM_ADDRESS", "dispatch@notify.traxkey.ai")
@@ -72,10 +73,10 @@ def _notify(who, subject, message):
         return
     try:
         html = f"""<div style="font-family: Arial, sans-serif; font-size:14px; color:#1e293b;">
-<p><strong>{who['name']}</strong> at <strong>{who['company_name']}</strong> suggested:</p>
-<p style="font-size:16px;font-weight:bold;">{subject}</p>
-<p style="white-space:pre-wrap;">{message or '(no detail given)'}</p>
-<p style="font-size:12px;color:#64748b;">Reply to them at {who['email']}</p>
+<p><strong>{esc(who['name'])}</strong> at <strong>{esc(who['company_name'])}</strong> suggested:</p>
+<p style="font-size:16px;font-weight:bold;">{esc(subject)}</p>
+<p style="white-space:pre-wrap;">{esc(message) or '(no detail given)'}</p>
+<p style="font-size:12px;color:#64748b;">Reply to them at {esc(who['email'])}</p>
 </div>"""
         requests.post(
             "https://api.resend.com/emails",

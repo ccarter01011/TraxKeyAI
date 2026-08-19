@@ -30,6 +30,7 @@ import traceback
 import requests
 
 from db import db
+from escaping import esc
 
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
 NOTIFY_FROM_ADDRESS = os.environ.get("NOTIFY_FROM_ADDRESS", "dispatch@notify.traxkey.ai")
@@ -105,11 +106,14 @@ def find_pending():
 
 
 def _body(row):
-    who = row["company_name"]
-    first = (row["resident_name"] or "").split(" ")[0] or "there"
-    where = row["property_name"] or ""
+    # Escaped here rather than at each use: these locals get spliced into
+    # several sentences below and then into the HTML body, so escaping once
+    # at the source is the only version that cannot be forgotten in a branch.
+    who = esc(row["company_name"])
+    first = esc((row["resident_name"] or "").split(" ")[0] or "there")
+    where = esc(row["property_name"] or "")
     if row.get("unit_number"):
-        where = f"{where} Unit {row['unit_number']}".strip()
+        where = f"{where} Unit {esc(row['unit_number'])}".strip()
     ntype = row["notification_type"]
 
     if ntype == "received":
@@ -124,7 +128,7 @@ def _body(row):
         headline = "Someone's been assigned"
         if row.get("vendor_name"):
             lines = [
-                f"{row['vendor_name']} is handling this for you.",
+                f"{esc(row['vendor_name'])} is handling this for you.",
                 "They'll be in touch to arrange a time that works.",
             ]
         else:
@@ -144,7 +148,7 @@ def _body(row):
 <p>Hi {first},</p>
 {para}
 <p style="background:#f1f5f9;padding:12px;border-radius:8px;color:#475569;font-size:13px;">
-<strong>Your request:</strong> {row['description']}<br>
+<strong>Your request:</strong> {esc(row['description'])}<br>
 {('<strong>Property:</strong> ' + where) if where else ''}
 </p>
 <p style="font-size:11px;color:#94a3b8;margin-top:24px;">Sent by {who} through TraxKey AI.</p>
