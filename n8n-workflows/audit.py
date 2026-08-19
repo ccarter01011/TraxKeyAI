@@ -32,6 +32,39 @@ TRUSTED = re.compile(
 failures = []
 
 
+def _only_literal_outputs(expr):
+    """True when an untrusted value can only steer a choice between fixed
+    literals, never be returned as the value itself.
+
+    `cond ? 'true' : 'false'` is safe no matter what `cond` holds — the
+    attacker picks which literal is emitted, not what it contains. But
+    `value || 'NULL'` returns `value` verbatim whenever it is truthy, and
+    that is a live injection in an unquoted position.
+
+    Works by blanking every quoted literal to a placeholder, then collapsing
+    well-formed `cond ? placeholder : placeholder` ternaries (and their
+    parenthesised nestings) bottom-up. If the whole expression reduces to a
+    single placeholder, every branch that could be emitted was a literal.
+    Anything left over — a bare accessor, a `||` fallback, a concatenation —
+    fails to collapse and is reported.
+    """
+    # Concatenation and the `||`/`??` fallbacks emit the operand itself, so
+    # neither can ever be literal-only.
+    if "+" in expr or "||" in expr or "??" in expr:
+        return False
+    # Every untrusted reference must be steering a comparison or a ternary
+    # test. Anything else — a bare accessor, a `.replace()` chain feeding a
+    # concatenation, an accessor sitting in a result branch — means the value
+    # itself can be emitted into the SQL.
+    refs = list(re.finditer(r"(?:body|headers)\.[A-Za-z_$][A-Za-z0-9_$]*", expr))
+    if not refs:
+        return False
+    return all(
+        re.match(r"\s*(===|!==|==|!=|>=|<=|>|<|\?)", expr[m.end():])
+        for m in refs
+    )
+
+
 def fail(kind, f, node, detail=""):
     failures.append(f"[{kind}] {os.path.basename(f)} / {node}" + (f"\n        {detail}" if detail else ""))
 
@@ -90,6 +123,35 @@ def audit(path):
             inner_expr = m.group(1)
             if ".replace(/" not in inner_expr:
                 fail("raw-concat", path, node, inner_expr.strip()[:100])
+
+        # 7. User input in an UNQUOTED SQL position, e.g. `final_cost = {{ ... }}`.
+        # Check 5 only looks inside '{{ }}' and so was blind to this entire
+        # class. Two live injections shipped through the gap: `finalCost` and
+        # `rating` in 08's Mark Request Completed, `bedrooms` and `bathrooms`
+        # in 03's Insert Unit — in both, the sibling string fields in the same
+        # query WERE sanitized, which is exactly why the omission read as
+        # deliberate and survived review.
+        #
+        # An unquoted position is strictly worse than a quoted one: quote
+        # escaping is irrelevant when the attacker never needs a quote to
+        # break out. `|| 'NULL'` is not a defence — it only substitutes on a
+        # falsy value, so any non-empty string passes through verbatim.
+        for m in re.finditer(r"\{\{(.*?)\}\}", q, re.S):
+            expr = m.group(1).strip()
+            quoted = q[m.start() - 1:m.start()] == "'" and q[m.end():m.end() + 1] == "'"
+            if quoted:
+                continue  # check 5 owns the quoted case
+            if not ("body." in expr or "headers." in expr):
+                continue
+            # Sanitised either by stripping characters, or by coercing to a
+            # number that is proven finite before it reaches the query.
+            if ".replace(/" in expr:
+                continue
+            if "Number.isFinite" in expr and "Number(" in expr:
+                continue
+            if _only_literal_outputs(expr):
+                continue
+            fail("UNQUOTED-user-input", path, node, expr[:100])
 
 
 for f in sorted(glob.glob(os.path.join(os.path.dirname(__file__), "*.json"))):

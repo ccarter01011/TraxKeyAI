@@ -31,7 +31,9 @@ which numbers to fetch and writes the sentence tying them together.
 import json
 import os
 import re
+import time
 import traceback
+from collections import defaultdict
 
 from anthropic import Anthropic
 
@@ -43,6 +45,32 @@ MODEL = "claude-sonnet-4-6"
 MAX_TURNS = 10           # conversation history kept, per request
 MAX_QUESTION_CHARS = 2000
 MAX_TOOL_ROUNDS = 6      # ceiling on tool round-trips per question
+
+# This is the most expensive call in the product: up to 16k output tokens,
+# multiplied by MAX_TOOL_ROUNDS, per question. It was previously unthrottled,
+# so a single Free-tier account on a $0 plan could loop it indefinitely and
+# run up an unbounded Anthropic bill.
+#
+# Keyed on company_id rather than IP or token deliberately: IP is client
+# -influenced, and a token is trivially multiplied by logging in again, but
+# company_id comes out of validate_session() and is exactly the unit we bill.
+CHAT_WINDOW_SECONDS = 3600
+CHAT_MAX_PER_WINDOW = 40   # questions per company per hour
+CHAT_MIN_GAP_SECONDS = 2   # blocks scripted hammering between questions
+
+_chat_hits = defaultdict(list)
+
+
+def _chat_rate_limited(company_id):
+    now = time.time()
+    recent = [t for t in _chat_hits[company_id] if now - t < CHAT_WINDOW_SECONDS]
+    _chat_hits[company_id] = recent
+    if recent and now - recent[-1] < CHAT_MIN_GAP_SECONDS:
+        return True
+    if len(recent) >= CHAT_MAX_PER_WINDOW:
+        return True
+    _chat_hits[company_id].append(now)
+    return False
 
 UUID_RE = re.compile(r"^[0-9a-fA-F-]{36}$")
 
@@ -409,6 +437,8 @@ def answer(token, question, history=None):
         return (None, "unauthorized")
     if not question or not question.strip():
         return (None, "empty")
+    if _chat_rate_limited(company_id):
+        return (None, "rate_limited")
 
     messages = []
     for turn in (history or [])[-MAX_TURNS:]:

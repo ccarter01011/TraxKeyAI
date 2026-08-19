@@ -138,7 +138,18 @@ class HealthHandler(BaseHTTPRequestHandler):
             return
 
         # Behind Railway's proxy, the real client IP is in the forwarded header.
-        ip = (self.headers.get("X-Forwarded-For") or self.client_address[0] or "unknown").split(",")[0].strip()
+        #
+        # Take the LAST element, not the first. X-Forwarded-For reads
+        # `client, proxy1, proxy2` and each hop APPENDS, so the rightmost
+        # entry is the one Railway itself added and is the only element a
+        # caller cannot forge. Reading [0] returned whatever the client sent:
+        # rotating a fake X-Forwarded-For per request handed every request a
+        # fresh, empty rate-limit bucket and defeated the throttle on both
+        # public chatbots entirely.
+        forwarded = self.headers.get("X-Forwarded-For") or ""
+        ip = (forwarded.split(",")[-1].strip()
+              or self.client_address[0]
+              or "unknown")
 
         if route == "/suggestions":
             token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
@@ -406,6 +417,9 @@ class HealthHandler(BaseHTTPRequestHandler):
                 self._json(401, {"error": "Unauthorized"})
             elif err == "empty":
                 self._json(400, {"error": "Ask a question first"})
+            elif err == "rate_limited":
+                self._json(429, {"error": "You've asked a lot of questions in a short time. "
+                                          "Give it a minute and try again."})
             elif err:
                 self._json(500, {"error": "Could not answer that"})
             else:
