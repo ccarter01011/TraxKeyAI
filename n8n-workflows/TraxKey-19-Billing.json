@@ -219,7 +219,7 @@
             },
             {
               "name": "cancel_url",
-              "value": "https://app.traxkey.ai/pricing?checkout=cancelled"
+              "value": "https://app.traxkey.ai/?checkout=cancelled"
             },
             {
               "name": "metadata[company_id]",
