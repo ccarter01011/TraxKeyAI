@@ -274,6 +274,7 @@ export default function DashboardPage() {
             <h1 className="text-2xl font-bold">Welcome, {user?.name || 'there'}</h1>
           </div>
           <div className="flex items-center gap-3">
+            <Link to="/profile" className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">Profile</Link>
             <button onClick={logout} className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">Log out</button>
           </div>
         </div>

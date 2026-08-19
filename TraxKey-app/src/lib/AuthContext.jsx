@@ -24,8 +24,13 @@ export function AuthProvider({ children }) {
     setUser(null);
   }
 
+  function updateUserName(name) {
+    localStorage.setItem('tk_name', name || '');
+    setUser(u => (u ? { ...u, name } : u));
+  }
+
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUserName }}>
       {children}
     </AuthContext.Provider>
   );

@@ -31,6 +31,7 @@ import AdminLoginPage from './pages/AdminLoginPage.jsx';
 import AdminDashboardPage from './pages/AdminDashboardPage.jsx';
 import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx';
 import ResetPasswordPage from './pages/ResetPasswordPage.jsx';
+import ProfilePage from './pages/ProfilePage.jsx';
 import './index.css';
 
 function RequireAuth({ children }) {
@@ -71,6 +72,7 @@ function App() {
           <Route path="/ask" element={<RequireAuth><PortfolioChatPage /></RequireAuth>} />
           <Route path="/onboarding" element={<RequireAuth><PropertyProfilePage /></RequireAuth>} />
           <Route path="/pricing" element={<RequireAuth><PricingPage /></RequireAuth>} />
+          <Route path="/profile" element={<RequireAuth><ProfilePage /></RequireAuth>} />
           <Route path="/admin/login" element={<AdminLoginPage />} />
           <Route path="/admin" element={<AdminDashboardPage />} />
           <Route path="/admin/suggestions" element={<AdminSuggestionsPage />} />

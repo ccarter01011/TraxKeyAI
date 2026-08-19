@@ -1,0 +1,661 @@
+{
+  "name": "TraxKey - 20 Profile",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "my-profile",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "155a52c8-fbeb-4d04-b733-92955e90d38b",
+      "name": "Get My Profile (Webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "my-profile"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT u.id AS user_id, u.company_id, u.name, u.email, u.phone, u.role\nFROM traxkey.sessions s JOIN traxkey.users u ON u.id = s.user_id\nWHERE s.token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\").replace(/[^a-zA-Z0-9]/g, \"\") }}' AND s.expires_at > now();",
+        "options": {}
+      },
+      "id": "cb21480f-cb02-4bc0-9157-8a26e2a3eddb",
+      "name": "Fetch Profile",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        220,
+        0
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "profile-found",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json.user_id }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "de0ba94e-88b1-4bea-8af8-580ad4794697",
+      "name": "Profile Found?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"Unauthorized\" }",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "id": "f476612f-53cd-4d0d-8234-2fe844d9887c",
+      "name": "Respond: Profile Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        660,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ name: $json.name, email: $json.email, phone: $json.phone, role: $json.role }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "186e3429-8309-4f2e-9c59-0d5180d657c9",
+      "name": "Respond: Profile",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        660,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "update-my-profile",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "73603058-d2cc-4da8-9784-52de2a11ff44",
+      "name": "Update My Profile (Webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        260
+      ],
+      "webhookId": "update-my-profile"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT u.id AS user_id, u.company_id, u.name, u.email, u.phone, u.role\nFROM traxkey.sessions s JOIN traxkey.users u ON u.id = s.user_id\nWHERE s.token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\").replace(/[^a-zA-Z0-9]/g, \"\") }}' AND s.expires_at > now();",
+        "options": {}
+      },
+      "id": "3c0da7c9-956e-41ee-b778-3c3b4353c78b",
+      "name": "Validate Session (Update Profile)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        220,
+        260
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "update-profile-session-valid",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json.user_id }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b2154965-a386-4ddb-9d67-e4adce217c85",
+      "name": "Update Profile Session Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        440,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"Unauthorized\" }",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "id": "b84f2a7f-1def-46d5-805d-ace146544f04",
+      "name": "Respond: Update Profile Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        660,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE traxkey.users\nSET name = '{{ $('Update My Profile (Webhook)').first().json.body.name.replace(/'/g, \"''\") }}',\n    phone = NULLIF('{{ $('Update My Profile (Webhook)').first().json.body.phone.replace(/'/g, \"''\") }}', '')\nWHERE id = '{{ $json.user_id }}'\nRETURNING name, phone;",
+        "options": {}
+      },
+      "id": "345c52b6-5d49-43d1-bdc9-a12ec95d04da",
+      "name": "Save Profile",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        660,
+        200
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"success\": true }",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "a954ce81-b362-4239-86d8-655d7f57e683",
+      "name": "Respond: Profile Updated",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        880,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "traxkey-change-password",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "4d958473-70ca-4f39-b391-db1aa61bbfb9",
+      "name": "Change Password (Webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        520
+      ],
+      "webhookId": "traxkey-change-password"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT u.id AS user_id\nFROM traxkey.sessions s JOIN traxkey.users u ON u.id = s.user_id\nWHERE s.token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\").replace(/[^a-zA-Z0-9]/g, \"\") }}' AND s.expires_at > now()\nAND u.password_hash = crypt('{{ $json.body.currentPassword.replace(/'/g, \"''\") }}', u.password_hash);",
+        "options": {}
+      },
+      "id": "ee4c7033-5623-49be-b38f-ff60225a7c13",
+      "name": "Validate Session + Current Password",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        220,
+        520
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "change-pw-valid",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json.user_id }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9737d7b2-3b7b-4ce2-9d45-31707cc7e245",
+      "name": "Change Password Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        440,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"Current password is incorrect\" }",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "id": "a8dda746-5335-49db-ac45-1871d09c069d",
+      "name": "Respond: Change Password Failed",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        660,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE traxkey.users SET password_hash = crypt('{{ $('Change Password (Webhook)').first().json.body.newPassword.replace(/'/g, \"''\") }}', gen_salt('bf'))\nWHERE id = '{{ $json.user_id }}'\nRETURNING id;",
+        "options": {}
+      },
+      "id": "4c73d059-aa38-4fab-ba58-1d31b991fcce",
+      "name": "Update Password",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        660,
+        460
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"success\": true }",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "d472e4d8-f2b7-497a-8fd6-79ca38e75f73",
+      "name": "Respond: Password Changed",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        880,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "traxkey-change-email",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "389207d0-7e09-4f37-99b9-bae338666d15",
+      "name": "Change Email (Webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        780
+      ],
+      "webhookId": "traxkey-change-email"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT u.id AS user_id\nFROM traxkey.sessions s JOIN traxkey.users u ON u.id = s.user_id\nWHERE s.token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\").replace(/[^a-zA-Z0-9]/g, \"\") }}' AND s.expires_at > now()\nAND u.password_hash = crypt('{{ $json.body.currentPassword.replace(/'/g, \"''\") }}', u.password_hash);",
+        "options": {}
+      },
+      "id": "97f5ad5d-86b1-40ae-9efa-8efc40aa56dd",
+      "name": "Validate Session + Password (Email)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        220,
+        780
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "change-email-valid",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json.user_id }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "37383f8e-de7d-4989-8146-e09a683bced2",
+      "name": "Change Email Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        440,
+        780
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"Current password is incorrect\" }",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "id": "ca73516a-4884-4345-b0d2-02f170cc8911",
+      "name": "Respond: Change Email Failed",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        660,
+        900
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE traxkey.users SET email = '{{ $('Change Email (Webhook)').first().json.body.newEmail.toLowerCase().replace(/'/g, \"''\") }}'\nWHERE id = '{{ $json.user_id }}'\nRETURNING id, email;",
+        "options": {}
+      },
+      "id": "8b0dfe12-ba86-47e4-b9fd-0b61b2a9881c",
+      "name": "Update Email",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        660,
+        720
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"success\": true }",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "433b35d7-fa2e-4c39-976e-4eaadad86f38",
+      "name": "Respond: Email Changed",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        880,
+        720
+      ]
+    }
+  ],
+  "connections": {
+    "Get My Profile (Webhook)": {
+      "main": [
+        [
+          {
+            "node": "Fetch Profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Profile": {
+      "main": [
+        [
+          {
+            "node": "Profile Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Profile Found?": {
+      "main": [
+        [
+          {
+            "node": "Respond: Profile",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Profile Unauthorized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update My Profile (Webhook)": {
+      "main": [
+        [
+          {
+            "node": "Validate Session (Update Profile)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Session (Update Profile)": {
+      "main": [
+        [
+          {
+            "node": "Update Profile Session Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Profile Session Valid?": {
+      "main": [
+        [
+          {
+            "node": "Save Profile",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Update Profile Unauthorized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Profile": {
+      "main": [
+        [
+          {
+            "node": "Respond: Profile Updated",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Change Password (Webhook)": {
+      "main": [
+        [
+          {
+            "node": "Validate Session + Current Password",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Session + Current Password": {
+      "main": [
+        [
+          {
+            "node": "Change Password Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Change Password Valid?": {
+      "main": [
+        [
+          {
+            "node": "Update Password",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Change Password Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Password": {
+      "main": [
+        [
+          {
+            "node": "Respond: Password Changed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Change Email (Webhook)": {
+      "main": [
+        [
+          {
+            "node": "Validate Session + Password (Email)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Session + Password (Email)": {
+      "main": [
+        [
+          {
+            "node": "Change Email Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Change Email Valid?": {
+      "main": [
+        [
+          {
+            "node": "Update Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Change Email Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Email": {
+      "main": [
+        [
+          {
+            "node": "Respond: Email Changed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
