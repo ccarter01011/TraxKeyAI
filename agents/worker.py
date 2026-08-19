@@ -54,7 +54,7 @@ from owner_portal import (login as owner_login, validate as owner_validate,
                           list_owners, create_owner, assign_property,
                           request_reset as owner_request_reset, reset_password as owner_reset_password,
                           send_reset_email as owner_send_reset_email)
-from concierge import validate_session
+from concierge import validate_session, validate_session_with_role
 from concierge import get_briefing
 from concierge_chat import answer as portfolio_answer
 from admin_concierge import get_admin_briefing, validate_admin
@@ -200,9 +200,14 @@ class HealthHandler(BaseHTTPRequestHandler):
 
         if route == "/owners":
             token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
-            company_id = validate_session(token)
+            company_id, role = validate_session_with_role(token)
             if not company_id:
                 self._json(401, {"error": "Unauthorized"})
+                return
+            # Creating an owner and reassigning a property between owners both
+            # change who can see what in the owner portal.
+            if role != "owner":
+                self._json(403, {"error": "Only an admin can manage owners."})
                 return
             try:
                 action = payload.get("action")
@@ -218,11 +223,16 @@ class HealthHandler(BaseHTTPRequestHandler):
             return
 
         if route == "/owner-access":
-            # Manager-side, scoped to their own company.
+            # Admin-only, scoped to their own company. This sets an owner's
+            # portal PASSWORD, so anyone who can call it can then sign in as
+            # that owner and read their properties, spend, and guest activity.
             token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
-            company_id = validate_session(token)
+            company_id, role = validate_session_with_role(token)
             if not company_id:
                 self._json(401, {"error": "Unauthorized"})
+                return
+            if role != "owner":
+                self._json(403, {"error": "Only an admin can set owner portal access."})
                 return
             result = owner_set_password(company_id, payload.get("ownerId", ""), payload.get("password", ""))
             self._json(200 if result.get("ok") else 400, result)

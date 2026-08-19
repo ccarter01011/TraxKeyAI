@@ -32,6 +32,41 @@ def validate_session(token):
     return str(row["company_id"]) if row else None
 
 
+# users.role has existed since schema_v1 with a CHECK on these three values,
+# but nothing ever read it: every authenticated user held full privilege over
+# every route. That made role a label rather than a control — a staff account
+# (a cleaner, a departing contractor) could set an owner's portal password via
+# /owner-access and then sign in as that owner.
+#
+# 'owner' here is the ACCESS TIER, not a job title. The UI calls it Admin.
+ROLE_TIERS = ("owner", "ops_manager", "staff")
+
+
+def validate_session_with_role(token):
+    """(company_id, role) or (None, None). Same session lookup as
+    validate_session, plus the caller's role for authorization checks."""
+    if not token:
+        return (None, None)
+    with db() as conn, conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT s.company_id, u.role
+            FROM traxkey.sessions s
+            JOIN traxkey.users u ON u.id = s.user_id
+            WHERE s.token = %s AND s.expires_at > now()
+            """,
+            (token,),
+        )
+        row = cur.fetchone()
+    if not row:
+        return (None, None)
+    # Fail closed: an unrecognised role gets the least privilege, never the
+    # most. A role added to the DB without being taught to this code should
+    # lose access to admin routes, not silently gain it.
+    role = row["role"] if row["role"] in ROLE_TIERS else "staff"
+    return (str(row["company_id"]), role)
+
+
 def gather_facts(company_id):
     """Everything the briefing is allowed to talk about. All deterministic."""
     with db() as conn, conn.cursor() as cur:
