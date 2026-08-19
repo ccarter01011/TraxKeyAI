@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiRequest } from '../lib/api.js';
 import { useAuth } from '../lib/AuthContext.jsx';
-import TeamSection from '../components/TeamSection.jsx';
+import TeamSection, { ROLE_LABEL } from '../components/TeamSection.jsx';
 
 const fld = 'w-full px-3 py-2 border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-950 dark:text-white rounded-lg text-sm focus:outline-none focus:border-teal-400';
 const card = 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5';
@@ -50,7 +50,7 @@ function InfoCard() {
     <div className={card}>
       <h2 className="font-bold mb-1 dark:text-white">Your Info</h2>
       <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-        {form.email} · <span className="capitalize">{form.role.replace('_', ' ')}</span>
+        {form.email} · <span>{ROLE_LABEL[form.role] || form.role}</span>
       </p>
       <form onSubmit={save} className="space-y-3">
         <div>

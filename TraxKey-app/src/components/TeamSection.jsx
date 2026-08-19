@@ -3,7 +3,7 @@ import { apiRequest } from '../lib/api.js';
 import { useAuth } from '../lib/AuthContext.jsx';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const ROLE_LABEL = { owner: 'Admin', ops_manager: 'Manager', staff: 'Staff' };
+export const ROLE_LABEL = { owner: 'Admin', ops_manager: 'Manager', staff: 'Staff' };
 const fld = 'px-3 py-2 border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-950 dark:text-white rounded-lg text-sm focus:outline-none focus:border-teal-400';
 
 function RoleSelect({ value, onChange }) {
