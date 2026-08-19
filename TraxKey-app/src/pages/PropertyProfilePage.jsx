@@ -65,6 +65,25 @@ const SECTIONS = [
 ];
 
 const CONDITIONS = ['new', 'good', 'fair', 'poor', 'damaged', 'missing'];
+
+// React's href={value} does not check the scheme, so a stored javascript:
+// URL would run in this user's own session on click. The backend now
+// rejects a non-http(s) scheme at write time (agents/property_profile.py
+// _safe_url), but checking again here means this render is safe even
+// against a row written before that guard existed, or by a path that
+// forgets to call it later.
+function isSafeUrl(value) {
+  // `new URL('', base)` resolves to the base itself rather than throwing, so
+  // an empty value would otherwise read as "safe" here even though it's not
+  // a link at all. Callers already guard on truthiness before reaching this,
+  // but the check should be correct on its own, not just as currently used.
+  if (!value) return false;
+  try {
+    return ['http:', 'https:'].includes(new URL(value, window.location.origin).protocol);
+  } catch {
+    return false;
+  }
+}
 const CATEGORIES = [
   ['ffe', 'FF&E (furniture, fixtures, equipment)'],
   ['ose', 'OS&E (linens, kitchenware, supplies)'],
@@ -466,7 +485,7 @@ export default function PropertyProfilePage() {
                         <button onClick={() => removeItem(i.id)} className="text-xs text-slate-400 hover:text-red-500">Remove</button>
                       </div>
                     </div>
-                    {i.replacement_url && (
+                    {i.replacement_url && isSafeUrl(i.replacement_url) && (
                       <a href={i.replacement_url} target="_blank" rel="noopener noreferrer" className="text-[11px] text-teal-600 dark:text-teal-400 hover:underline mt-2 inline-block">Buy a replacement →</a>
                     )}
                   </div>

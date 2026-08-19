@@ -17,7 +17,39 @@ Every read is tenant-scoped through properties.company_id in SQL, never
 trusted from the client.
 """
 
+from urllib.parse import urlparse
+
 from db import db
+
+# React's href={value} does not validate URL schemes, only warns in dev — a
+# stored javascript: URL renders as a live link in PropertyProfilePage's
+# "Buy a replacement" anchor and executes on click, in the clicking user's own
+# session. Requires an authenticated same-company user to plant, not
+# anonymous, but that is privilege escalation between roles inside a tenant
+# (e.g. staff planting a link an admin later clicks) rather than no risk.
+#
+# Validated at write time so every current AND future render site inherits
+# the guard, rather than trusting each new place these are displayed to
+# remember to check.
+def _safe_url(value):
+    value = (value or "").strip()
+    if not value:
+        return ""
+    try:
+        parsed = urlparse(value)
+    except ValueError:
+        return ""
+    scheme = parsed.scheme.lower()
+    if scheme in ("http", "https"):
+        return value
+    # No scheme at all (someone pasted "amazon.com/dp/xyz") is the common
+    # case for a real link and shouldn't be rejected outright — assume https.
+    # Any OTHER scheme (javascript, data, vbscript, ...) is rejected, not
+    # coerced, since silently rewriting a hostile one is riskier than telling
+    # the operator their link didn't save.
+    if not scheme and value and not value.startswith("//"):
+        return f"https://{value}"
+    return ""
 
 PROFILE_FIELDS = [
     "year_built", "square_feet", "parking_notes", "access_notes",
@@ -167,9 +199,9 @@ def add_inventory(company_id, body):
              "sku": (body.get("modelSku") or "").strip(),
              "price": str(body.get("purchasePrice") or "").strip(),
              "bought": (body.get("purchasedOn") or "").strip(),
-             "url": (body.get("purchaseUrl") or "").strip(),
+             "url": _safe_url(body.get("purchaseUrl")),
              "warranty": (body.get("warrantyExpiresOn") or "").strip(),
-             "repl": (body.get("replacementUrl") or "").strip(),
+             "repl": _safe_url(body.get("replacementUrl")),
              "cond": (body.get("condition") or "").strip(),
              "notes": (body.get("notes") or "").strip()},
         )
