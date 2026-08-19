@@ -1,0 +1,410 @@
+{
+  "name": "TraxKey - 13 Admin",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "traxkey-admin-login",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "2cc7ebb7-d2bd-42c7-97ae-d0ad4c8075b2",
+      "name": "Admin Login (Webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        -272,
+        656
+      ],
+      "webhookId": "traxkey-admin-login",
+      "typeVersion": 2.1
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id AS admin_id FROM traxkey.admins WHERE email = '{{ $json.body.email.toLowerCase().replace(/'/g, \"''\") }}' AND password_hash = crypt('{{ $json.body.password.replace(/'/g, \"''\") }}', password_hash);",
+        "options": {}
+      },
+      "id": "270e9c4b-93f7-49b1-b001-f802b009432b",
+      "name": "Verify Admin",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        -48,
+        656
+      ],
+      "typeVersion": 2.5,
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "av",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json.admin_id }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f6f9a9ec-c70f-414f-bb2b-c760546e1abe",
+      "name": "Admin Valid?",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        176,
+        656
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "jsCode": "const token = Array.from({ length: 48 }, () => Math.random().toString(36)[2] || '0').join('');\nconst expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();\nreturn [{ json: { ...$json, token, expiresAt } }];"
+      },
+      "id": "6a85c009-2e65-4e65-be5e-5cdb6623a449",
+      "name": "Generate Admin Token",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        400,
+        576
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO traxkey.admin_sessions (token, admin_id, expires_at) VALUES ('{{ $json.token }}', '{{ $json.admin_id }}', '{{ $json.expiresAt }}');",
+        "options": {}
+      },
+      "id": "2773b3bc-a0c9-43cb-8240-eb8208d9ae68",
+      "name": "Create Admin Session",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        624,
+        576
+      ],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, token: $('Generate Admin Token').item.json.token }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "7ed7ea7f-5359-49de-99e7-046e46248f03",
+      "name": "Respond: Admin Login OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        848,
+        576
+      ],
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"Invalid email or password\" }",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "id": "86a1b174-04a7-4a80-8c63-4db94ba008e3",
+      "name": "Respond: Admin Login Failed",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        400,
+        752
+      ],
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "path": "traxkey-admin-metrics",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "a4686927-02dd-4534-90d6-a39f02783e7f",
+      "name": "Admin Metrics (Webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        -272,
+        976
+      ],
+      "webhookId": "traxkey-admin-metrics",
+      "typeVersion": 2.1
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT admin_id FROM traxkey.admin_sessions WHERE token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\").replace(/[^a-zA-Z0-9]/g, \"\") }}' AND expires_at > now();",
+        "options": {}
+      },
+      "id": "e7ba6cbd-b72f-4fc4-88dd-9b429682a050",
+      "name": "Validate Admin Session",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        -48,
+        976
+      ],
+      "typeVersion": 2.5,
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "sv",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json.admin_id }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "076e1641-a312-4fe0-bef7-62b43fceaa69",
+      "name": "Admin Session Valid?",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        176,
+        976
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"Unauthorized\" }",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "id": "a9910cb5-d635-45de-ba83-2d943ad068c5",
+      "name": "Respond: Metrics Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        400,
+        1104
+      ],
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH plan_price AS (\n  SELECT * FROM (VALUES ('free',0),('starter',99),('growth',249),('pro',549)) AS t(plan, price)\n),\ncompany_units AS (\n  SELECT p.company_id, count(u.id) AS unit_count\n  FROM traxkey.properties p LEFT JOIN traxkey.units u ON u.property_id = p.id\n  GROUP BY p.company_id\n)\nSELECT\n  (SELECT count(*) FROM traxkey.companies) AS total_companies,\n  (SELECT count(*) FROM traxkey.companies WHERE plan_status = 'trialing') AS trial_companies,\n  (SELECT count(*) FROM traxkey.companies WHERE plan_status = 'active') AS paying_companies,\n  (SELECT count(*) FROM traxkey.companies WHERE created_at > now() - interval '30 days') AS new_companies_30d,\n  (SELECT count(*) FROM traxkey.users) AS total_users,\n  (SELECT count(*) FROM traxkey.units) AS total_units,\n  (SELECT count(*) FROM traxkey.properties) AS total_properties,\n  (SELECT count(*) FROM traxkey.residents) AS total_residents,\n  (SELECT count(*) FROM traxkey.vendors) AS total_vendors,\n  (SELECT count(*) FROM traxkey.maintenance_requests) AS total_requests,\n  (SELECT count(*) FROM traxkey.maintenance_requests WHERE created_at > now() - interval '30 days') AS requests_30d,\n  (SELECT count(*) FROM traxkey.maintenance_requests WHERE status IN ('completed','closed')) AS completed_requests,\n  (SELECT count(*) FROM traxkey.unit_calendars) AS connected_calendars,\n  (SELECT COALESCE(SUM(pp.price),0) FROM traxkey.companies c JOIN plan_price pp ON pp.plan = c.plan WHERE c.plan_status = 'active') AS estimated_mrr,\n  (SELECT COALESCE(json_agg(row_to_json(x)), '[]') FROM (\n     SELECT c.name, c.plan, c.plan_status, c.created_at, COALESCE(cu.unit_count,0) AS unit_count\n     FROM traxkey.companies c LEFT JOIN company_units cu ON cu.company_id = c.id\n     ORDER BY c.created_at DESC LIMIT 50\n  ) x) AS companies,\n  (SELECT COALESCE(json_agg(row_to_json(l)), '[]') FROM (\n     SELECT id, name, email, company, portfolio_size, message, source, contacted_at, created_at\n     FROM traxkey.leads\n     ORDER BY created_at DESC LIMIT 100\n  ) l) AS leads;",
+        "options": {}
+      },
+      "id": "f8af6c14-74a4-499b-bec7-3047f44106f8",
+      "name": "Get Metrics",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        400,
+        960
+      ],
+      "typeVersion": 2.5,
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "rkxeF9x9C0rWEeWV",
+          "name": "Postgres account"
+        }
+      },
+      "notes": "MRR is DERIVED FROM PLAN TIER, not from actual collected payments. There is no billing integration yet, so this is an estimate of what accounts would bill at, not money received. Label it that way in the UI."
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "eb51fcaf-f2a5-44a9-820d-e4ae6e5268de",
+      "name": "Respond: Metrics",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        624,
+        960
+      ],
+      "typeVersion": 1.1
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Admin Login (Webhook)": {
+      "main": [
+        [
+          {
+            "node": "Verify Admin",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Admin": {
+      "main": [
+        [
+          {
+            "node": "Admin Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Admin Valid?": {
+      "main": [
+        [
+          {
+            "node": "Generate Admin Token",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Admin Login Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Admin Token": {
+      "main": [
+        [
+          {
+            "node": "Create Admin Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Admin Session": {
+      "main": [
+        [
+          {
+            "node": "Respond: Admin Login OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Admin Metrics (Webhook)": {
+      "main": [
+        [
+          {
+            "node": "Validate Admin Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Admin Session": {
+      "main": [
+        [
+          {
+            "node": "Admin Session Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Admin Session Valid?": {
+      "main": [
+        [
+          {
+            "node": "Get Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Metrics Unauthorized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Metrics": {
+      "main": [
+        [
+          {
+            "node": "Respond: Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "UL2giO68uAviRSRt",
+    "timezone": "America/Chicago",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "3c0cf550-fe25-4bbb-90d2-bbe772c52fb4",
+  "meta": {
+    "instanceId": "7263593850bbed7684cd55923f523248c54c011801142265c8cf49d8ed05bd0d"
+  },
+  "nodeGroups": [],
+  "id": "y2aE6fgvQSJbc13a",
+  "tags": []
+}

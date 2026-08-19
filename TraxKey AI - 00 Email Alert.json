@@ -1,0 +1,136 @@
+{
+  "name": "TraxKey AI - 00 Email Alert",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "70ebb5a9-02d9-4d6c-b363-32cb09f7b3c6",
+      "name": "On Error",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        -368,
+        -64
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const e = $json;\nconst workflowName = e.workflow?.name || 'Unknown workflow';\nconst nodeName = e.execution?.lastNodeExecuted || e.node?.name || 'Unknown node';\nconst errorMessage = e.execution?.error?.message || e.execution?.error?.description || 'No error message provided';\nconst timestamp = new Date().toISOString();\nconst executionUrl = e.execution?.url || '';\n\nreturn [{ json: { workflowName, nodeName, errorMessage, timestamp, executionUrl } }];"
+      },
+      "id": "8e1f369f-b457-4a33-a0f2-0b1c1d921086",
+      "name": "Build Error Description",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -144,
+        -64
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Throttles repeat alerts for the same failing workflow+node — same fix\n// applied to the Polymarket project after a bad node spammed dozens of\n// identical error emails. Uses n8n's workflow static data, no external\n// storage needed.\nconst COOLDOWN_MINUTES = 60;\n\nconst staticData = $getWorkflowStaticData('global');\nif (!staticData.lastAlertBySignature) staticData.lastAlertBySignature = {};\n\nconst signature = `${$json.workflowName}::${$json.nodeName}`;\nconst now = Date.now();\nconst lastSent = staticData.lastAlertBySignature[signature];\nconst cooldownMs = COOLDOWN_MINUTES * 60 * 1000;\n\nif (lastSent && (now - lastSent) < cooldownMs) {\n  return [];\n}\n\nstaticData.lastAlertBySignature[signature] = now;\nreturn [{ json: $json }];"
+      },
+      "id": "41553ce6-eeeb-4c87-92be-cea915661a8b",
+      "name": "Throttle Repeat Alerts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        80,
+        -64
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.resend.com/emails",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "from",
+              "value": "alert@notify.traxkey.ai"
+            },
+            {
+              "name": "to",
+              "value": "support@traxkey.ai"
+            },
+            {
+              "name": "subject",
+              "value": "=TraxKey AI error — {{ $json.workflowName }}"
+            },
+            {
+              "name": "html",
+              "value": "=<h2>Workflow error</h2><p><strong>Workflow:</strong> {{ $json.workflowName }}</p><p><strong>Failed node:</strong> {{ $json.nodeName }}</p><p><strong>Error:</strong> {{ $json.errorMessage }}</p><p><strong>Time:</strong> {{ $json.timestamp }}</p>{{ $json.executionUrl ? '<p><a href=\"' + $json.executionUrl + '\">View execution</a></p>' : '' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0b386cbc-fb4f-4d53-8435-6564815545d9",
+      "name": "Send Alert Email (Resend)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        288,
+        -64
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "j1dEaIrQgTqwVHwA",
+          "name": "Resend-email"
+        }
+      },
+      "notes": "Select your Resend credential after import."
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "On Error": {
+      "main": [
+        [
+          {
+            "node": "Build Error Description",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Error Description": {
+      "main": [
+        [
+          {
+            "node": "Throttle Repeat Alerts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Throttle Repeat Alerts": {
+      "main": [
+        [
+          {
+            "node": "Send Alert Email (Resend)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "d9ebf006-50dc-49c5-bc7a-19159e316e04",
+  "meta": {
+    "instanceId": "7263593850bbed7684cd55923f523248c54c011801142265c8cf49d8ed05bd0d"
+  },
+  "nodeGroups": [],
+  "id": "UL2giO68uAviRSRt",
+  "tags": []
+}
