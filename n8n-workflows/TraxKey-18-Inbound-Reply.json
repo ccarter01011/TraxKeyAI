@@ -365,7 +365,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO traxkey.maintenance_events (request_id, event_type, content)\nVALUES ('{{ $json.recordId }}', 'vendor_reply_{{ $json.classification }}', '{{ $json.summary.replace(/'/g, \"''\") }}');",
+        "query": "INSERT INTO traxkey.maintenance_events (request_id, event_type, content)\nVALUES ('{{ $(\"Parse MR Classification\").first().json.recordId }}', 'vendor_reply_{{ $(\"Parse MR Classification\").first().json.classification }}', '{{ $(\"Parse MR Classification\").first().json.summary.replace(/'/g, \"''\") }}');",
         "options": {}
       },
       "id": "mr06-log",
@@ -499,7 +499,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO traxkey.ordered_item_events (ordered_item_id, event_type, content)\nVALUES ('{{ $json.recordId }}', 'supplier_reply_{{ $json.classification }}', '{{ $json.summary.replace(/'/g, \"''\") }}');",
+        "query": "INSERT INTO traxkey.ordered_item_events (ordered_item_id, event_type, content)\nVALUES ('{{ $(\"Parse OI Classification\").first().json.recordId }}', 'supplier_reply_{{ $(\"Parse OI Classification\").first().json.classification }}', '{{ $(\"Parse OI Classification\").first().json.summary.replace(/'/g, \"''\") }}');",
         "options": {}
       },
       "id": "oi06-log",
