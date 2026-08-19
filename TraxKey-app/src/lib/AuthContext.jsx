@@ -7,20 +7,23 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     const name = localStorage.getItem('tk_name');
     const role = localStorage.getItem('tk_role');
-    return name ? { name, role } : null;
+    const email = localStorage.getItem('tk_email');
+    return name ? { name, role, email } : null;
   });
 
-  function login({ token, name, role }) {
+  function login({ token, name, role, email }) {
     setToken(token);
     localStorage.setItem('tk_name', name || '');
     localStorage.setItem('tk_role', role || '');
-    setUser({ name, role });
+    localStorage.setItem('tk_email', email || '');
+    setUser({ name, role, email });
   }
 
   function logout() {
     clearToken();
     localStorage.removeItem('tk_name');
     localStorage.removeItem('tk_role');
+    localStorage.removeItem('tk_email');
     setUser(null);
   }
 
@@ -29,8 +32,13 @@ export function AuthProvider({ children }) {
     setUser(u => (u ? { ...u, name } : u));
   }
 
+  function updateUserEmail(email) {
+    localStorage.setItem('tk_email', email || '');
+    setUser(u => (u ? { ...u, email } : u));
+  }
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, updateUserName }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUserName, updateUserEmail }}>
       {children}
     </AuthContext.Provider>
   );

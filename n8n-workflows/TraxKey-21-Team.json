@@ -1,0 +1,841 @@
+{
+  "name": "TraxKey - 21 Team",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "team-list-users",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "bae40ad8-1db1-4a83-b543-01b855c0a814",
+      "name": "List Users (Webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "team-list-users"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT u.id, u.name, u.email, u.role, u.created_at,\n  (u.reset_token IS NOT NULL AND u.reset_token_expires_at > now()) AS is_pending\nFROM traxkey.users u\nWHERE u.company_id = (SELECT company_id FROM traxkey.sessions WHERE token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\").replace(/[^a-zA-Z0-9]/g, \"\") }}' AND expires_at > now())\nORDER BY u.created_at ASC;",
+        "options": {}
+      },
+      "id": "b1dac225-4478-4f59-aa21-926374e8003a",
+      "name": "Get Team Users",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        220,
+        0
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { users: $input.all().map(i => i.json) } }];"
+      },
+      "id": "e0fe38b5-0909-47cd-93da-2550cd9c36e5",
+      "name": "Package Users List",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "abcf16d3-1e81-430f-9a4f-0081da4bcac3",
+      "name": "Respond: Users List",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        660,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "team-add-user",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "3ea489d4-5385-4f67-98bb-a8db5cc730c9",
+      "name": "Add User (Webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        260
+      ],
+      "webhookId": "team-add-user"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT s.company_id, c.name AS company_name, u.name AS inviter_name\nFROM traxkey.sessions s\nJOIN traxkey.users u ON u.id = s.user_id\nJOIN traxkey.companies c ON c.id = s.company_id\nWHERE s.token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\").replace(/[^a-zA-Z0-9]/g, \"\") }}' AND s.expires_at > now() AND u.role = 'owner';",
+        "options": {}
+      },
+      "id": "5c4c6be8-406b-461b-8845-e3d0cceef67d",
+      "name": "Verify Requester Is Owner (Add)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        220,
+        260
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "is-owner-add",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json.company_id }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b1314b10-4f81-4a6c-b050-7576a55adb25",
+      "name": "Is Owner? (Add)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        440,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"Only an Admin can invite teammates\" }",
+        "options": {
+          "responseCode": 403
+        }
+      },
+      "id": "4c0a2356-cdec-4d72-935d-1c641dc8b554",
+      "name": "Respond: Add Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        660,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id FROM traxkey.users WHERE email = '{{ $('Add User (Webhook)').first().json.body.email.toLowerCase().replace(/'/g, \"''\") }}';",
+        "options": {}
+      },
+      "id": "65779255-663d-4ab3-b561-cde83497d06b",
+      "name": "Check Email Available",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        660,
+        180
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "email-avail",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "leftValue": "={{ $json.id }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f8370cf4-3abb-42e5-9d3c-e2755ae85652",
+      "name": "Email Available?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        880,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"That email is already in use\" }",
+        "options": {
+          "responseCode": 409
+        }
+      },
+      "id": "89cc66b9-a4d8-4f0b-8a69-a7a9840a537e",
+      "name": "Respond: Email In Use",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const randomPassword = Array.from({ length: 32 }, () => Math.random().toString(36)[2] || '0').join('');\nconst inviteToken = Array.from({ length: 32 }, () => Math.random().toString(36)[2] || '0').join('');\nconst expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();\n\nconst owner = $('Verify Requester Is Owner (Add)').first().json;\nconst body = $('Add User (Webhook)').first().json.body;\nconst role = ['owner', 'ops_manager', 'staff'].includes(body.role) ? body.role : 'staff';\n\nreturn [{\n  json: {\n    randomPassword, inviteToken, expiresAt,\n    companyId: owner.company_id, companyName: owner.company_name, inviterName: owner.inviter_name,\n    name: body.name, email: body.email.toLowerCase(), role,\n  }\n}];"
+      },
+      "id": "7a9d2cae-e40e-48ee-ae41-f0f851194fa8",
+      "name": "Generate Invite Token",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO traxkey.users (company_id, email, password_hash, name, role, reset_token, reset_token_expires_at)\nVALUES ('{{ $json.companyId }}', '{{ $json.email.replace(/'/g, \"''\") }}', crypt('{{ $json.randomPassword }}', gen_salt('bf')), '{{ $json.name.replace(/'/g, \"''\") }}', '{{ $json.role }}', '{{ $json.inviteToken }}', '{{ $json.expiresAt }}')\nRETURNING id;",
+        "options": {}
+      },
+      "id": "289bb26d-fcb2-463a-9658-f92bce61de69",
+      "name": "Create Invited User",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        1320,
+        60
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.resend.com/emails",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "from",
+              "value": "TraxKey AI <dispatch@notify.traxkey.ai>"
+            },
+            {
+              "name": "to",
+              "value": "={{ $('Generate Invite Token').first().json.email }}"
+            },
+            {
+              "name": "subject",
+              "value": "=You've been invited to TraxKey AI"
+            },
+            {
+              "name": "html",
+              "value": "={{ '<div style=\"font-family: Arial, sans-serif; font-size:14px; color:#1e293b;\"><p>Hi ' + $('Generate Invite Token').first().json.name + ',</p><p>' + $('Generate Invite Token').first().json.inviterName + ' invited you to join ' + $('Generate Invite Token').first().json.companyName + ' on TraxKey AI.</p><p>Set your password to get started:</p><p><a href=\"https://app.traxkey.ai/reset-password?token=' + $('Generate Invite Token').first().json.inviteToken + '\">Set your password</a></p><p style=\"font-size:11px;color:#94a3b8;margin-top:24px;\">This link expires in 7 days.</p></div>' }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "52ca2734-65ad-42b6-b86d-ed3977cd1bb7",
+      "name": "Email: Send Invite",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        60
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "j1dEaIrQgTqwVHwA",
+          "name": "Resend-email"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"success\": true }",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "4ddbe60f-2ea8-4c18-b962-4650da00f5fe",
+      "name": "Respond: User Invited",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1760,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "team-update-role",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "9fe468e3-ecf0-4313-914f-f9a8980b35c2",
+      "name": "Update Role (Webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        620
+      ],
+      "webhookId": "team-update-role"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT s.company_id, c.name AS company_name, u.name AS inviter_name\nFROM traxkey.sessions s\nJOIN traxkey.users u ON u.id = s.user_id\nJOIN traxkey.companies c ON c.id = s.company_id\nWHERE s.token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\").replace(/[^a-zA-Z0-9]/g, \"\") }}' AND s.expires_at > now() AND u.role = 'owner';",
+        "options": {}
+      },
+      "id": "f5537fe7-8873-4877-95d9-65c1ad996883",
+      "name": "Verify Requester Is Owner (Role)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        220,
+        620
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "is-owner-role",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json.company_id }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d5927d75-74ca-407f-93d7-7abc14d8c6f7",
+      "name": "Is Owner? (Role)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        440,
+        620
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"Only an Admin can change roles\" }",
+        "options": {
+          "responseCode": 403
+        }
+      },
+      "id": "c8a3517f-ad22-4fda-942f-aebda2c175c9",
+      "name": "Respond: Role Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        660,
+        740
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE traxkey.users\nSET role = '{{ $json.role }}'\nWHERE id = '{{ $json.userId }}'\nAND company_id = '{{ $('Verify Requester Is Owner (Role)').first().json.company_id }}'\nAND (\n  '{{ $json.role }}' = 'owner'\n  OR role != 'owner'\n  OR (SELECT count(*) FROM traxkey.users WHERE company_id = '{{ $('Verify Requester Is Owner (Role)').first().json.company_id }}' AND role = 'owner') > 1\n)\nRETURNING id;",
+        "options": {}
+      },
+      "id": "f5ba5320-83e2-4aed-8b0d-3fb680c9cb72",
+      "name": "Update User Role",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        780,
+        560
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"success\": true }",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "064e410a-636e-4a85-be4a-c849fe76b7a3",
+      "name": "Respond: Role Updated",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        880,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "team-remove-user",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "0100babe-ed49-49fa-b096-89c4a66bf51f",
+      "name": "Remove User (Webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        900
+      ],
+      "webhookId": "team-remove-user"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT s.company_id, c.name AS company_name, u.name AS inviter_name\nFROM traxkey.sessions s\nJOIN traxkey.users u ON u.id = s.user_id\nJOIN traxkey.companies c ON c.id = s.company_id\nWHERE s.token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\").replace(/[^a-zA-Z0-9]/g, \"\") }}' AND s.expires_at > now() AND u.role = 'owner';",
+        "options": {}
+      },
+      "id": "a104a080-8ded-4db0-9a2e-a8510878fa2d",
+      "name": "Verify Requester Is Owner (Remove)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        220,
+        900
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "is-owner-remove",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json.company_id }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0eec08f7-4455-4060-82cb-d9efbb54e9f3",
+      "name": "Is Owner? (Remove)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        440,
+        900
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"Only an Admin can remove teammates\" }",
+        "options": {
+          "responseCode": 403
+        }
+      },
+      "id": "aeb8c4ec-5c4c-4d05-b952-8103751b8fd8",
+      "name": "Respond: Remove Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        660,
+        1020
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM traxkey.users\nWHERE id = '{{ $json.userId }}'\nAND company_id = '{{ $('Verify Requester Is Owner (Remove)').first().json.company_id }}'\nAND (\n  role != 'owner'\n  OR (SELECT count(*) FROM traxkey.users WHERE company_id = '{{ $('Verify Requester Is Owner (Remove)').first().json.company_id }}' AND role = 'owner') > 1\n)\nRETURNING id;",
+        "options": {}
+      },
+      "id": "01da998a-fb1d-4678-aea5-023eb3656af1",
+      "name": "Remove User",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        780,
+        840
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"success\": true }",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "3a315074-9ef5-40c6-b19b-89f6d75bb7b3",
+      "name": "Respond: User Removed",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        880,
+        840
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const isUuid = v => typeof v === 'string' && /^[0-9a-fA-F-]{36}$/.test(v);\nconst allowedRoles = ['owner', 'ops_manager', 'staff'];\nconst body = $('Update Role (Webhook)').first().json.body;\nif (!isUuid(body.userId)) throw new Error('Invalid userId');\nif (!allowedRoles.includes(body.role)) throw new Error('Invalid role');\nreturn [{ json: { ...$json, userId: body.userId, role: body.role } }];"
+      },
+      "id": "d66fe350-48fc-423e-97c2-130dcd9926dd",
+      "name": "Sanitize Role Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        560,
+        620
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const isUuid = v => typeof v === 'string' && /^[0-9a-fA-F-]{36}$/.test(v);\nconst body = $('Remove User (Webhook)').first().json.body;\nif (!isUuid(body.userId)) throw new Error('Invalid userId');\nreturn [{ json: { ...$json, userId: body.userId } }];"
+      },
+      "id": "ad584def-2de8-4c07-8cc9-c9f72922c258",
+      "name": "Sanitize Remove Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        560,
+        900
+      ]
+    }
+  ],
+  "connections": {
+    "List Users (Webhook)": {
+      "main": [
+        [
+          {
+            "node": "Get Team Users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Team Users": {
+      "main": [
+        [
+          {
+            "node": "Package Users List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Package Users List": {
+      "main": [
+        [
+          {
+            "node": "Respond: Users List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add User (Webhook)": {
+      "main": [
+        [
+          {
+            "node": "Verify Requester Is Owner (Add)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Requester Is Owner (Add)": {
+      "main": [
+        [
+          {
+            "node": "Is Owner? (Add)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Owner? (Add)": {
+      "main": [
+        [
+          {
+            "node": "Check Email Available",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Add Unauthorized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Email Available": {
+      "main": [
+        [
+          {
+            "node": "Email Available?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Available?": {
+      "main": [
+        [
+          {
+            "node": "Generate Invite Token",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Email In Use",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Invite Token": {
+      "main": [
+        [
+          {
+            "node": "Create Invited User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Invited User": {
+      "main": [
+        [
+          {
+            "node": "Email: Send Invite",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email: Send Invite": {
+      "main": [
+        [
+          {
+            "node": "Respond: User Invited",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Role (Webhook)": {
+      "main": [
+        [
+          {
+            "node": "Verify Requester Is Owner (Role)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Requester Is Owner (Role)": {
+      "main": [
+        [
+          {
+            "node": "Is Owner? (Role)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Owner? (Role)": {
+      "main": [
+        [
+          {
+            "node": "Sanitize Role Input",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Role Unauthorized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update User Role": {
+      "main": [
+        [
+          {
+            "node": "Respond: Role Updated",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove User (Webhook)": {
+      "main": [
+        [
+          {
+            "node": "Verify Requester Is Owner (Remove)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Requester Is Owner (Remove)": {
+      "main": [
+        [
+          {
+            "node": "Is Owner? (Remove)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Owner? (Remove)": {
+      "main": [
+        [
+          {
+            "node": "Sanitize Remove Input",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Remove Unauthorized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove User": {
+      "main": [
+        [
+          {
+            "node": "Respond: User Removed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sanitize Role Input": {
+      "main": [
+        [
+          {
+            "node": "Update User Role",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sanitize Remove Input": {
+      "main": [
+        [
+          {
+            "node": "Remove User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

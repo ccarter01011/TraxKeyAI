@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiRequest } from '../lib/api.js';
 import { useAuth } from '../lib/AuthContext.jsx';
+import TeamSection from '../components/TeamSection.jsx';
 
 const fld = 'w-full px-3 py-2 border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-950 dark:text-white rounded-lg text-sm focus:outline-none focus:border-teal-400';
 const card = 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5';
@@ -69,6 +70,7 @@ function InfoCard() {
 }
 
 function ChangeEmailCard() {
+  const { updateUserEmail } = useAuth();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [saving, setSaving] = useState(false);
@@ -84,6 +86,7 @@ function ChangeEmailCard() {
     setSaving(true); setError(''); setSaved(false);
     try {
       await apiRequest('traxkey-change-email', { method: 'POST', body: { currentPassword, newEmail } });
+      updateUserEmail(newEmail);
       setSaved(true);
       setCurrentPassword(''); setNewEmail('');
     } catch (err) {
@@ -179,6 +182,7 @@ export default function ProfilePage() {
         </div>
         <div className="space-y-5">
           <InfoCard />
+          <TeamSection />
           <ChangeEmailCard />
           <ChangePasswordCard />
         </div>

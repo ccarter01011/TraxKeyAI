@@ -25,7 +25,7 @@ export default function SignupPage() {
     setLoading(true);
     try {
       const json = await apiRequest('traxkey-signup', { method: 'POST', body: form });
-      login({ token: json.token, name: form.name, role: 'owner' });
+      login({ token: json.token, name: form.name, role: 'owner', email: form.email });
 
       // A tier link from the marketing site carries its plan through here.
       // Every account still starts on Free (the signup endpoint itself

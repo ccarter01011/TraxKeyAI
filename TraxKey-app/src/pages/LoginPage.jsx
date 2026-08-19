@@ -17,7 +17,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const json = await apiRequest('traxkey-login', { method: 'POST', body: { email, password } });
-      login(json);
+      login({ ...json, email });
       navigate('/');
     } catch (err) {
       setError(err.message || 'Login failed');
