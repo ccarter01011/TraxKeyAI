@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiRequest } from '../lib/api.js';
+import ThemeToggle from '../components/ThemeToggle.jsx';
 
 const TENANT_PORTAL_BASE = 'https://tenant.traxkey.ai';
 
@@ -137,7 +138,10 @@ export default function ResidentsPage() {
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 px-6 py-8">
       <div className="max-w-3xl mx-auto">
-        <Link to="/properties" className="text-xs text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white">← Properties</Link>
+        <div className="flex items-center justify-between">
+          <Link to="/properties" className="text-xs text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white">← Properties</Link>
+          <ThemeToggle />
+        </div>
         <div className="flex items-center justify-between mb-6 mt-2">
           <div>
             <p className="text-xs text-teal-600 dark:text-teal-400 font-semibold uppercase tracking-wide mb-1">Residents</p>

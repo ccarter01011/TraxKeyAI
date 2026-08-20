@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { apiRequest } from '../lib/api.js';
 import FilterBar, { useFiltered } from '../components/FilterBar.jsx';
+import ThemeToggle from '../components/ThemeToggle.jsx';
 
 const PROPERTY_TYPES = [
   { value: 'single_family', label: 'Single-family' },
@@ -183,7 +184,10 @@ export default function PropertiesPage() {
             <p className="text-xs text-teal-600 dark:text-teal-400 font-semibold uppercase tracking-wide mb-1">Properties</p>
             <h1 className="text-2xl font-bold">Your portfolio</h1>
           </div>
-          <AddPropertyForm onCreated={load} />
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <AddPropertyForm onCreated={load} />
+          </div>
         </div>
 
         {error && <p className="text-sm text-red-500 dark:text-red-400 mb-4">{error}</p>}

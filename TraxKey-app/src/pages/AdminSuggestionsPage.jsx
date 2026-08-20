@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import ThemeToggle from '../components/ThemeToggle.jsx';
 
 const AGENT_BASE = 'https://langgraph-production-42ef.up.railway.app';
 const hdrs = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('tk_admin_token')}` });
@@ -70,7 +71,10 @@ export default function AdminSuggestionsPage() {
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 px-6 py-8">
       <div className="max-w-3xl mx-auto">
-        <Link to="/admin" className="text-xs text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white">← Admin</Link>
+        <div className="flex items-center justify-between">
+          <Link to="/admin" className="text-xs text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white">← Admin</Link>
+          <ThemeToggle />
+        </div>
         <h1 className="text-2xl font-bold mt-2 mb-6">Customer suggestions</h1>
         {error && <p className="text-sm text-red-500 mb-4">{error}</p>}
         {!rows ? <p className="text-sm text-slate-400">Loading…</p>

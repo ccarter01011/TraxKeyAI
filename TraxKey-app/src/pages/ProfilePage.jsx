@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { apiRequest } from '../lib/api.js';
 import { useAuth } from '../lib/AuthContext.jsx';
 import TeamSection, { ROLE_LABEL } from '../components/TeamSection.jsx';
+import ThemeToggle from '../components/ThemeToggle.jsx';
 
 const fld = 'w-full px-3 py-2 border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-950 dark:text-white rounded-lg text-sm focus:outline-none focus:border-teal-400';
 const card = 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5';
@@ -175,7 +176,10 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 px-6 py-8">
       <div className="max-w-lg mx-auto">
-        <Link to="/" className="text-xs text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white">← Operator Dashboard</Link>
+        <div className="flex items-center justify-between">
+          <Link to="/" className="text-xs text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white">← Operator Dashboard</Link>
+          <ThemeToggle />
+        </div>
         <div className="mt-2 mb-6">
           <p className="text-xs text-teal-600 dark:text-teal-400 font-semibold uppercase tracking-wide mb-1">Your Account</p>
           <h1 className="text-2xl font-bold">Profile</h1>
