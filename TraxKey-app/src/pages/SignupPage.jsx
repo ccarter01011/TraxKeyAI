@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { apiRequest } from '../lib/api.js';
 import { useAuth } from '../lib/AuthContext.jsx';
+import ThemeToggle from '../components/ThemeToggle.jsx';
 
 const PAID_PLANS = ['starter', 'growth', 'pro'];
 
@@ -56,6 +57,7 @@ export default function SignupPage() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex items-center justify-center px-6 py-12">
+      <div className="fixed top-6 right-6"><ThemeToggle /></div>
       <div className="max-w-sm w-full">
         <h1 className="text-2xl font-bold mb-1">TraxKey <span className="text-teal-500 dark:text-teal-400">AI</span></h1>
         <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">Create your property management company account</p>

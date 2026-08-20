@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import ThemeToggle from '../components/ThemeToggle.jsx';
 
 const API_BASE = 'https://main-production-b95e.up.railway.app/webhook';
 
@@ -33,6 +34,7 @@ export default function AdminLoginPage() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex items-center justify-center px-6">
+      <div className="fixed top-6 right-6"><ThemeToggle /></div>
       <div className="max-w-sm w-full">
         <h1 className="text-2xl font-bold mb-1">TraxKey <span className="text-teal-500 dark:text-teal-400">AI</span></h1>
         <p className="text-sm text-slate-500 dark:text-slate-400 mb-8">Internal admin</p>

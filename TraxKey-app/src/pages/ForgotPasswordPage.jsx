@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiRequest } from '../lib/api.js';
+import ThemeToggle from '../components/ThemeToggle.jsx';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -24,6 +25,7 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex items-center justify-center px-6">
+      <div className="fixed top-6 right-6"><ThemeToggle /></div>
       <div className="max-w-sm w-full">
         <h1 className="text-2xl font-bold mb-1">TraxKey <span className="text-teal-500 dark:text-teal-400">AI</span></h1>
         {sent ? (

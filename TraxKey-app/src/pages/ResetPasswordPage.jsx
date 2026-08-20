@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { apiRequest } from '../lib/api.js';
+import ThemeToggle from '../components/ThemeToggle.jsx';
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate();
@@ -28,6 +29,7 @@ export default function ResetPasswordPage() {
   if (!token) {
     return (
       <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex items-center justify-center px-6">
+        <div className="fixed top-6 right-6"><ThemeToggle /></div>
         <div className="max-w-sm w-full text-center">
           <h1 className="text-xl font-bold mb-2">Missing reset link</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">This page needs a valid reset link. Request a new one below.</p>
@@ -39,6 +41,7 @@ export default function ResetPasswordPage() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex items-center justify-center px-6">
+      <div className="fixed top-6 right-6"><ThemeToggle /></div>
       <div className="max-w-sm w-full">
         <h1 className="text-2xl font-bold mb-1">TraxKey <span className="text-teal-500 dark:text-teal-400">AI</span></h1>
         {done ? (
