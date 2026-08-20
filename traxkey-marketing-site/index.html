@@ -52,48 +52,19 @@
   @media (prefers-reduced-motion: reduce) { .fade-up { animation: none; opacity: 1; transform: none; } }
   @keyframes tk-orb-spin { to { transform: rotate(360deg); } }
   @keyframes tk-orb-breathe { 0%,100% { opacity:.45 } 50% { opacity:.75 } }
+  /* Real particle orb (see concierge-orb.js), same one used by the TraxKey
+     app and TraxSail's marketing site. This frame is just the spinning
+     glow ring behind the WebGL canvas; the particle motion itself (idle
+     drift vs. active vs. per-word pulse/per-sentence flare) all lives in
+     the shared module, driven by orb.pulse()/orb.flare()/orb.setActive(). */
   .tk-orb { position: relative; border-radius: 9999px; display:inline-block; flex-shrink:0; isolation:isolate; width:40px; height:40px; }
   .tk-orb::before { content:''; position:absolute; inset:-5px; border-radius:9999px;
     background: conic-gradient(from 0deg,#2dd4bf,#38bdf8,#a78bfa,#2dd4bf);
     filter: blur(7px); opacity:.5; z-index:0;
-    animation: tk-orb-spin 5s linear infinite, tk-orb-breathe 3s ease-in-out infinite; }
-  .tk-orb.active::before { opacity:.95; filter:blur(11px); animation-duration:1.6s,1.6s; }
-  .tk-orb__core { position:absolute; inset:0; border-radius:9999px; z-index:1;
-    background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.35), rgba(15,23,42,.85) 70%);
-    border:1px solid rgba(255,255,255,.12); }
-  /* Small orbiting dots, so the flat CSS orb reads as "particles" the way
-     the dashboard's real Three.js orb does, instead of a plain blurred
-     ring. Six dots at fixed positions on a spinning layer, no JS needed. */
-  .tk-orb__dots { position:absolute; inset:0; border-radius:9999px; z-index:2; pointer-events:none;
-    background-repeat:no-repeat; background-size:5px 5px;
-    background-image:
-      radial-gradient(circle, rgba(94,234,212,.95) 1.1px, transparent 1.6px),
-      radial-gradient(circle, rgba(56,189,248,.9) 1.1px, transparent 1.6px),
-      radial-gradient(circle, rgba(167,139,250,.9) 1.1px, transparent 1.6px),
-      radial-gradient(circle, rgba(94,234,212,.85) 1px, transparent 1.5px),
-      radial-gradient(circle, rgba(56,189,248,.85) 1px, transparent 1.5px),
-      radial-gradient(circle, rgba(167,139,250,.85) 1px, transparent 1.5px);
-    background-position: 18% 22%, 78% 18%, 85% 68%, 22% 82%, 50% 12%, 50% 88%;
-    animation: tk-orb-spin 4.5s linear infinite; }
-  .tk-orb.active .tk-orb__dots { animation-duration: 1.8s; }
+    animation: tk-orb-spin 5s linear infinite; }
+  .tk-orb.active::before { opacity:.95; filter:blur(11px); animation-duration:2.2s; }
+  .tk-orb__canvas { position:relative; z-index:1; width:100%; height:100%; border-radius:9999px; overflow:hidden; }
   .tk-caret::after { content:'▍'; margin-left:1px; opacity:.7; animation: tk-orb-breathe 1s ease-in-out infinite; }
-  /* Per-word pulse and per-sentence flare, matching the dashboard concierge.
-     A colored ring on ::after rather than a brightness() filter: brightness
-     only intensifies an additive glow, visible against a dark page and
-     reading as nothing on a light one. A ring shows on either. Retriggered
-     by removing then re-adding the class (see tkOrbPulse), which needs a
-     reflow between the two or the animation will not restart. */
-  .tk-orb::after { content:''; position:absolute; inset:-7px; border-radius:9999px; z-index:3;
-    border:1.5px solid rgba(45,212,191,0); opacity:0; pointer-events:none; }
-  @keyframes tk-orb-kick { 0% { transform:scale(1); } 30% { transform:scale(1.1); } 100% { transform:scale(1); } }
-  @keyframes tk-orb-flare { 0% { transform:scale(1); } 25% { transform:scale(1.22); } 100% { transform:scale(1); } }
-  @keyframes tk-orb-ping { 0% { opacity:.85; transform:scale(.82); border-color:rgba(45,212,191,.9); } 100% { opacity:0; transform:scale(1.55); border-color:rgba(45,212,191,0); } }
-  @keyframes tk-orb-ping-big { 0% { opacity:.95; transform:scale(.78); border-color:rgba(94,234,212,1); } 100% { opacity:0; transform:scale(1.95); border-color:rgba(94,234,212,0); } }
-  .tk-orb.kick { animation: tk-orb-kick .3s ease-out; }
-  .tk-orb.kick::after { animation: tk-orb-ping .4s ease-out; }
-  .tk-orb.flare { animation: tk-orb-flare .45s ease-out; }
-  .tk-orb.flare::after { animation: tk-orb-ping-big .55s ease-out; }
-  @media (prefers-reduced-motion: reduce) { .tk-orb::before, .tk-orb__dots { animation: none; } .tk-orb.kick, .tk-orb.kick::after, .tk-orb.flare, .tk-orb.flare::after { animation: none; } }
   @media (prefers-reduced-motion: reduce) { .tk-orb::before { animation:none } .tk-caret::after { animation:none } }
 
 /* --- Light theme override -----------------------------------------------
@@ -1351,7 +1322,7 @@ teaser('pm');
 
     <div class="bg-gradient-to-r from-teal-500/10 to-sky-500/10 border border-teal-400/20 rounded-xl p-5">
       <div class="flex items-start gap-4">
-        <span id="demo-orb" class="tk-orb active"><span class="tk-orb__dots"></span><span class="tk-orb__core"></span></span>
+        <span id="demo-orb-frame" class="tk-orb active"><span id="demo-orb-mount" class="tk-orb__canvas"></span></span>
         <div class="flex-1 min-w-0">
           <p class="text-xs font-bold text-teal-300 uppercase tracking-wide mb-1.5">TraxKey AI</p>
           <p id="demo-text" class="text-sm text-slate-200 leading-relaxed tk-caret"></p>
@@ -1374,32 +1345,46 @@ teaser('pm');
   </div>
 </section>
 
-<script>
+<script type="module">
 (function () {
+  var THREE_CDN = 'https://unpkg.com/three@0.169.0/build/three.module.js';
   var text = "Riverside Unit B has a same-day turnaround today, the cleaner needs to be confirmed this morning. A $980 water heater replacement is waiting on your approval, and one request has no plumber available in that area. The other four jobs are dispatched and running without you.";
   var el = document.getElementById('demo-text');
-  var orb = document.getElementById('demo-orb');
+  var frame = document.getElementById('demo-orb-frame');
+  var mount = document.getElementById('demo-orb-mount');
   var items = document.getElementById('demo-items');
   var started = false;
+  var orb = null;
+
+  Promise.all([import(/* @vite-ignore */ THREE_CDN), import('./concierge-orb.js')])
+    .then(function (mods) { orb = mods[1].createOrb(mods[0], mount, 40); })
+    .catch(function () {}); // fail silently, the typed briefing still works without the orb
 
   function type() {
     if (started) return;
     started = true;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       el.textContent = text; el.classList.remove('tk-caret');
-      orb.classList.remove('active'); items.classList.remove('hidden');
+      frame.classList.remove('active'); if (orb) orb.setActive(false);
+      items.classList.remove('hidden');
       return;
     }
+    var words = text.split(' ');
+    var SENTENCE_ENDERS = ['.', '!', '?'];
     var i = 0;
     var id = setInterval(function () {
-      el.textContent = text.slice(0, ++i);
-      if (i >= text.length) {
+      var prevWord = words[i - 1];
+      var isSentenceStart = i === 0 || (prevWord && SENTENCE_ENDERS.indexOf(prevWord.slice(-1)) > -1);
+      if (orb) { if (isSentenceStart) orb.flare(0.9); else orb.pulse(0.3); }
+      i++;
+      el.textContent = words.slice(0, i).join(' ');
+      if (i >= words.length) {
         clearInterval(id);
         el.classList.remove('tk-caret');
-        orb.classList.remove('active');
+        frame.classList.remove('active'); if (orb) orb.setActive(false);
         items.classList.remove('hidden');
       }
-    }, 18);
+    }, 90);
   }
 
   // Only start once it's actually on screen, so the visitor sees it type.
@@ -1438,7 +1423,7 @@ teaser('pm');
 
 <div id="tk-chat-panel" class="hidden fixed bottom-24 left-4 right-4 sm:left-auto sm:right-6 z-50 w-auto sm:w-96 bg-slate-900 border border-white/10 rounded-2xl overflow-hidden glow-card">
   <div class="flex items-center gap-3 p-4 border-b border-white/10">
-    <span id="tk-chat-orb" class="tk-orb" style="width:32px;height:32px"><span class="tk-orb__dots"></span><span class="tk-orb__core"></span></span>
+    <span id="tk-chat-orb-frame" class="tk-orb" style="width:32px;height:32px"><span id="tk-chat-orb-mount" class="tk-orb__canvas"></span></span>
     <div class="flex-1 min-w-0">
       <p class="text-sm font-bold">TraxKey AI</p>
       <p class="text-xs text-slate-500">Straight answers, including what it can't do</p>
@@ -1502,22 +1487,31 @@ var TK_CHAT_API = 'https://langgraph-production-42ef.up.railway.app/chat';
 var tkHistory = [];
 var tkBusy = false;
 
+var TK_THREE_CDN = 'https://unpkg.com/three@0.169.0/build/three.module.js';
+var tkChatOrb = null;
+var tkChatOrbLoading = null;
+
+// Lazy-loads the same real particle orb used everywhere else (the TraxKey
+// app and TraxSail's marketing site), instead of the old flat CSS ring.
+function tkEnsureChatOrb() {
+  if (tkChatOrb || tkChatOrbLoading) return tkChatOrbLoading;
+  var mount = document.getElementById('tk-chat-orb-mount');
+  tkChatOrbLoading = Promise.all([
+    import(/* @vite-ignore */ TK_THREE_CDN),
+    import('./concierge-orb.js')
+  ]).then(function (mods) {
+    tkChatOrb = mods[1].createOrb(mods[0], mount, 32);
+  }).catch(function () {}); // fail silently, the widget still works without the orb
+  return tkChatOrbLoading;
+}
+
 function tkChatToggle() {
   var p = document.getElementById('tk-chat-panel');
   p.classList.toggle('hidden');
-  if (!p.classList.contains('hidden')) document.getElementById('tk-chat-input').focus();
-}
-
-
-// Retriggers the kick/flare CSS animation on the orb. Removing the class,
-// forcing a reflow, then re-adding is what lets the SAME animation replay
-// on back-to-back words, a class already present does not restart on
-// re-add without the reflow in between.
-function tkOrbPulse(el, big) {
-  if (!el) return;
-  el.classList.remove('kick', 'flare');
-  void el.offsetWidth;
-  el.classList.add(big ? 'flare' : 'kick');
+  if (!p.classList.contains('hidden')) {
+    document.getElementById('tk-chat-input').focus();
+    tkEnsureChatOrb();
+  }
 }
 
 // Types a reply word by word at 90ms, matching the dashboard concierge
@@ -1525,7 +1519,7 @@ function tkOrbPulse(el, big) {
 // tkRenderBody every tick so bullet lines still render as a real <ul> as
 // they're being typed, not just at the end.
 var SENTENCE_ENDERS = ['.', '!', '?'];
-function tkTypeReply(el, orbEl, fullText, onDone) {
+function tkTypeReply(el, orb, fullText, onDone) {
   var lines = String(fullText || '').split('\n');
   var tokens = [];
   lines.forEach(function (line, li) {
@@ -1541,7 +1535,7 @@ function tkTypeReply(el, orbEl, fullText, onDone) {
     var t = tokens[i];
     var prev = i > 0 ? tokens[i - 1] : null;
     var isStart = i === 0 || t.first || (prev && SENTENCE_ENDERS.indexOf(prev.w.slice(-1)) > -1);
-    tkOrbPulse(orbEl, isStart);
+    if (orb) { if (isStart) orb.flare(0.9); else orb.pulse(0.3); }
 
     acc[t.li] = acc[t.li] ? acc[t.li] + ' ' + t.w : t.w;
     tkRenderBody(el, acc.join('\n'));
@@ -1610,10 +1604,11 @@ function tkChatSubmit(e) {
   input.value = '';
   tkAppend('user', q);
   tkBusy = true;
-  document.getElementById('tk-chat-orb').classList.add('active');
+  var orbFrame = document.getElementById('tk-chat-orb-frame');
+  orbFrame.classList.add('active');
+  tkEnsureChatOrb().then(function () { tkChatOrb && tkChatOrb.setActive(true); tkChatOrb && tkChatOrb.flare(1); });
   var thinking = tkAppend('assistant', 'Thinking…');
 
-  var orb = document.getElementById('tk-chat-orb');
   fetch(TK_CHAT_API, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -1626,18 +1621,21 @@ function tkChatSubmit(e) {
       tkHistory.push({ role: 'assistant', content: j.reply || '' });
       if (tkHistory.length > 12) tkHistory = tkHistory.slice(-12);
       tkBusy = false;
+      tkChatOrb && tkChatOrb.flare(1.2);
       // Orb stays active (fast spin) through typing, only settles once the
       // whole reply has been typed out, same as the dashboard concierge.
-      tkTypeReply(thinking, orb, reply, function () {
-        orb.classList.remove('active');
+      tkTypeReply(thinking, tkChatOrb, reply, function () {
+        orbFrame.classList.remove('active');
+        tkChatOrb && tkChatOrb.setActive(false);
         document.getElementById('tk-chat-log').scrollTop = 99999;
       });
       document.getElementById('tk-chat-log').scrollTop = 99999;
     })
     .catch(function () {
       tkBusy = false;
-      tkTypeReply(thinking, orb, 'Could not reach the assistant. Use "Ask a human" below.', function () {
-        orb.classList.remove('active');
+      tkTypeReply(thinking, tkChatOrb, 'Could not reach the assistant. Use "Ask a human" below.', function () {
+        orbFrame.classList.remove('active');
+        tkChatOrb && tkChatOrb.setActive(false);
       });
     });
   return false;

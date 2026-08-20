@@ -12,43 +12,17 @@
 * { font-family: 'Inter', sans-serif; }
 @keyframes tk-orb-spin { to { transform: rotate(360deg); } }
 @keyframes tk-orb-breathe { 0%,100% { opacity:.45 } 50% { opacity:.85 } }
-.tk-orb { position: relative; border-radius: 9999px; display: inline-block; flex-shrink: 0; width: 40px; height: 40px; }
+.tk-orb { position: relative; border-radius: 9999px; display: inline-block; flex-shrink: 0; width: 40px; height: 40px; isolation: isolate; }
 .tk-orb::before {
   content: ''; position: absolute; inset: -5px; border-radius: 9999px;
   background: conic-gradient(from 0deg, #2dd4bf, #38bdf8, #a78bfa, #2dd4bf);
   filter: blur(8px); opacity: .9;
-  animation: tk-orb-spin 1.8s linear infinite, tk-orb-breathe 1.8s ease-in-out infinite;
+  animation: tk-orb-spin 1.8s linear infinite;
 }
-.tk-orb__core {
-  position: absolute; inset: 0; border-radius: 9999px;
-  background: radial-gradient(circle, rgba(15,23,42,.65), rgba(15,23,42,.2));
-  border: 1px solid rgba(255,255,255,.12);
-}
-.tk-orb__dots { position:absolute; inset:0; border-radius:9999px; z-index:2; pointer-events:none;
-  background-repeat:no-repeat; background-size:5px 5px;
-  background-image:
-    radial-gradient(circle, rgba(94,234,212,.95) 1.1px, transparent 1.6px),
-    radial-gradient(circle, rgba(56,189,248,.9) 1.1px, transparent 1.6px),
-    radial-gradient(circle, rgba(167,139,250,.9) 1.1px, transparent 1.6px),
-    radial-gradient(circle, rgba(94,234,212,.85) 1px, transparent 1.5px),
-    radial-gradient(circle, rgba(56,189,248,.85) 1px, transparent 1.5px),
-    radial-gradient(circle, rgba(167,139,250,.85) 1px, transparent 1.5px);
-  background-position: 18% 22%, 78% 18%, 85% 68%, 22% 82%, 50% 12%, 50% 88%;
-  animation: tk-orb-spin 2.2s linear infinite;
-}
+.tk-orb__canvas { position:relative; z-index:1; width:100%; height:100%; border-radius:9999px; overflow:hidden; }
 .tk-caret::after { content:'▍'; margin-left:1px; opacity:.7; animation: tk-orb-breathe 1s ease-in-out infinite; }
-.tk-orb::after { content:''; position:absolute; inset:-7px; border-radius:9999px; z-index:3;
-  border:1.5px solid rgba(45,212,191,0); opacity:0; pointer-events:none; }
-@keyframes tk-orb-kick { 0% { transform:scale(1); } 30% { transform:scale(1.1); } 100% { transform:scale(1); } }
-@keyframes tk-orb-flare { 0% { transform:scale(1); } 25% { transform:scale(1.22); } 100% { transform:scale(1); } }
-@keyframes tk-orb-ping { 0% { opacity:.85; transform:scale(.82); border-color:rgba(45,212,191,.9); } 100% { opacity:0; transform:scale(1.55); border-color:rgba(45,212,191,0); } }
-@keyframes tk-orb-ping-big { 0% { opacity:.95; transform:scale(.78); border-color:rgba(94,234,212,1); } 100% { opacity:0; transform:scale(1.95); border-color:rgba(94,234,212,0); } }
-.tk-orb.kick { animation: tk-orb-kick .3s ease-out; }
-.tk-orb.kick::after { animation: tk-orb-ping .4s ease-out; }
-.tk-orb.flare { animation: tk-orb-flare .45s ease-out; }
-.tk-orb.flare::after { animation: tk-orb-ping-big .55s ease-out; }
 .glow-card { box-shadow: 0 0 40px -12px rgba(45,212,191,.25); }
-@media (prefers-reduced-motion: reduce) { .tk-orb::before, .tk-orb__dots, .tk-caret::after { animation: none; } .tk-orb.kick, .tk-orb.kick::after, .tk-orb.flare, .tk-orb.flare::after { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .tk-orb::before, .tk-caret::after { animation: none; } }
 /* --- Light theme override -----------------------------------------------
    Dark-first site, so this is an override layer keyed off html.light rather
    than rewriting every utility to a dark: variant across three pages.
@@ -279,7 +253,7 @@ html.light .to-slate-900 { --tw-gradient-to: #ffffff !important; }
     <!-- CONCIERGE -->
     <div class="bg-gradient-to-r from-teal-500/10 to-sky-500/10 border border-teal-400/20 rounded-2xl p-6 mb-6 glow-card">
       <div class="flex items-start gap-4">
-        <span id="brief-orb" class="tk-orb"><span class="tk-orb__dots"></span><span class="tk-orb__core"></span></span>
+        <span id="brief-orb-frame" class="tk-orb"><span id="brief-orb-mount" class="tk-orb__canvas"></span></span>
         <div class="flex-1 min-w-0">
           <p class="text-xs font-bold text-teal-300 uppercase tracking-wide mb-2">TraxKey AI</p>
           <p id="brief-lead" class="text-sm md:text-base text-slate-100 leading-relaxed tk-caret"></p>
@@ -799,16 +773,18 @@ function showNav(tab) {
 var typingTimer = null;
 var SENTENCE_ENDERS = ['.', '!', '?'];
 
-// Retriggers the kick/flare CSS animation. Removing the class, forcing a
-// reflow, then re-adding is what lets the same animation replay on
-// back-to-back words, a class already present does not restart on re-add
-// without the reflow in between.
+var briefOrb = null;
+Promise.all([
+  import(/* @vite-ignore */ 'https://unpkg.com/three@0.169.0/build/three.module.js'),
+  import('./concierge-orb.js')
+]).then(function (mods) {
+  briefOrb = mods[1].createOrb(mods[0], document.getElementById('brief-orb-mount'), 40);
+  briefOrb.setActive(true); // this demo narrates continuously, so it never idles
+}).catch(function () {}); // fail silently, the typed briefing still works without the orb
+
 function orbPulse(big) {
-  var el = document.getElementById('brief-orb');
-  if (!el) return;
-  el.classList.remove('kick', 'flare');
-  void el.offsetWidth;
-  el.classList.add(big ? 'flare' : 'kick');
+  if (!briefOrb) return;
+  if (big) briefOrb.flare(0.9); else briefOrb.pulse(0.3);
 }
 
 function showView(key) {

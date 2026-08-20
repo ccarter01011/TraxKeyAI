@@ -29,39 +29,14 @@
   html.js-reveal .fade-up.in { animation-play-state: running; }
   @media (prefers-reduced-motion: reduce) { .fade-up { animation: none; opacity: 1; transform: none; } }
   @keyframes tk-orb-spin { to { transform: rotate(360deg); } }
-  @keyframes tk-orb-breathe { 0%,100% { opacity:.45 } 50% { opacity:.75 } }
   .tk-orb { position: relative; border-radius: 9999px; display:inline-block; flex-shrink:0; isolation:isolate; width:40px; height:40px; }
   .tk-orb::before { content:''; position:absolute; inset:-5px; border-radius:9999px;
     background: conic-gradient(from 0deg,#2dd4bf,#38bdf8,#a78bfa,#2dd4bf);
     filter: blur(7px); opacity:.5; z-index:0;
-    animation: tk-orb-spin 5s linear infinite, tk-orb-breathe 3s ease-in-out infinite; }
-  .tk-orb.active::before { opacity:.95; filter:blur(11px); animation-duration:1.6s,1.6s; }
-  .tk-orb__core { position:absolute; inset:0; border-radius:9999px; z-index:1;
-    background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.35), rgba(15,23,42,.85) 70%);
-    border:1px solid rgba(255,255,255,.12); }
-  .tk-orb__dots { position:absolute; inset:0; border-radius:9999px; z-index:2; pointer-events:none;
-    background-repeat:no-repeat; background-size:5px 5px;
-    background-image:
-      radial-gradient(circle, rgba(94,234,212,.95) 1.1px, transparent 1.6px),
-      radial-gradient(circle, rgba(56,189,248,.9) 1.1px, transparent 1.6px),
-      radial-gradient(circle, rgba(167,139,250,.9) 1.1px, transparent 1.6px),
-      radial-gradient(circle, rgba(94,234,212,.85) 1px, transparent 1.5px),
-      radial-gradient(circle, rgba(56,189,248,.85) 1px, transparent 1.5px),
-      radial-gradient(circle, rgba(167,139,250,.85) 1px, transparent 1.5px);
-    background-position: 18% 22%, 78% 18%, 85% 68%, 22% 82%, 50% 12%, 50% 88%;
-    animation: tk-orb-spin 4.5s linear infinite; }
-  .tk-orb.active .tk-orb__dots { animation-duration: 1.8s; }
-  .tk-orb::after { content:''; position:absolute; inset:-7px; border-radius:9999px; z-index:3;
-    border:1.5px solid rgba(45,212,191,0); opacity:0; pointer-events:none; }
-  @keyframes tk-orb-kick { 0% { transform:scale(1); } 30% { transform:scale(1.1); } 100% { transform:scale(1); } }
-  @keyframes tk-orb-flare { 0% { transform:scale(1); } 25% { transform:scale(1.22); } 100% { transform:scale(1); } }
-  @keyframes tk-orb-ping { 0% { opacity:.85; transform:scale(.82); border-color:rgba(45,212,191,.9); } 100% { opacity:0; transform:scale(1.55); border-color:rgba(45,212,191,0); } }
-  @keyframes tk-orb-ping-big { 0% { opacity:.95; transform:scale(.78); border-color:rgba(94,234,212,1); } 100% { opacity:0; transform:scale(1.95); border-color:rgba(94,234,212,0); } }
-  .tk-orb.kick { animation: tk-orb-kick .3s ease-out; }
-  .tk-orb.kick::after { animation: tk-orb-ping .4s ease-out; }
-  .tk-orb.flare { animation: tk-orb-flare .45s ease-out; }
-  .tk-orb.flare::after { animation: tk-orb-ping-big .55s ease-out; }
-  @media (prefers-reduced-motion: reduce) { .tk-orb::before, .tk-orb__dots { animation:none } .tk-orb.kick, .tk-orb.kick::after, .tk-orb.flare, .tk-orb.flare::after { animation: none; } }
+    animation: tk-orb-spin 5s linear infinite; }
+  .tk-orb.active::before { opacity:.95; filter:blur(11px); animation-duration:2.2s; }
+  .tk-orb__canvas { position:relative; z-index:1; width:100%; height:100%; border-radius:9999px; overflow:hidden; }
+  @media (prefers-reduced-motion: reduce) { .tk-orb::before { animation:none } }
 /* --- Light theme override -----------------------------------------------
    Dark-first site, so this is an override layer keyed off html.light rather
    than rewriting every utility to a dark: variant across three pages.
@@ -542,7 +517,7 @@ function toggleMobileNav() {
 
 <div id="tk-chat-panel" class="hidden fixed bottom-24 right-6 z-50 w-96 max-w-[calc(100vw-3rem)] bg-slate-900 border border-white/10 rounded-2xl overflow-hidden glow-card">
   <div class="flex items-center gap-3 p-4 border-b border-white/10">
-    <span id="tk-chat-orb" class="tk-orb" style="width:32px;height:32px"><span class="tk-orb__dots"></span><span class="tk-orb__core"></span></span>
+    <span id="tk-chat-orb-frame" class="tk-orb" style="width:32px;height:32px"><span id="tk-chat-orb-mount" class="tk-orb__canvas"></span></span>
     <div class="flex-1 min-w-0">
       <p class="text-sm font-bold">TraxKey AI</p>
       <p class="text-xs text-slate-500">Straight answers, including what it can't do</p>
@@ -606,22 +581,33 @@ var TK_CHAT_API = 'https://langgraph-production-42ef.up.railway.app/chat';
 var tkHistory = [];
 var tkBusy = false;
 
+var TK_THREE_CDN = 'https://unpkg.com/three@0.169.0/build/three.module.js';
+var tkChatOrb = null;
+var tkChatOrbLoading = null;
+
+function tkEnsureChatOrb() {
+  if (tkChatOrb || tkChatOrbLoading) return tkChatOrbLoading;
+  var mount = document.getElementById('tk-chat-orb-mount');
+  tkChatOrbLoading = Promise.all([
+    import(/* @vite-ignore */ TK_THREE_CDN),
+    import('./concierge-orb.js')
+  ]).then(function (mods) {
+    tkChatOrb = mods[1].createOrb(mods[0], mount, 32);
+  }).catch(function () {});
+  return tkChatOrbLoading;
+}
+
 function tkChatToggle() {
   var p = document.getElementById('tk-chat-panel');
   p.classList.toggle('hidden');
-  if (!p.classList.contains('hidden')) document.getElementById('tk-chat-input').focus();
-}
-
-
-function tkOrbPulse(el, big) {
-  if (!el) return;
-  el.classList.remove('kick', 'flare');
-  void el.offsetWidth;
-  el.classList.add(big ? 'flare' : 'kick');
+  if (!p.classList.contains('hidden')) {
+    document.getElementById('tk-chat-input').focus();
+    tkEnsureChatOrb();
+  }
 }
 
 var SENTENCE_ENDERS = ['.', '!', '?'];
-function tkTypeReply(el, orbEl, fullText, onDone) {
+function tkTypeReply(el, orb, fullText, onDone) {
   var lines = String(fullText || '').split('\n');
   var tokens = [];
   lines.forEach(function (line, li) {
@@ -637,7 +623,7 @@ function tkTypeReply(el, orbEl, fullText, onDone) {
     var t = tokens[i];
     var prev = i > 0 ? tokens[i - 1] : null;
     var isStart = i === 0 || t.first || (prev && SENTENCE_ENDERS.indexOf(prev.w.slice(-1)) > -1);
-    tkOrbPulse(orbEl, isStart);
+    if (orb) { if (isStart) orb.flare(0.9); else orb.pulse(0.3); }
 
     acc[t.li] = acc[t.li] ? acc[t.li] + ' ' + t.w : t.w;
     tkRenderBody(el, acc.join('\n'));
@@ -706,10 +692,11 @@ function tkChatSubmit(e) {
   input.value = '';
   tkAppend('user', q);
   tkBusy = true;
-  document.getElementById('tk-chat-orb').classList.add('active');
+  var orbFrame = document.getElementById('tk-chat-orb-frame');
+  orbFrame.classList.add('active');
+  tkEnsureChatOrb().then(function () { tkChatOrb && tkChatOrb.setActive(true); tkChatOrb && tkChatOrb.flare(1); });
   var thinking = tkAppend('assistant', 'Thinking…');
 
-  var orb = document.getElementById('tk-chat-orb');
   fetch(TK_CHAT_API, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -722,18 +709,21 @@ function tkChatSubmit(e) {
       tkHistory.push({ role: 'assistant', content: j.reply || '' });
       if (tkHistory.length > 12) tkHistory = tkHistory.slice(-12);
       tkBusy = false;
+      tkChatOrb && tkChatOrb.flare(1.2);
       // Orb stays active (fast spin) through typing, only settles once the
       // whole reply has been typed out, same as the dashboard concierge.
-      tkTypeReply(thinking, orb, reply, function () {
-        orb.classList.remove('active');
+      tkTypeReply(thinking, tkChatOrb, reply, function () {
+        orbFrame.classList.remove('active');
+        tkChatOrb && tkChatOrb.setActive(false);
         document.getElementById('tk-chat-log').scrollTop = 99999;
       });
       document.getElementById('tk-chat-log').scrollTop = 99999;
     })
     .catch(function () {
       tkBusy = false;
-      tkTypeReply(thinking, orb, 'Could not reach the assistant. Use "Ask a human" below.', function () {
-        orb.classList.remove('active');
+      tkTypeReply(thinking, tkChatOrb, 'Could not reach the assistant. Use "Ask a human" below.', function () {
+        orbFrame.classList.remove('active');
+        tkChatOrb && tkChatOrb.setActive(false);
       });
     });
   return false;
