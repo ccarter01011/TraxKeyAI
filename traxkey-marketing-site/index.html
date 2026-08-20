@@ -277,6 +277,11 @@ html.light .to-slate-900 { --tw-gradient-to: #ffffff !important; }
     <a href="/blog" class="block py-2 text-slate-300 hover:text-white">Blog</a>
     <a href="#pricing" onclick="toggleMobileNav()" class="block py-2 text-slate-300 hover:text-white">Pricing</a>
     <a href="https://app.traxkey.ai/login" class="block py-2 text-slate-300 hover:text-white">Customer Login</a>
+    <button onclick="toggleTheme()" class="flex items-center gap-2 py-2 text-slate-300 hover:text-white w-full text-left">
+      <svg id="icon-moon-mobile" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M21 12.79A9 9 0 1 1 11.21 3A7 7 0 0 0 21 12.79Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg id="icon-sun-mobile" width="16" height="16" viewBox="0 0 24 24" fill="none" class="hidden"><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"/><path d="M12 2V4M12 20V22M4.93 4.93L6.34 6.34M17.66 17.66L19.07 19.07M2 12H4M20 12H22M6.34 17.66L4.93 19.07M19.07 4.93L17.66 6.34" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <span>Toggle light / dark mode</span>
+    </button>
     <a href="https://app.traxkey.ai/signup" class="block mt-2 text-center bg-teal-500 text-slate-950 font-semibold text-sm px-4 py-2.5 rounded-lg">Start Free Trial</a>
   </div>
 </nav>
@@ -1678,8 +1683,15 @@ function tkSubmitAskHuman(e) {
 // inline call below so there is no flash of the wrong theme.
 function applyTheme(t) {
   document.documentElement.classList.toggle('light', t === 'light');
-  var moon = document.getElementById('icon-moon'), sun = document.getElementById('icon-sun');
-  if (moon && sun) { moon.classList.toggle('hidden', t === 'light'); sun.classList.toggle('hidden', t !== 'light'); }
+  // Two copies of the icon exist: the desktop nav button and the mobile
+  // menu button added for phones (the desktop one was wrapped in
+  // `hidden lg:flex`, so phones had no toggle control at all). Both need
+  // updating or the mobile icon would silently drift out of sync with the
+  // theme it's supposed to reflect.
+  ['', '-mobile'].forEach(function (suffix) {
+    var moon = document.getElementById('icon-moon' + suffix), sun = document.getElementById('icon-sun' + suffix);
+    if (moon && sun) { moon.classList.toggle('hidden', t === 'light'); sun.classList.toggle('hidden', t !== 'light'); }
+  });
 }
 function toggleTheme() {
   var next = document.documentElement.classList.contains('light') ? 'dark' : 'light';
