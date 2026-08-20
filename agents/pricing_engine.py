@@ -1,11 +1,7 @@
-"""Dynamic pricing suggestions for direct-booked units, vendor-agnostic.
+"""Dynamic pricing suggestions for direct-booked units, entirely TraxKey's
+own — no third-party pricing vendor in the loop.
 
-Three providers exist, picked per-unit rather than globally:
-
-    PriceLabsProvider   A unit mapped to a real PriceLabs listing (see
-                        schema_v33.sql, units.pricelabs_listing_id) with
-                        PRICELABS_API_KEY set. A finished rate, computed by
-                        PriceLabs from real market history.
+Two providers exist, picked per-unit rather than globally:
 
     MarketHeuristicProvider  AIRROI_API_KEY set and AirROI has comp data for
                         the property's market. The internal heuristic, then
@@ -18,8 +14,7 @@ Three providers exist, picked per-unit rather than globally:
                         adjusted for weekend demand, lead time, and the
                         property's own occupancy that week.
 
-The fallback chain matters: PriceLabs can only price a listing it already
-has market history for, and AirROI only covers markets it tracks, so a
+The fallback chain matters: AirROI only covers markets it tracks, so a
 brand-new test unit in a thin market still gets a priced calendar instead
 of an error.
 
@@ -39,7 +34,6 @@ from datetime import date, timedelta
 
 from db import db
 import airroi_client
-import pricelabs_client
 
 
 class HeuristicProvider:
@@ -172,71 +166,15 @@ class MarketHeuristicProvider:
         return round(capped, 2), factors
 
 
-class PriceLabsProvider:
-    """Real PriceLabs pricing, for a unit mapped to a real PriceLabs
-    listing. Talks to the Customer API (api.pricelabs.co), not the MCP
-    connector, see pricelabs_client.py's module docstring for why: MCP's
-    OAuth flow needs a human in a browser, this runs unattended.
-
-    suggest() here is shaped differently from HeuristicProvider's: PriceLabs
-    prices a whole date range in one call rather than one night at a time,
-    so the per-night loop in suggest_rates() below calls
-    prefetch_range() once, then reads from the cached result.
-    """
-
-    name = "pricelabs"
-
-    def __init__(self):
-        self._cache = {}  # listing_id -> {date_iso: price}
-        self._cache_error = {}  # listing_id -> error string
-
-    def prefetch_range(self, listing_id, start_date, end_date):
-        if listing_id in self._cache or listing_id in self._cache_error:
-            return
-        result = pricelabs_client.get_prices(listing_id, start_date, end_date)
-        if not result.get("ok"):
-            self._cache_error[listing_id] = result.get("error", "Unknown PriceLabs error.")
-            return
-        parsed, unparsed = pricelabs_client.parse_nightly_rates(result["data"])
-        if unparsed:
-            self._cache_error[listing_id] = (
-                "Got a response from PriceLabs but couldn't parse it with the "
-                "field names this integration expects. The response shape needs "
-                "a one-time check against a real account, see pricelabs_client.py."
-            )
-            return
-        self._cache[listing_id] = parsed
-
-    def suggest(self, unit, stay_date, occupancy_pct, today=None):
-        listing_id = unit.get("pricelabs_listing_id")
-        if not listing_id:
-            return None, ["No PriceLabs listing mapped to this unit."]
-        if listing_id in self._cache_error:
-            return None, [self._cache_error[listing_id]]
-        rate = self._cache.get(listing_id, {}).get(stay_date.isoformat())
-        if rate is None:
-            return None, [f"PriceLabs has no price for {stay_date.isoformat()} on listing {listing_id}."]
-        return round(float(rate), 2), ["Live PriceLabs recommendation for this listing and date."]
-
-
 PROVIDERS = {
     "heuristic": HeuristicProvider(),
     "market_heuristic": MarketHeuristicProvider(),
-    "pricelabs": PriceLabsProvider(),
 }
 
 
 def pick_provider(unit):
-    """PriceLabs first when this unit is mapped to a real listing, then the
-    AirROI-informed heuristic when that key is configured, then the plain
-    heuristic. Decided per unit, not globally, since most units will never
-    have a PriceLabs mapping regardless of whether the key is set.
-
-    PriceLabs outranks AirROI because it returns a finished per-night rate
-    computed from that specific listing's history; AirROI returns market
-    context that still has to be blended with a rule of thumb."""
-    if unit.get("pricelabs_listing_id") and pricelabs_client.is_configured():
-        return PROVIDERS["pricelabs"]
+    """The AirROI-informed heuristic when that key is configured and has
+    comp data for this unit's market, otherwise the plain heuristic."""
     if airroi_client.is_configured():
         return PROVIDERS["market_heuristic"]
     return PROVIDERS["heuristic"]
@@ -283,7 +221,7 @@ def suggest_rates(company_id, unit_id, start_date, end_date):
     with db() as conn, conn.cursor() as cur:
         cur.execute(
             """
-            SELECT u.id, u.base_nightly_rate, u.property_id, u.pricelabs_listing_id,
+            SELECT u.id, u.base_nightly_rate, u.property_id,
                    p.city, p.state
             FROM traxkey.units u
             JOIN traxkey.properties p ON p.id = u.property_id
@@ -298,10 +236,7 @@ def suggest_rates(company_id, unit_id, start_date, end_date):
             return {"ok": False, "error": "Set a base nightly rate for this unit first."}
 
         provider = pick_provider(unit)
-        heuristic = PROVIDERS["heuristic"]
-        if provider.name == "pricelabs":
-            provider.prefetch_range(unit["pricelabs_listing_id"], start_date, end_date)
-        elif provider.name == "market_heuristic":
+        if provider.name == "market_heuristic":
             provider.prefetch_market(unit["city"], unit["state"])
 
         cur.execute("SELECT id FROM traxkey.units WHERE property_id = %s", (unit["property_id"],))
@@ -313,15 +248,6 @@ def suggest_rates(company_id, unit_id, start_date, end_date):
             occ = _week_occupancy(cur, unit_id, sibling_units, d)
             rate, factors = provider.suggest(unit, d, occ)
             source = provider.name
-            if rate is None:
-                # PriceLabs had nothing for this specific night (not yet
-                # synced, listing paused, etc). Fall back to the heuristic
-                # for just this night rather than leaving it unpriced, and
-                # say so, rather than silently passing off a guess as a
-                # PriceLabs number.
-                rate, h_factors = heuristic.suggest(unit, d, occ)
-                factors = [f"PriceLabs unavailable for this night: {factors[0]}", "Used the internal heuristic instead."] + h_factors
-                source = "heuristic"
             cur.execute(
                 """
                 INSERT INTO traxkey.unit_nightly_rates
@@ -343,43 +269,11 @@ def suggest_rates(company_id, unit_id, start_date, end_date):
     return {"ok": True, "rates": out}
 
 
-def set_pricelabs_listing(company_id, unit_id, listing_id):
-    """Map (or unmap, if listing_id is blank) a TraxKey unit to a real
-    PriceLabs listing. This is the join that lets suggest_rates use real
-    PriceLabs data for this unit instead of the heuristic."""
-    listing_id = (listing_id or "").strip() or None
-    with db() as conn, conn.cursor() as cur:
-        cur.execute(
-            """
-            UPDATE traxkey.units u
-            SET pricelabs_listing_id = %s
-            FROM traxkey.properties p
-            WHERE u.id = %s::uuid AND u.property_id = p.id AND p.company_id = %s
-            RETURNING u.id
-            """,
-            (listing_id, unit_id, company_id),
-        )
-        row = cur.fetchone()
-    if not row:
-        return {"ok": False, "error": "Unit not found."}
-    return {"ok": True}
-
-
-def pricelabs_status():
-    """Whether the integration is configured at all, for the UI to show
-    the right thing without every operator needing to know an env var name."""
-    return {"configured": pricelabs_client.is_configured()}
-
-
 def market_data_status():
     """Whether AirROI comp data is available, so the pricing page can say
     which tier of pricing a unit is actually getting rather than leaving the
     operator to guess."""
     return {"configured": airroi_client.is_configured()}
-
-
-def list_pricelabs_listings():
-    return pricelabs_client.list_listings()
 
 
 def set_base_rate(company_id, unit_id, rate):
@@ -465,21 +359,9 @@ def get_calendar(company_id, unit_id, start_date, end_date):
             (unit_id, company_id, end_date, start_date),
         )
         reservations = [dict(r) for r in cur.fetchall()]
-
-        cur.execute(
-            """
-            SELECT u.pricelabs_listing_id
-            FROM traxkey.units u
-            JOIN traxkey.properties p ON p.id = u.property_id
-            WHERE u.id = %s::uuid AND p.company_id = %s
-            """,
-            (unit_id, company_id),
-        )
-        unit_row = cur.fetchone()
     return {
         "rates": rates,
         "reservations": reservations,
-        "pricelabsListingId": unit_row["pricelabs_listing_id"] if unit_row else None,
     }
 
 

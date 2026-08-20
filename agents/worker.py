@@ -41,7 +41,6 @@ from property_profile import (get_profile, save_profile, list_inventory, add_inv
 from damage_assessment import assess as assess_damage
 from pricing_engine import (suggest_rates, apply_rate, set_base_rate, get_calendar as get_pricing_calendar,
                             create_reservation, cancel_reservation, create_buyout, list_buyouts,
-                            set_pricelabs_listing, pricelabs_status, list_pricelabs_listings,
                             market_data_status)
 from pricing_test_data import seed as seed_pricing_test, remove as remove_pricing_test
 from amenities import (set_rental_mode, list_amenities, add_amenity, set_amenity_status,
@@ -124,7 +123,7 @@ class HealthHandler(BaseHTTPRequestHandler):
                          "/pricing", "/reservations", "/pricing-test-data",
                          "/rental-mode", "/amenities", "/amenity-issue", "/amenity-notify",
                          "/buyouts", "/tenant-amenities", "/tenant-amenity-issue",
-                         "/pricelabs", "/portfolio-chat"):
+                         "/portfolio-chat"):
             self._json(404, {"error": "Not found"})
             return
         try:
@@ -434,21 +433,6 @@ class HealthHandler(BaseHTTPRequestHandler):
                 self._json(500, {"error": "Could not answer that"})
             else:
                 self._json(200, {"reply": reply})
-            return
-
-        if route == "/pricelabs":
-            token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
-            company_id = validate_session(token)
-            if not company_id:
-                self._json(401, {"error": "Unauthorized"})
-                return
-            try:
-                result = set_pricelabs_listing(company_id, payload.get("unitId", ""), payload.get("listingId", ""))
-            except Exception:
-                traceback.print_exc()
-                self._json(500, {"error": "Could not save that"})
-                return
-            self._json(200 if result.get("ok") else 400, result)
             return
 
         if route == "/pricing":
@@ -798,23 +782,6 @@ class HealthHandler(BaseHTTPRequestHandler):
             except Exception:
                 traceback.print_exc()
                 self._json(500, {"error": "Could not load buyouts"})
-            return
-
-        if self.path.split("?")[0] == "/pricelabs":
-            token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
-            company_id = validate_session(token)
-            if not company_id:
-                self._json(401, {"error": "Unauthorized"})
-                return
-            q = parse_qs(urlparse(self.path).query)
-            try:
-                if (q.get("listings") or [""])[0] == "1":
-                    self._json(200, list_pricelabs_listings())
-                else:
-                    self._json(200, pricelabs_status())
-            except Exception:
-                traceback.print_exc()
-                self._json(500, {"error": "Could not reach PriceLabs"})
             return
 
         if self.path.split("?")[0] == "/market-data":

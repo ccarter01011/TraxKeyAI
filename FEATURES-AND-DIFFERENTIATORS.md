@@ -226,7 +226,8 @@ moved it: the base rate, the weekend lift, the lead-time adjustment, the
 property's own occupancy that week, and — where market data is connected —
 the comp-set average, how many comparable listings were behind it, and how
 far it pulled the rate. The calendar labels each night with which tier
-priced it: PriceLabs, market data, or the internal heuristic.
+priced it: market data, or the internal heuristic. Entirely TraxKey's own,
+no third-party pricing vendor in the loop (removed 2026-08-20).
 
 **Why it matters:** the incumbent revenue-management tools are black boxes.
 PriceLabs and Beyond return a number; the operator either trusts it or
@@ -237,16 +238,15 @@ they don't get from the existing tools.
 
 **Where the fit comes from structurally:** the `source` column on
 `unit_nightly_rates` was vendor-agnostic from day one (schema_v31), so
-adding AirROI as a third tier didn't rewrite any history or change what the
-UI knows. A future provider slots in the same way.
+adding AirROI as a second tier didn't rewrite any history or change what the
+UI knows.
 
 **Honest scope:** the internal heuristic is a rule of thumb, not revenue
 management, and the product says so on the page rather than dressing it up.
-The three tiers are a real quality ladder: PriceLabs for a mapped listing,
-AirROI comp data for a tracked market, rules alone otherwise. What makes
-this defensible isn't the algorithm — it's that a $99/mo tool gives a small
-operator market-aware pricing at all, without PriceLabs' $1/listing/month
-per-listing fee stacked on top.
+The two tiers are a real quality ladder: AirROI comp data for a tracked
+market, rules alone otherwise. What makes this defensible isn't the
+algorithm — it's that a $99/mo tool gives a small operator market-aware
+pricing at all, without a standalone tool's per-listing fee stacked on top.
 
 ---
 
@@ -283,7 +283,7 @@ per-listing fee stacked on top.
 | Owner portal | separate login, read-only, scoped per-owner even within one company |
 | Suggestion box | in-app feature requests, admin triage |
 | Direct booking | reservations TraxKey owns the price on, separate from Airbnb/Vrbo; whole-property buyouts |
-| Dynamic pricing | three tiers per unit: PriceLabs (mapped listings), AirROI comp-set data blended into the internal heuristic, or the heuristic alone |
+| Dynamic pricing | TraxKey's own, no third-party pricing vendor: AirROI comp-set data blended into the internal heuristic, or the heuristic alone |
 | Priced-nights calendar | month grid, each night labeled with the tier that priced it and why |
 
 ### Not built (be honest about these in sales conversations)

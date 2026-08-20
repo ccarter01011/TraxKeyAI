@@ -2,10 +2,9 @@
 
 Feeds the internal HeuristicProvider a real market signal (comp-set average
 nightly rate for the property's city/state) instead of pricing on TraxKey's
-own occupancy alone. This is not a pricing engine on its own the way
-PriceLabsProvider is: AirROI returns market context, pricing_engine.py
-blends it into the heuristic's output. See pricing_engine.py's module
-docstring for why the blend, not a swap.
+own occupancy alone. This is not a pricing engine on its own: AirROI returns
+market context, pricing_engine.py blends it into the heuristic's output.
+See pricing_engine.py's module docstring for why the blend, not a swap.
 
 Verified 2026-08-17 against a live key (arlive...). Two calls, chained,
 not one:

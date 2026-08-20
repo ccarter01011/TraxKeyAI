@@ -170,7 +170,7 @@ including the reason for each decision.
 | **Orders** | Parts and materials a job is waiting on, flagged when late, and when late means a turn will slip. Suppliers are chased by email once an item goes past its expected date, with a CC address and an on/off switch per item. Adapted from our own supply-chain product, TraxSail AI, which chases suppliers on purchase orders. |
 | **Property profile (onboarding)** | The nuances only the operator knows, captured once per property: water shutoff and panel locations, HVAC filter size, which quirks are normal, trash day, emergency info, insurance carrier and deductible. Feeds the resident assistant and the damage assessment. |
 | **Property inventory** | What is actually in each unit: appliances and furniture with brand, model, price, purchase date, warranty, condition, and a replacement link. Used for replace-on-breakage and to check warranty before anyone pays for a repair. |
-| **Direct booking & pricing (test)** | A reservation system outside Airbnb/Vrbo, with a month-grid calendar showing a suggested rate for every night. Three pricing tiers, picked per unit: a real PriceLabs recommendation for a mapped listing; the internal heuristic pulled toward a comp-set market average from AirROI, live in production as of 2026-08-17; or the plain heuristic (weekend lift, last-minute discount, occupancy adjustment) when neither is available for a given unit's market. Every night is labeled with which tier produced it and why, so a rule-of-thumb price is never mistaken for market intelligence. Built vendor-agnostic so a real provider can be swapped in without a rebuild. Marked as a test feature on the dashboard. |
+| **Direct booking & pricing (test)** | A reservation system outside Airbnb/Vrbo, with a month-grid calendar showing a suggested rate for every night. TraxKey's own pricing, no third-party pricing vendor: the internal heuristic pulled toward a comp-set market average from AirROI, live in production as of 2026-08-17; or the plain heuristic (weekend lift, last-minute discount, occupancy adjustment) when no market data is available for a given unit's market. Every night is labeled with which tier produced it and why, so a rule-of-thumb price is never mistaken for market intelligence. The PriceLabs integration this section previously described was removed 2026-08-20 in favor of TraxKey's own pricing. Marked as a test feature on the dashboard. |
 | **Portfolio Assistant** | A conversational analyst that answers plain-language questions spanning both rental types — "which units earned least," "where did maintenance cost most per dollar earned," "which leases end soon, and would those units earn more short-term." It reads from fixed, tenant-scoped queries only; it cannot write its own SQL and cannot see another company's data under any input. Every number it states comes from a query result, never an estimate. |
 | **Experiential STR / micro-resort mode** | A per-property toggle (on the Onboarding page, next to the property picker) for multi-unit properties sharing amenities — a compound with a pool, dock, or clubhouse across several cabins. Adds shared-amenity tracking with its own status and maintenance thread, a "notify every guest currently on the property" action, and whole-property buyout bookings for weddings and retreats that block every unit at once. |
 | **Invoices** | What you're owed, bucketed by how overdue it is, with reminders sent automatically until someone answers. CC address and auto-reminder switch per customer, overridable per invoice. TraxKey tracks and chases; it never processes a payment or holds funds. |
@@ -201,7 +201,7 @@ makes them a platform rather than a bundle of features.
 | **Vendor Chase Agent** | Nudge a dispatched vendor who has gone silent, escalate to you after two tries | Every 15 min |
 | **Damage Assessor** | On a broken item, gathers cost, deductible, warranty, inventory match and who was in the unit, then recommends occupant charge, insurance claim, or owner cost. Names what is missing rather than guessing. Recommends; never decides. | On demand |
 | **Invoice Chase Agent** | Remind a customer an invoice is past due, and a supplier that a part is late; hand both to you after two tries | Hourly |
-| **Pricing Engine** | Suggests a nightly rate for every unpriced night, picking PriceLabs, AirROI-blended, or plain-heuristic pricing per unit, and records why | On demand, per unit |
+| **Pricing Engine** | Suggests a nightly rate for every unpriced night, picking AirROI-blended or plain-heuristic pricing per unit (TraxKey's own, no third-party pricing vendor), and records why | On demand, per unit |
 
 ### The four voices, and why they sound different
 
@@ -314,10 +314,11 @@ legal determination.**
 
 Real market-data pricing used to be on this list; it no longer is. The
 pricing engine (§3) has a market-data tier — the heuristic pulled toward a
-comp-set average from AirROI — live in production as of 2026-08-17,
-alongside a real PriceLabs tier for any unit mapped to a live PriceLabs
-listing. A unit still falls back to the plain heuristic only if AirROI has
-no coverage for its market or PriceLabs isn't mapped.
+comp-set average from AirROI — live in production as of 2026-08-17. A unit
+falls back to the plain heuristic only if AirROI has no coverage for its
+market. The PriceLabs integration this section previously described was
+removed 2026-08-20; TraxKey's pricing is entirely its own now, no
+third-party pricing vendor in the loop.
 
 ---
 
@@ -452,7 +453,6 @@ the AI can set, so there is no prompt that reaches another tenant's data.
 | Tenant logins for long-term residents | Request history, documents, renewal offers. Short-term guests keep the no-login link. |
 | Subscription billing | Plans exist; taking payment does not yet. |
 | Document storage | Leases, insurance, notices. Unglamorous and its absence is disqualifying. |
-| Connect a live PriceLabs key | AirROI market-data pricing (§3, §6) went live 2026-08-17. The PriceLabs tier is still code-complete but unconnected — what's left is provisioning an API key in production, not a rebuild. |
 | STR setup & procurement | A separate, adjacent product (not a TraxKey feature): a project-management and procurement platform for furnishing a rental before launch — FF&E/OS&E scope, budget, purchase orders, delivery tracking, launch-readiness. Shares TraxKey's ordered-items engine and property inventory as the spine between the two products. Recorded in the roadmap, not yet validated with customer interviews. |
 | Per-unit market context on the pricing calendar | The comp-set average rate and active-listing count for a unit's market, shown once near the top instead of only in each cell's tooltip — so an operator sees at a glance whether they're priced above or below market before scanning 30 cells. Raised 2026-08-17 alongside the pricing-calendar cleanup, not yet scoped. |
 | Suggestion-acceptance tracking | How often an operator accepts a suggested rate as-is versus overrides it, tracked over time. Tells you whether to trust the pricing engine more or less, and where its estimates are consistently off. Raised 2026-08-17, not yet scoped. |
