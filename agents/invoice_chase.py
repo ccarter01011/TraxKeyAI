@@ -184,12 +184,16 @@ def escalate_invoice(row):
 
 def find_late_items():
     """Ordered items past their expected date with a supplier email and
-    auto-chase left on."""
+    auto-chase left on. auto_email_enabled/cc_email resolve the per-order
+    override against the supplier's default (schema_v42) the same way this
+    query already resolved invoice auto-chase against its customer."""
     with db() as conn, conn.cursor() as cur:
         cur.execute(
             """
-            SELECT oi.id, oi.description, oi.reference, oi.supplier,
-                   oi.supplier_email, oi.cc_email, oi.chase_count, oi.expected_on,
+            SELECT oi.id, oi.description, oi.reference,
+                   s.name AS supplier, s.contact_email AS supplier_email,
+                   COALESCE(oi.cc_email, s.cc_email) AS cc_email,
+                   oi.chase_count, oi.expected_on,
                    (CURRENT_DATE - oi.expected_on) AS days_late,
                    co.name AS company_name,
                    (SELECT u.email FROM traxkey.users u
@@ -197,10 +201,11 @@ def find_late_items():
                    EXTRACT(EPOCH FROM (now() - COALESCE(oi.last_chased_at,
                      oi.expected_on::timestamptz))) / 86400 AS days_since
             FROM traxkey.ordered_items oi
+            JOIN traxkey.suppliers s ON s.id = oi.supplier_id
             JOIN traxkey.companies co ON co.id = oi.company_id
             WHERE oi.status = 'ordered'
-              AND oi.auto_email_enabled IS TRUE
-              AND oi.supplier_email IS NOT NULL
+              AND COALESCE(oi.auto_email_enabled, s.auto_email_enabled, false) IS TRUE
+              AND s.contact_email IS NOT NULL
               AND oi.expected_on IS NOT NULL
               AND oi.expected_on < CURRENT_DATE
               AND oi.chase_count <= %s

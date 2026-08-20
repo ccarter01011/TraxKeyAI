@@ -603,8 +603,9 @@ var FEATURES = {
   ],
   Invoicing: [
     ["Invoice and AR tracking", "What you're owed, aged 1-30, 31-60, 60+. TraxKey never processes a payment or holds funds, this is visibility and reminders, not a ledger."],
+    ["Suppliers, not free text", "A real supplier record, name, contact email, phone, notes, on-time rate from your own order history, not a name retyped fresh on every purchase order."],
     ["Automatic reminders", "Reminder, then a firmer one with you copied, then it stops and hands it to you. Same ladder as the vendor chase, applied to a slow-paying customer or a slow-shipping supplier."],
-    ["Per-invoice control", "CC address and an on/off switch per customer, overridable per invoice. Importing old invoices doesn't email everyone in your history by default."],
+    ["Per-invoice control", "CC address and an on/off switch per customer or supplier, overridable per invoice or per order. Importing old invoices doesn't email everyone in your history by default."],
     ["CSV import and export", "Bring in what's already in your spreadsheet or QuickBooks. Preview shows exactly what will be created before anything is saved. Export any time, in full."]
   ]
 };
@@ -1107,7 +1108,7 @@ teaser('pm');
           <li class="flex items-start gap-2.5"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="shrink-0 mt-0.5"><path d="M20 6L9 17L4 12" stroke="#2dd4bf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="text-xs text-slate-400">Portfolio Assistant — cross-portfolio Q&amp;A</span></li>
           <li class="flex items-start gap-2.5"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="shrink-0 mt-0.5"><path d="M20 6L9 17L4 12" stroke="#2dd4bf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="text-xs text-slate-400">Insights Agent — vendor slowdowns, underpriced units</span></li>
           <li class="flex items-start gap-2.5"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="shrink-0 mt-0.5"><path d="M20 6L9 17L4 12" stroke="#2dd4bf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="text-xs text-slate-400">AI Business Memory — your rules, obeyed not rewritten</span></li>
-          <li class="flex items-start gap-2.5"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="shrink-0 mt-0.5"><path d="M20 6L9 17L4 12" stroke="#2dd4bf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="text-xs text-slate-400">AI Orders / PO tracking, auto-chased by email</span></li>
+          <li class="flex items-start gap-2.5"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="shrink-0 mt-0.5"><path d="M20 6L9 17L4 12" stroke="#2dd4bf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="text-xs text-slate-400">Suppliers &amp; PO tracking, late orders auto-chased by email</span></li>
           <li class="flex items-start gap-2.5"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="shrink-0 mt-0.5"><path d="M20 6L9 17L4 12" stroke="#2dd4bf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="text-xs text-slate-400">AI Invoices &amp; AR, auto-chased by email</span></li>
           <li class="flex items-start gap-2.5"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="shrink-0 mt-0.5"><path d="M20 6L9 17L4 12" stroke="#2dd4bf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="text-xs text-slate-400">Property profile &amp; inventory per unit</span></li>
           <li class="flex items-start gap-2.5"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="shrink-0 mt-0.5"><path d="M20 6L9 17L4 12" stroke="#2dd4bf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="text-xs text-slate-400">Supplies &amp; damage, tied to the stay</span></li>

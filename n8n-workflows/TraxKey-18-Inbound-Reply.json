@@ -388,7 +388,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT id, description, supplier, reference, expected_on, status\nFROM traxkey.ordered_items\nWHERE id = '{{ $json.recordId }}';",
+        "query": "SELECT oi.id, oi.description, s.name AS supplier, oi.reference, oi.expected_on, oi.status\nFROM traxkey.ordered_items oi\nLEFT JOIN traxkey.suppliers s ON s.id = oi.supplier_id\nWHERE oi.id = '{{ $json.recordId }}';",
         "options": {}
       },
       "id": "oi01-get",

@@ -20,19 +20,29 @@ from db import db
 
 def list_items(company_id):
     """Outstanding and recently received items, with lateness and what each
-    one blocks already worked out."""
+    one blocks already worked out.
+
+    effective_auto_email/effective_cc_email resolve the per-order override
+    against the supplier's default here rather than in the UI, same
+    reasoning as invoices.py's effective_auto_email: the dashboard and the
+    chase agent (invoice_chase.py) must never disagree about whether an
+    order gets chased."""
     with db() as conn, conn.cursor() as cur:
         cur.execute(
             """
-            SELECT oi.id, oi.description, oi.supplier, oi.reference, oi.cost,
+            SELECT oi.id, oi.description, oi.reference, oi.cost,
                    oi.ordered_on, oi.expected_on, oi.received_on, oi.status, oi.notes,
-                   oi.supplier_email, oi.cc_email, oi.auto_email_enabled,
+                   oi.cc_email, oi.auto_email_enabled,
                    oi.chase_count, oi.last_chased_at,
+                   s.id AS supplier_id, s.name AS supplier, s.contact_email AS supplier_email,
+                   COALESCE(oi.auto_email_enabled, s.auto_email_enabled, false) AS effective_auto_email,
+                   COALESCE(oi.cc_email, s.cc_email) AS effective_cc_email,
                    u.unit_number, p.name AS property_name,
                    t.deadline_at AS turn_deadline, t.status AS turn_status,
                    CASE WHEN oi.status = 'ordered' AND oi.expected_on IS NOT NULL
                         THEN (CURRENT_DATE - oi.expected_on) ELSE NULL END AS days_late
             FROM traxkey.ordered_items oi
+            LEFT JOIN traxkey.suppliers s ON s.id = oi.supplier_id
             LEFT JOIN traxkey.units u ON u.id = oi.unit_id
             LEFT JOIN traxkey.properties p ON p.id = u.property_id
             LEFT JOIN traxkey.turns t ON t.id = oi.turn_id
@@ -54,13 +64,14 @@ def blocking_insights(company_id):
     with db() as conn, conn.cursor() as cur:
         cur.execute(
             """
-            SELECT oi.description, oi.supplier,
+            SELECT oi.description, s.name AS supplier,
                    (CURRENT_DATE - oi.expected_on) AS days_late,
                    t.deadline_at,
                    (t.deadline_at - CURRENT_DATE) AS days_to_deadline,
                    u.unit_number, p.name AS property_name
             FROM traxkey.ordered_items oi
             JOIN traxkey.turns t ON t.id = oi.turn_id
+            LEFT JOIN traxkey.suppliers s ON s.id = oi.supplier_id
             LEFT JOIN traxkey.units u ON u.id = oi.unit_id
             LEFT JOIN traxkey.properties p ON p.id = u.property_id
             WHERE oi.company_id = %s
@@ -101,16 +112,18 @@ def create(company_id, body):
         cur.execute(
             """
             INSERT INTO traxkey.ordered_items
-              (company_id, description, supplier, reference, cost, expected_on, unit_id, turn_id, notes,
-               supplier_email, cc_email, auto_email_enabled)
+              (company_id, description, supplier_id, reference, cost, expected_on, unit_id, turn_id, notes,
+               cc_email, auto_email_enabled)
             SELECT %(c)s, %(desc)s,
-                   NULLIF(%(sup)s, ''), NULLIF(%(ref)s, ''),
+                   sup.id, NULLIF(%(ref)s, ''),
                    NULLIF(%(cost)s, '')::numeric,
                    NULLIF(%(exp)s, '')::date,
                    u.id, t.id,
                    NULLIF(%(notes)s, ''),
-                   NULLIF(%(supmail)s, ''), NULLIF(%(cc)s, ''), %(auto)s
+                   NULLIF(%(cc)s, ''), %(auto)s
             FROM (SELECT 1) x
+            LEFT JOIN traxkey.suppliers sup
+              ON sup.id = NULLIF(%(sup)s, '')::uuid AND sup.company_id = %(c)s
             LEFT JOIN traxkey.units u
               ON u.id = NULLIF(%(unit)s, '')::uuid
              AND EXISTS (SELECT 1 FROM traxkey.properties p
@@ -120,41 +133,43 @@ def create(company_id, body):
             RETURNING id
             """,
             {"c": company_id, "desc": desc,
-             "sup": (body.get("supplier") or "").strip(),
+             "sup": (body.get("supplierId") or "").strip(),
              "ref": (body.get("reference") or "").strip(),
              "cost": str(body.get("cost") or "").strip(),
              "exp": (body.get("expectedOn") or "").strip(),
              "unit": (body.get("unitId") or "").strip(),
              "turn": (body.get("turnId") or "").strip(),
              "notes": (body.get("notes") or "").strip(),
-             "supmail": (body.get("supplierEmail") or "").strip(),
              "cc": (body.get("ccEmail") or "").strip(),
-             "auto": bool(body.get("autoEmailEnabled", True))},
+             # None means "inherit the supplier's default" (schema_v42);
+             # only store an explicit override when the caller actually sent one.
+             "auto": body.get("autoEmailEnabled") if "autoEmailEnabled" in body else None},
         )
         row = cur.fetchone()
     return {"ok": True, "id": str(row["id"])} if row else {"ok": False, "error": "Could not save that."}
 
 
 def set_email_prefs(company_id, item_id, body):
-    """Who to chase, who to copy, and whether to chase automatically at all.
+    """Who to copy on this one order, and whether to chase it automatically -
+    both override the supplier's own default (null = inherit, schema_v42).
+    The supplier's contact email itself is edited on the Suppliers page now,
+    not per order, since it's the same address for every order from them.
 
-    Empty string clears a field rather than leaving the old address in place,
-    so an operator can remove a CC without deleting the item.
+    Empty cc_email clears the override back to inheriting the supplier's,
+    so an operator can remove a one-off CC without touching the supplier.
     """
     with db() as conn, conn.cursor() as cur:
         cur.execute(
             """
             UPDATE traxkey.ordered_items
-            SET supplier_email = NULLIF(%(supmail)s, ''),
-                cc_email = NULLIF(%(cc)s, ''),
+            SET cc_email = NULLIF(%(cc)s, ''),
                 auto_email_enabled = %(auto)s,
                 updated_at = now()
             WHERE id = %(id)s::uuid AND company_id = %(c)s
             RETURNING id
             """,
-            {"supmail": (body.get("supplierEmail") or "").strip(),
-             "cc": (body.get("ccEmail") or "").strip(),
-             "auto": bool(body.get("autoEmailEnabled", True)),
+            {"cc": (body.get("ccEmail") or "").strip(),
+             "auto": body.get("autoEmailEnabled") if body.get("autoEmailEnabled") is not None else None,
              "id": item_id, "c": company_id},
         )
         row = cur.fetchone()

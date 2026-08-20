@@ -108,10 +108,13 @@ WHAT IS LIVE TODAY:
   waiting on a decision.
 - Vendor Chase Agent: nudges a dispatched vendor who has gone quiet,
   escalates to the operator and names the next-best vendor after two tries.
-- Ordered items (PO tracking): parts and materials a job is waiting on,
-  flagged when late and when late means a turn will slip. Suppliers get
-  chased by email automatically once an item goes past its expected date,
-  with a CC address and an on/off switch per item.
+- Ordered items (PO tracking) and Suppliers: parts and materials a job is
+  waiting on, flagged when late and when late means a turn will slip.
+  Suppliers are real records (name, contact email, phone, notes), not
+  retyped free text on every order, with a default CC address and
+  auto-chase setting and an on-time rate computed from the operator's own
+  order history. Suppliers get chased by email automatically once an order
+  goes past its expected date, with a per-order CC and on/off override.
 - Invoice and AR tracking: what the operator is owed, bucketed by how
   overdue it is. TraxKey emails a reminder, then a firmer one with the
   operator copied, then stops and hands it over after two tries, same

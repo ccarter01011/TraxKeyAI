@@ -13,14 +13,59 @@ const STATUS_OPTIONS = [
 ];
 
 const AGENT_BASE = 'https://langgraph-production-42ef.up.railway.app';
+const fld = 'w-full bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-teal-400';
 
 function auth() {
   return { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('tk_token')}` };
 }
 
-function AddForm({ units, onCreated }) {
+function post(route, body) {
+  return fetch(`${AGENT_BASE}${route}`, { method: 'POST', headers: auth(), body: JSON.stringify(body) })
+    .then(async r => ({ ok: r.ok, j: await r.json().catch(() => ({})) }));
+}
+
+// Inline, quick-add supplier so ordering something from a brand-new
+// supplier doesn't mean leaving this form to go set one up first.
+function AddSupplierInline({ onCreated }) {
   const [open, setOpen] = useState(false);
-  const [f, setF] = useState({ description: '', supplier: '', reference: '', cost: '', expectedOn: '', unitId: '', supplierEmail: '', ccEmail: '' });
+  const [f, setF] = useState({ name: '', contactEmail: '', contactPhone: '' });
+  const [err, setErr] = useState('');
+  const [saving, setSaving] = useState(false);
+  const up = k => e => setF(s => ({ ...s, [k]: e.target.value }));
+
+  async function submit(e) {
+    e.preventDefault(); setErr(''); setSaving(true);
+    const { ok, j } = await post('/suppliers', f);
+    setSaving(false);
+    if (!ok) { setErr(j.error || 'Could not save'); return; }
+    setF({ name: '', contactEmail: '', contactPhone: '' });
+    setOpen(false);
+    onCreated(j.supplier);
+  }
+
+  if (!open) {
+    return <button type="button" onClick={() => setOpen(true)} className="text-xs text-teal-600 dark:text-teal-400 font-semibold hover:underline">+ New supplier</button>;
+  }
+
+  return (
+    <form onSubmit={submit} className="bg-slate-100 dark:bg-slate-950/60 border border-slate-200 dark:border-white/10 rounded-lg p-3 space-y-2">
+      <input required placeholder="Supplier name" value={f.name} onChange={up('name')} className={fld} />
+      <div className="grid grid-cols-2 gap-2">
+        <input type="email" placeholder="Contact email (to chase)" value={f.contactEmail} onChange={up('contactEmail')} className={fld} />
+        <input placeholder="Phone (optional)" value={f.contactPhone} onChange={up('contactPhone')} className={fld} />
+      </div>
+      {err && <p className="text-xs text-red-500">{err}</p>}
+      <div className="flex gap-2">
+        <button disabled={saving} type="submit" className="bg-teal-500 hover:bg-teal-400 disabled:opacity-50 text-slate-950 font-bold text-xs px-3 py-1.5 rounded-lg transition">{saving ? 'Saving…' : 'Add supplier'}</button>
+        <button type="button" onClick={() => setOpen(false)} className="text-xs text-slate-500 px-2">Cancel</button>
+      </div>
+    </form>
+  );
+}
+
+function AddForm({ units, suppliers, onCreated, onSupplierCreated }) {
+  const [open, setOpen] = useState(false);
+  const [f, setF] = useState({ description: '', supplierId: '', reference: '', cost: '', expectedOn: '', unitId: '', ccEmail: '' });
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const up = k => e => setF(s => ({ ...s, [k]: e.target.value }));
@@ -28,29 +73,30 @@ function AddForm({ units, onCreated }) {
   async function submit(e) {
     e.preventDefault();
     setError(''); setSaving(true);
-    try {
-      const res = await fetch(`${AGENT_BASE}/ordered-items`, { method: 'POST', headers: auth(), body: JSON.stringify(f) });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(json.error || 'Could not save that');
-      setF({ description: '', supplier: '', reference: '', cost: '', expectedOn: '', unitId: '', supplierEmail: '', ccEmail: '' });
-      setOpen(false);
-      onCreated();
-    } catch (err) { setError(err.message); } finally { setSaving(false); }
+    const { ok, j } = await post('/ordered-items', f);
+    setSaving(false);
+    if (!ok) { setError(j.error || 'Could not save that'); return; }
+    setF({ description: '', supplierId: '', reference: '', cost: '', expectedOn: '', unitId: '', ccEmail: '' });
+    setOpen(false);
+    onCreated();
   }
 
   if (!open) {
     return <button onClick={() => setOpen(true)} className="bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-sm px-4 py-2.5 rounded-lg transition">+ Add order</button>;
   }
 
-  const fld = 'w-full bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-teal-400';
   return (
     <form onSubmit={submit} className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl p-5 space-y-3 mb-6">
       <p className="font-bold text-sm">Something you've ordered</p>
       <input required placeholder="What was ordered (e.g. Water heater, 50 gal)" value={f.description} onChange={up('description')} className={fld} />
       <div className="grid grid-cols-2 gap-3">
-        <input placeholder="Supplier" value={f.supplier} onChange={up('supplier')} className={fld} />
+        <select value={f.supplierId} onChange={up('supplierId')} className={fld}>
+          <option value="">No supplier on file</option>
+          {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+        </select>
         <input placeholder="Order / PO number" value={f.reference} onChange={up('reference')} className={fld} />
       </div>
+      <AddSupplierInline onCreated={s => { onSupplierCreated(); setF(prev => ({ ...prev, supplierId: s.id })); }} />
       <div className="grid grid-cols-2 gap-3">
         <label className="block">
           <span className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Expected</span>
@@ -65,13 +111,10 @@ function AddForm({ units, onCreated }) {
         <option value="">Not for a specific unit</option>
         {units.map(u => <option key={u.id} value={u.id}>{u.propertyName}{u.unit_number ? ` — Unit ${u.unit_number}` : ''}</option>)}
       </select>
-      <div className="grid grid-cols-2 gap-3">
-        <input type="email" placeholder="Supplier email (to chase)" value={f.supplierEmail} onChange={up('supplierEmail')} className={fld} />
-        <input type="email" placeholder="CC email (optional)" value={f.ccEmail} onChange={up('ccEmail')} className={fld} />
-      </div>
+      <input type="email" placeholder="CC email for this order (optional)" value={f.ccEmail} onChange={up('ccEmail')} className={fld} />
       <p className="text-xs text-slate-400 dark:text-slate-500">
         Give it an expected date and TraxKey will tell you when it's late, and whether it's holding up a turn.
-        Add a supplier email and it will chase them for you once it goes late.
+        Pick a supplier with a contact email and TraxKey will chase them for you once it goes late.
       </p>
       {error && <p className="text-xs text-red-500">{error}</p>}
       <div className="flex gap-2 pt-1">
@@ -82,50 +125,39 @@ function AddForm({ units, onCreated }) {
   );
 }
 
-function ItemEmailPrefs({ item, onChanged }) {
+function EmailPrefs({ route, idKey, id, cc, auto, inheritNote, onChanged }) {
   const [open, setOpen] = useState(false);
-  const [supplierEmail, setSupplierEmail] = useState(item.supplier_email || '');
-  const [ccEmail, setCcEmail] = useState(item.cc_email || '');
+  const [ccEmail, setCc] = useState(cc || '');
   const [msg, setMsg] = useState('');
-  const on = item.auto_email_enabled;
-  const fld = 'w-full bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-teal-400';
 
   async function save(nextAuto) {
     setMsg('');
-    const res = await fetch(`${AGENT_BASE}/ordered-items`, {
-      method: 'POST', headers: auth(),
-      body: JSON.stringify({ action: 'email-prefs', itemId: item.id, supplierEmail, ccEmail, autoEmailEnabled: nextAuto }),
-    });
-    if (!res.ok) { setMsg('Could not save'); return; }
+    const { ok, j } = await post(route, { action: 'email-prefs', [idKey]: id, ccEmail, autoEmailEnabled: nextAuto });
+    if (!ok) { setMsg(j.error || 'Could not save'); return; }
     setOpen(false); onChanged();
   }
 
   return (
     <div className="mt-2 pt-2 border-t border-slate-200 dark:border-white/5">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${on && item.supplier_email
+        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${auto
           ? 'bg-green-500/15 text-green-700 dark:text-green-400'
           : 'bg-slate-500/15 text-slate-500 dark:text-slate-400'}`}>
-          {!item.supplier_email ? 'No supplier email' : on ? 'Auto-chase on' : 'Auto-chase off'}
+          {auto ? 'Auto-chase on' : 'Auto-chase off'}
         </span>
-        {item.cc_email && <span className="text-[10px] text-slate-500">CC {item.cc_email}</span>}
-        {item.chase_count > 0 && (
-          <span className="text-[10px] text-slate-500">{item.chase_count} sent</span>
-        )}
-        {item.supplier_email && (
-          <button onClick={() => save(!on)} className="text-[11px] text-teal-600 dark:text-teal-400 hover:underline">
-            {on ? 'Turn off' : 'Turn on'}
-          </button>
-        )}
+        {cc && <span className="text-[10px] text-slate-500">CC {cc}</span>}
+        <button onClick={() => save(!auto)} className="text-[11px] text-teal-600 dark:text-teal-400 hover:underline">
+          {auto ? 'Turn off' : 'Turn on'}
+        </button>
         <button onClick={() => setOpen(o => !o)} className="text-[11px] text-slate-500 hover:underline">
-          {open ? 'Cancel' : 'Edit emails'}
+          {open ? 'Cancel' : 'Edit CC'}
         </button>
       </div>
+      {inheritNote && <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">{inheritNote}</p>}
       {open && (
-        <div className="space-y-2 mt-2">
-          <input type="email" placeholder="Supplier email (blank to clear)" value={supplierEmail} onChange={e => setSupplierEmail(e.target.value)} className={fld} />
-          <input type="email" placeholder="CC email (blank to clear)" value={ccEmail} onChange={e => setCcEmail(e.target.value)} className={fld} />
-          <button onClick={() => save(on)} className="bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs px-3 py-1.5 rounded-lg">Save</button>
+        <div className="flex gap-2 mt-2">
+          <input type="email" placeholder="CC email (blank to clear)" value={ccEmail} onChange={e => setCc(e.target.value)} className={fld + ' text-xs py-2'} />
+          <button onClick={() => save(auto)} className="shrink-0 bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs px-3 rounded-lg">Save</button>
         </div>
       )}
       {msg && <p className="text-[11px] text-red-500 mt-1">{msg}</p>}
@@ -142,10 +174,7 @@ function Row({ item, onChanged }) {
   async function mark(status) {
     setBusy(true);
     try {
-      await fetch(`${AGENT_BASE}/ordered-items`, {
-        method: 'POST', headers: auth(),
-        body: JSON.stringify({ action: 'status', itemId: item.id, status }),
-      });
+      await post('/ordered-items', { action: 'status', itemId: item.id, status });
       onChanged();
     } finally { setBusy(false); }
   }
@@ -185,17 +214,82 @@ function Row({ item, onChanged }) {
             <button disabled={busy} onClick={() => mark('received')} className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline disabled:opacity-50">Mark received</button>
             <button disabled={busy} onClick={() => mark('cancelled')} className="text-xs text-slate-400 hover:text-red-500 disabled:opacity-50">Cancel</button>
           </div>
-          <ItemEmailPrefs item={item} onChanged={onChanged} />
+          {item.supplier_id ? (
+            <EmailPrefs
+              route="/ordered-items" idKey="itemId" id={item.id}
+              cc={item.effective_cc_email} auto={item.effective_auto_email}
+              inheritNote={item.auto_email_enabled === null
+                ? `Following ${item.supplier}'s default. Changing it here overrides just this order.` : null}
+              onChanged={onChanged}
+            />
+          ) : (
+            <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-2 pt-2 border-t border-slate-200 dark:border-white/5">
+              No supplier on file, nothing to chase. Add one from the Suppliers tab, or edit this order to pick one.
+            </p>
+          )}
         </>
       )}
     </div>
   );
 }
 
+function SupplierRow({ supplier, onChanged }) {
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+  async function remove() {
+    await post('/suppliers', { action: 'delete', supplierId: supplier.id });
+    onChanged();
+  }
+
+  return (
+    <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-xl p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="font-bold text-sm truncate">{supplier.name}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            {[supplier.contact_email, supplier.contact_phone].filter(Boolean).join(' · ') || 'No contact info on file'}
+          </p>
+        </div>
+        <div className="text-right shrink-0">
+          <p className="text-xs text-slate-500">
+            {supplier.total_orders} order{supplier.total_orders !== 1 ? 's' : ''}
+            {supplier.open_count > 0 ? ` · ${supplier.open_count} open` : ''}
+          </p>
+          {supplier.on_time_rate !== null && (
+            <p className={`text-xs font-bold ${supplier.on_time_rate >= 70 ? 'text-green-600 dark:text-green-400'
+              : supplier.on_time_rate >= 40 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>
+              {supplier.on_time_rate}% on time
+            </p>
+          )}
+        </div>
+      </div>
+      <EmailPrefs
+        route="/suppliers" idKey="supplierId" id={supplier.id}
+        cc={supplier.cc_email} auto={supplier.auto_email_enabled}
+        inheritNote="This is the default for every order from this supplier."
+        onChanged={onChanged}
+      />
+      <div className="mt-2 pt-2 border-t border-slate-200 dark:border-white/5">
+        {confirmingDelete ? (
+          <span className="text-xs text-slate-500">
+            Remove {supplier.name}? Past orders keep their history, they just lose the link.{' '}
+            <button onClick={remove} className="text-red-500 font-semibold hover:underline">Yes, remove</button>{' '}
+            <button onClick={() => setConfirmingDelete(false)} className="hover:underline">Cancel</button>
+          </span>
+        ) : (
+          <button onClick={() => setConfirmingDelete(true)} className="text-[11px] text-slate-400 hover:text-red-500">Remove supplier</button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function OrderedItemsPage() {
   const [items, setItems] = useState(null);
+  const [suppliers, setSuppliers] = useState([]);
   const [units, setUnits] = useState([]);
   const [error, setError] = useState('');
+  const [tab, setTab] = useState('orders');
   const [filters, setFilters] = useState({ status: '', from: '', to: '', q: '' });
   const filtered = useFiltered(items, filters, {
     dateField: 'expected_on',
@@ -204,11 +298,13 @@ export default function OrderedItemsPage() {
 
   async function load() {
     try {
-      const [res, props] = await Promise.all([
+      const [ordersRes, suppliersRes, props] = await Promise.all([
         fetch(`${AGENT_BASE}/ordered-items`, { headers: auth() }).then(r => r.json()),
+        fetch(`${AGENT_BASE}/suppliers`, { headers: auth() }).then(r => r.json()),
         apiRequest('traxkey-get-properties').catch(() => []),
       ]);
-      setItems(res.items || []);
+      setItems(ordersRes.items || []);
+      setSuppliers(suppliersRes.suppliers || []);
       setUnits((props || []).filter(p => p.id).flatMap(p => p.units.map(u => ({ ...u, propertyName: p.name }))));
     } catch { setError('Could not load orders'); }
   }
@@ -232,25 +328,28 @@ export default function OrderedItemsPage() {
               <FlowHelp
                 title="Why this is here"
                 steps={[
-                  'Log anything you ordered that a job depends on: a water heater, flooring, appliances, linens.',
+                  'Add a supplier once, with the email a late order should be chased at.',
+                  'Log anything you ordered against that supplier: a water heater, flooring, appliances, linens.',
                   'Give it an expected date and the unit or turn it belongs to.',
-                  'When the date passes, TraxKey flags it as late.',
+                  'When the date passes, TraxKey flags it as late and chases the supplier if auto-chase is on.',
                   'If a late item is holding up a turn with a deadline, that shows up in Insights and your morning briefing.',
                 ]}
                 note="This is not procurement. No terms, no approvals, no invoices. It exists for one reason: a late part is the most common reason a unit isn't ready on time, and nothing else in your stack connects those two facts."
               />
             </h1>
           </div>
-          <AddForm units={units} onCreated={load} />
+          {tab === 'orders' && <AddForm units={units} suppliers={suppliers} onCreated={load} onSupplierCreated={load} />}
         </div>
 
-        <div className="mb-4">
-          <ImportExport kind="orders" onImported={load} />
-        </div>
+        {tab === 'orders' && (
+          <div className="mb-4">
+            <ImportExport kind="orders" onImported={load} />
+          </div>
+        )}
 
         {error && <p className="text-sm text-red-500 mb-4">{error}</p>}
 
-        {items && outstanding.length > 0 && (
+        {items && outstanding.length > 0 && tab === 'orders' && (
           <div className="grid grid-cols-2 gap-4 mb-6">
             <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-xl p-4">
               <p className="text-xs uppercase text-slate-400 dark:text-slate-500 mb-1">Outstanding</p>
@@ -263,32 +362,57 @@ export default function OrderedItemsPage() {
           </div>
         )}
 
+        <div className="flex gap-1 mb-4 border-b border-slate-200 dark:border-white/10">
+          {['orders', 'suppliers'].map(t => (
+            <button key={t} onClick={() => setTab(t)}
+              className={`text-sm font-semibold px-4 py-2 -mb-px border-b-2 transition ${tab === t
+                ? 'border-teal-500 text-teal-600 dark:text-teal-400'
+                : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
+              {t === 'orders' ? 'Orders' : 'Suppliers'}
+            </button>
+          ))}
+        </div>
+
         {!items ? (
           <p className="text-sm text-slate-400 dark:text-slate-500">Loading…</p>
-        ) : items.length === 0 ? (
-          <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-xl p-8 text-center">
-            <p className="text-sm font-bold mb-1">Nothing on order</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Add the parts and materials a turn is waiting on, and TraxKey will tell you when one is about to make you miss a deadline.
-            </p>
-          </div>
+        ) : tab === 'orders' ? (
+          items.length === 0 ? (
+            <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-xl p-8 text-center">
+              <p className="text-sm font-bold mb-1">Nothing on order</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Add the parts and materials a turn is waiting on, and TraxKey will tell you when one is about to make you miss a deadline.
+              </p>
+            </div>
+          ) : (
+            <>
+              <FilterBar
+                statusOptions={STATUS_OPTIONS}
+                searchPlaceholder="Search description, supplier, PO#…"
+                onChange={setFilters}
+              />
+              {filtered.length === 0 ? (
+                <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-xl p-8 text-center">
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Nothing matches those filters.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {filtered.map(i => <Row key={i.id} item={i} onChanged={load} />)}
+                </div>
+              )}
+            </>
+          )
         ) : (
-          <>
-            <FilterBar
-              statusOptions={STATUS_OPTIONS}
-              searchPlaceholder="Search description, supplier, PO#…"
-              onChange={setFilters}
-            />
-            {filtered.length === 0 ? (
+          <div className="space-y-3">
+            <AddSupplierInline onCreated={load} />
+            {suppliers.length === 0 ? (
               <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-xl p-8 text-center">
-                <p className="text-sm text-slate-500 dark:text-slate-400">Nothing matches those filters.</p>
+                <p className="text-sm font-bold mb-1">No suppliers yet</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Add one above, with the email a late order should be chased at.</p>
               </div>
             ) : (
-              <div className="space-y-3">
-                {filtered.map(i => <Row key={i.id} item={i} onChanged={load} />)}
-              </div>
+              suppliers.map(s => <SupplierRow key={s.id} supplier={s} onChanged={load} />)
             )}
-          </>
+          </div>
         )}
       </div>
     </div>

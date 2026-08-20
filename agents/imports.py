@@ -287,6 +287,13 @@ def preview_items(company_id, csv_text):
 
 
 def commit_items(company_id, csv_text, auto_email=False):
+    """Find-or-create the supplier by name, same pattern commit_invoices
+    already uses for customers (schema_v42 gave ordered items a real
+    supplier table instead of a free-text name). An existing supplier's
+    contact email is never overwritten from an import row - that address
+    is edited on the Suppliers page, not silently clobbered by a stray CSV
+    column, since a bulk import is exactly the kind of thing that could
+    carry a stale or wrong email for a supplier already on file."""
     pre = preview_items(company_id, csv_text)
     if not pre.get("ok"):
         return pre
@@ -295,32 +302,50 @@ def commit_items(company_id, csv_text, auto_email=False):
     cols = _map_headers(headers, ITEM_FIELDS)
     good = {r["row"] for r in pre["rows"] if r["status"] == "new"}
 
-    created = 0
+    created = created_suppliers = 0
     with db() as conn, conn.cursor() as cur:
         for i, r in enumerate(rows, start=2):
             if i not in good:
                 continue
             exp = _date(r.get(cols.get("expected_on", ""))) if cols.get("expected_on") else None
             cost = _money(r.get(cols.get("cost", ""))) if cols.get("cost") else None
+
+            supplier = (r.get(cols["supplier"]) or "").strip() if cols.get("supplier") else ""
+            supplier_id = None
+            if supplier:
+                cur.execute(
+                    "SELECT id FROM traxkey.suppliers WHERE company_id = %s AND lower(name) = lower(%s)",
+                    (company_id, supplier),
+                )
+                found = cur.fetchone()
+                if found:
+                    supplier_id = found["id"]
+                else:
+                    supplier_email = (r.get(cols["supplier_email"]) or "").strip() if cols.get("supplier_email") else ""
+                    cur.execute(
+                        """INSERT INTO traxkey.suppliers (company_id, name, contact_email, auto_email_enabled)
+                           VALUES (%s, %s, %s, %s) RETURNING id""",
+                        (company_id, supplier, supplier_email or None, auto_email),
+                    )
+                    supplier_id = cur.fetchone()["id"]
+                    created_suppliers += 1
+
             cur.execute(
                 """INSERT INTO traxkey.ordered_items
-                     (company_id, description, supplier, reference, cost, expected_on,
-                      supplier_email, notes, auto_email_enabled)
-                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+                     (company_id, description, supplier_id, reference, cost, expected_on, notes)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s)""",
                 (company_id,
                  (r.get(cols["description"]) or "").strip(),
-                 (r.get(cols["supplier"]) or "").strip() or None if cols.get("supplier") else None,
+                 supplier_id,
                  (r.get(cols["reference"]) or "").strip() or None if cols.get("reference") else None,
                  cost if cost not in (None, "bad") else None,
                  exp if exp not in (None, "bad") else None,
-                 (r.get(cols["supplier_email"]) or "").strip() or None if cols.get("supplier_email") else None,
-                 (r.get(cols["notes"]) or "").strip() or None if cols.get("notes") else None,
-                 auto_email),
+                 (r.get(cols["notes"]) or "").strip() or None if cols.get("notes") else None),
             )
             created += 1
 
     return {"ok": True, "created_invoices": 0, "created_items": created,
-            "created_customers": 0,
+            "created_customers": 0, "created_suppliers": created_suppliers,
             "skipped": pre["counts"]["duplicate"] + pre["counts"]["error"]}
 
 
@@ -363,11 +388,14 @@ def export_items(company_id):
     with db() as conn, conn.cursor() as cur:
         cur.execute(
             """
-            SELECT oi.description, oi.supplier, oi.supplier_email, oi.reference, oi.cost,
+            SELECT oi.description, s.name AS supplier, s.contact_email AS supplier_email,
+                   oi.reference, oi.cost,
                    oi.ordered_on, oi.expected_on, oi.received_on, oi.status,
-                   oi.chase_count, oi.cc_email, oi.auto_email_enabled, oi.notes,
-                   p.name AS property_name, u.unit_number
+                   oi.chase_count, COALESCE(oi.cc_email, s.cc_email) AS cc_email,
+                   COALESCE(oi.auto_email_enabled, s.auto_email_enabled) AS auto_email_enabled,
+                   oi.notes, p.name AS property_name, u.unit_number
             FROM traxkey.ordered_items oi
+            LEFT JOIN traxkey.suppliers s ON s.id = oi.supplier_id
             LEFT JOIN traxkey.units u ON u.id = oi.unit_id
             LEFT JOIN traxkey.properties p ON p.id = u.property_id
             WHERE oi.company_id = %s

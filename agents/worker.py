@@ -29,6 +29,7 @@ from vendor_chase import run_vendor_chase
 from suggestions import submit as submit_suggestion, list_all as list_suggestions, set_status as set_suggestion_status
 from ordered_items import (list_items, create as create_item, set_status as set_item_status,
                            set_email_prefs as set_item_email_prefs)
+from suppliers import (list_suppliers, create_supplier, update_supplier, delete_supplier)
 from invoices import (list_customers, list_invoices, ar_summary, create_customer,
                       set_customer_prefs, create_invoice, set_invoice_status,
                       set_invoice_prefs)
@@ -115,7 +116,7 @@ class HealthHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         route = self.path.split("?")[0]
-        if route not in ("/chat", "/tenant-chat", "/sample-data", "/ordered-items",
+        if route not in ("/chat", "/tenant-chat", "/sample-data", "/ordered-items", "/suppliers",
                          "/supplies", "/damage", "/owner-login", "/owner-access", "/owners",
                          "/owner-forgot-password", "/owner-reset-password", "/suggestions",
                          "/invoices", "/invoice-customers", "/import",
@@ -275,6 +276,26 @@ class HealthHandler(BaseHTTPRequestHandler):
             except Exception:
                 traceback.print_exc()
                 self._json(500, {"error": "Could not update that item"})
+                return
+            self._json(200 if result.get("ok") else 400, result)
+            return
+
+        if route == "/suppliers":
+            token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
+            company_id = validate_session(token)
+            if not company_id:
+                self._json(401, {"error": "Unauthorized"})
+                return
+            try:
+                if payload.get("action") == "update":
+                    result = update_supplier(company_id, payload.get("supplierId", ""), payload)
+                elif payload.get("action") == "delete":
+                    result = delete_supplier(company_id, payload.get("supplierId", ""))
+                else:
+                    result = create_supplier(company_id, payload)
+            except Exception:
+                traceback.print_exc()
+                self._json(500, {"error": "Could not save that"})
                 return
             self._json(200 if result.get("ok") else 400, result)
             return
@@ -684,20 +705,23 @@ class HealthHandler(BaseHTTPRequestHandler):
                 self._json(401, {"error": "Unauthorized"})
                 return
             try:
-                items = list_items(company_id)
-                for i in items:
-                    for k, v in list(i.items()):
-                        if hasattr(v, "isoformat"):
-                            i[k] = v.isoformat()
-                        elif hasattr(v, "hex") and k == "id":
-                            i[k] = str(v)
-                    i["id"] = str(i["id"])
-                    if i.get("cost") is not None:
-                        i["cost"] = float(i["cost"])
-                self._json(200, {"items": items})
+                self._json(200, {"items": _plain(list_items(company_id))})
             except Exception:
                 traceback.print_exc()
                 self._json(500, {"error": "Could not load ordered items"})
+            return
+
+        if self.path.split("?")[0] == "/suppliers":
+            token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
+            company_id = validate_session(token)
+            if not company_id:
+                self._json(401, {"error": "Unauthorized"})
+                return
+            try:
+                self._json(200, {"suppliers": _plain(list_suppliers(company_id))})
+            except Exception:
+                traceback.print_exc()
+                self._json(500, {"error": "Could not load suppliers"})
             return
 
         if self.path.split("?")[0] == "/export":
