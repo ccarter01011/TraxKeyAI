@@ -78,6 +78,39 @@ function SampleData({ isEmpty, hasSample, onChanged }) {
   );
 }
 
+// Shown only while the account is empty (isEmpty tracks zero properties,
+// which means zero units too, since a unit can't exist without one). Once
+// a property/unit exists this disappears on its own — no dismiss button,
+// no "don't show again" state to track, it just stops being true.
+function GettingStarted({ isEmpty }) {
+  if (!isEmpty) return null;
+  const steps = [
+    ['Add a property', 'Name, address, and a type. Takes under a minute.'],
+    ['Add a unit under it', 'Unit number (blank is fine for a single-family home), bedrooms, bathrooms.'],
+    ['Invite a resident, or connect a calendar', 'Long-term: the Residents page gives them their own reporting link. Short-term: set a nightly rate, then paste the iCal URL on Calendars.'],
+    ['Add a vendor', 'So the AI has someone real to dispatch to once a request comes in.'],
+  ];
+  return (
+    <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl p-5 mb-6">
+      <p className="font-bold text-sm mb-3">Getting started</p>
+      <ol className="space-y-2.5">
+        {steps.map(([title, blurb], i) => (
+          <li key={i} className="flex gap-3">
+            <span className="shrink-0 w-5 h-5 rounded-full bg-teal-500/15 text-teal-600 dark:text-teal-400 text-xs font-bold flex items-center justify-center mt-0.5">{i + 1}</span>
+            <div className="text-sm">
+              <span className="font-semibold">{title}.</span>
+              <span className="text-slate-500 dark:text-slate-400"> {blurb}</span>
+            </div>
+          </li>
+        ))}
+      </ol>
+      <p className="text-xs text-slate-400 dark:text-slate-500 mt-3">
+        Stuck on any of these? Ask the AI above, it can walk you through whichever step is next.
+      </p>
+    </div>
+  );
+}
+
 function TenantPortalLink() {
   const [profile, setProfile] = useState(null);
   const [copied, setCopied] = useState(false);
@@ -166,6 +199,11 @@ export default function DashboardPage() {
   const [suggestOpen, setSuggestOpen] = useState(false);
   const [counts, setCounts] = useState(null);
   const [checkoutSuccess, setCheckoutSuccess] = useState(false);
+  const [companyName, setCompanyName] = useState('');
+
+  useEffect(() => {
+    apiRequest('my-profile', { method: 'POST' }).then(j => setCompanyName(j.companyName || '')).catch(() => {});
+  }, []);
 
   // Reuses the endpoints each page already calls rather than adding a
   // dashboard-summary workflow. Three extra reads on load, and zero new n8n
@@ -271,7 +309,9 @@ export default function DashboardPage() {
       <div className="max-w-3xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <p className="text-xs text-teal-600 dark:text-teal-400 font-semibold uppercase tracking-wide mb-1">Operator Dashboard</p>
+            <p className="text-xs text-teal-600 dark:text-teal-400 font-semibold uppercase tracking-wide mb-1">
+              Operator Dashboard{companyName ? ` · ${companyName}` : ''}
+            </p>
             <h1 className="text-2xl font-bold">Welcome, {user?.name || 'there'}</h1>
           </div>
           <div className="flex items-center gap-3">
@@ -284,6 +324,7 @@ export default function DashboardPage() {
         <ConciergeWidget />
 
         <SampleData isEmpty={c.isEmpty} hasSample={c.hasSample} onChanged={load} />
+        <GettingStarted isEmpty={c.isEmpty} />
 
         {/* Grouped by how often an operator touches each thing, not by
             lifecycle stage. Lifecycle grouping (onboarding, setup,

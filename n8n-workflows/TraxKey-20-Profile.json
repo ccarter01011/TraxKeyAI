@@ -191,7 +191,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE traxkey.users\nSET name = '{{ $('Update My Profile (Webhook)').first().json.body.name.replace(/'/g, \"''\") }}',\n    phone = NULLIF('{{ $('Update My Profile (Webhook)').first().json.body.phone.replace(/'/g, \"''\") }}', '')\nWHERE id = '{{ $json.user_id }}'\nRETURNING name, phone;",
+        "query": "WITH updated_user AS (\n  UPDATE traxkey.users\n  SET name = '{{ $('Update My Profile (Webhook)').first().json.body.name.replace(/'/g, \"''\") }}',\n      phone = NULLIF('{{ $('Update My Profile (Webhook)').first().json.body.phone.replace(/'/g, \"''\") }}', '')\n  WHERE id = '{{ $json.user_id }}'\n  RETURNING name, phone, company_id\n),\nupdated_company AS (\n  UPDATE traxkey.companies\n  SET name = CASE WHEN '{{ $json.role }}' = 'owner'\n                   AND NULLIF('{{ ($('Update My Profile (Webhook)').first().json.body.companyName || \"\").replace(/'/g, \"''\") }}', '') IS NOT NULL\n                  THEN '{{ ($('Update My Profile (Webhook)').first().json.body.companyName || \"\").replace(/'/g, \"''\") }}'\n                  ELSE name END\n  WHERE id = (SELECT company_id FROM updated_user)\n  RETURNING name AS company_name\n)\nSELECT u.name, u.phone, c.company_name FROM updated_user u, updated_company c;",
         "options": {}
       },
       "id": "345c52b6-5d49-43d1-bdc9-a12ec95d04da",
@@ -207,7 +207,7 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={ \"success\": true }",
+        "responseBody": "={{ JSON.stringify({ success: true, name: $json.name, phone: $json.phone, companyName: $json.company_name }) }}",
         "options": {
           "responseCode": 200
         }

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import MarkdownLite from './MarkdownLite.jsx';
 import ConciergeOrb from './ConciergeOrb.jsx';
 import WaveText from './WaveText.jsx';
 import TaskModal from './TaskModal.jsx';
@@ -146,10 +147,10 @@ export default function ConciergeWidget() {
                 <div className="space-y-2 mb-2 max-h-64 overflow-y-auto">
                   {turns.map((t, i) => (
                     <div key={i} className={t.role === 'user' ? 'flex justify-end' : ''}>
-                      <div className={`rounded-lg px-3 py-2 max-w-[90%] text-xs whitespace-pre-wrap ${t.role === 'user'
+                      <div className={`rounded-lg px-3 py-2 max-w-[90%] text-xs ${t.role === 'user'
                         ? 'bg-teal-500 text-slate-950 font-semibold'
                         : 'bg-white/60 dark:bg-slate-950/60 text-slate-700 dark:text-slate-200'}`}>
-                        {t.content}
+                        {t.role === 'assistant' ? <MarkdownLite text={t.content} /> : t.content}
                       </div>
                     </div>
                   ))}

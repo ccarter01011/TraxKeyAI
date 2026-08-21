@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import FlowHelp from '../components/FlowHelp.jsx';
 import ThemeToggle from '../components/ThemeToggle.jsx';
+import MarkdownLite from '../components/MarkdownLite.jsx';
 
 const AGENT_BASE = 'https://langgraph-production-42ef.up.railway.app';
 const hdrs = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('tk_token')}` });
@@ -95,8 +96,8 @@ export default function PortfolioChatPage() {
             <div key={i} className={t.role === 'user' ? 'flex justify-end' : ''}>
               <div className={`rounded-xl px-4 py-3 max-w-[90%] ${t.role === 'user'
                 ? 'bg-teal-500 text-slate-950 font-semibold text-sm'
-                : 'bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 text-sm whitespace-pre-wrap'}`}>
-                {t.content}
+                : 'bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 text-sm'}`}>
+                {t.role === 'assistant' ? <MarkdownLite text={t.content} /> : t.content}
               </div>
             </div>
           ))}

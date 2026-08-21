@@ -28,7 +28,8 @@ function InfoCard({ onProfile }) {
   useEffect(() => {
     apiRequest('my-profile', { method: 'POST' })
       .then(j => {
-        setForm({ name: j.name || '', phone: j.phone || '', email: j.email || '', role: j.role || '' });
+        setForm({ name: j.name || '', phone: j.phone || '', email: j.email || '', role: j.role || '',
+                  companyName: j.companyName || '' });
         onProfile(j);
       })
       .catch(err => setError(err.message || 'Failed to load profile.'))
@@ -44,8 +45,14 @@ function InfoCard({ onProfile }) {
     e.preventDefault();
     setSaving(true); setError(''); setSaved(false);
     try {
-      await apiRequest('update-my-profile', { method: 'POST', body: { name: form.name, phone: form.phone } });
+      const body = { name: form.name, phone: form.phone };
+      if (form.role === 'owner') body.companyName = form.companyName;
+      const j = await apiRequest('update-my-profile', { method: 'POST', body });
       updateUserName(form.name);
+      if (j.companyName) {
+        setForm(f => ({ ...f, companyName: j.companyName }));
+        onProfile(p => ({ ...p, companyName: j.companyName }));
+      }
       setSaved(true);
     } catch (err) {
       setError(err.message || 'Failed to save.');
@@ -72,6 +79,17 @@ function InfoCard({ onProfile }) {
           <label className={label}>Phone (optional)</label>
           <input type="tel" value={form.phone} onChange={e => update('phone', e.target.value)} placeholder="e.g. (555) 123-4567" className={fld} />
         </div>
+        {form.role === 'owner' ? (
+          <div>
+            <label className={label}>Company Name</label>
+            <input required value={form.companyName} onChange={e => update('companyName', e.target.value)} className={fld} />
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Shown at the top of every dashboard page for your team.</p>
+          </div>
+        ) : form.companyName && (
+          <p className="text-xs text-slate-400 dark:text-slate-500">
+            Company: {form.companyName} (only the owner can rename it)
+          </p>
+        )}
         {error && <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>}
         {saved && <p className="text-green-600 dark:text-green-400 text-sm">Saved!</p>}
         <button type="submit" disabled={saving} className={btn}>{saving ? 'Saving…' : 'Save Changes'}</button>
