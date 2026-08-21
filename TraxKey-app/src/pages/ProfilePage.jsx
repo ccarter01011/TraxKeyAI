@@ -10,7 +10,14 @@ const card = 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-sla
 const label = 'text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-1';
 const btn = 'bg-slate-900 dark:bg-teal-500 text-white dark:text-slate-950 font-semibold px-5 py-2.5 rounded-lg disabled:opacity-50 transition-all active:scale-95 duration-150 text-sm';
 
-function InfoCard() {
+const PLAN_LABEL = { free: 'Free', starter: 'Starter', growth: 'Growth', pro: 'Pro' };
+const PAID_TIERS = [
+  { value: 'starter', label: 'Starter', price: '$99/mo', detail: 'Up to 15 units' },
+  { value: 'growth', label: 'Growth', price: '$249/mo', detail: 'Up to 50 units' },
+  { value: 'pro', label: 'Pro', price: '$549/mo', detail: 'Up to 150 units' },
+];
+
+function InfoCard({ onProfile }) {
   const { updateUserName } = useAuth();
   const [form, setForm] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -20,7 +27,10 @@ function InfoCard() {
 
   useEffect(() => {
     apiRequest('my-profile', { method: 'POST' })
-      .then(j => setForm({ name: j.name || '', phone: j.phone || '', email: j.email || '', role: j.role || '' }))
+      .then(j => {
+        setForm({ name: j.name || '', phone: j.phone || '', email: j.email || '', role: j.role || '' });
+        onProfile(j);
+      })
       .catch(err => setError(err.message || 'Failed to load profile.'))
       .finally(() => setLoading(false));
   }, []);
@@ -66,6 +76,83 @@ function InfoCard() {
         {saved && <p className="text-green-600 dark:text-green-400 text-sm">Saved!</p>}
         <button type="submit" disabled={saving} className={btn}>{saving ? 'Saving…' : 'Save Changes'}</button>
       </form>
+    </div>
+  );
+}
+
+function BillingCard({ profile }) {
+  const [busy, setBusy] = useState('');
+  const [error, setError] = useState('');
+
+  if (!profile) return null;
+  const plan = profile.plan || 'free';
+  const isPaid = plan !== 'free';
+
+  async function upgrade(tier) {
+    setError(''); setBusy(tier);
+    try {
+      const json = await apiRequest('create-checkout-session', { method: 'POST', body: { plan: tier } });
+      if (json.checkoutUrl) { window.location.href = json.checkoutUrl; return; }
+      setError('Could not start checkout.');
+    } catch (err) {
+      setError(err.message || 'Could not start checkout.');
+    } finally {
+      setBusy('');
+    }
+  }
+
+  async function manageBilling() {
+    setError(''); setBusy('portal');
+    try {
+      const json = await apiRequest('billing-portal-session', { method: 'POST' });
+      if (json.portalUrl) { window.location.href = json.portalUrl; return; }
+      setError('Could not open the billing portal.');
+    } catch (err) {
+      setError(err.message || 'Could not open the billing portal.');
+    } finally {
+      setBusy('');
+    }
+  }
+
+  return (
+    <div className={card}>
+      <h2 className="font-bold mb-1 dark:text-white">Billing</h2>
+      <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+        Current plan: <span className="font-semibold text-slate-700 dark:text-slate-200">{PLAN_LABEL[plan] || plan}</span>
+        {profile.planStatus && profile.planStatus !== 'active' && (
+          <span className="ml-1 text-amber-600 dark:text-amber-400">({profile.planStatus})</span>
+        )}
+      </p>
+
+      {isPaid ? (
+        <>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
+            Change your plan, update your card, or cancel — all through Stripe's own billing portal.
+          </p>
+          <button onClick={manageBilling} disabled={busy === 'portal'} className={btn}>
+            {busy === 'portal' ? 'Opening…' : 'Manage Billing'}
+          </button>
+        </>
+      ) : (
+        <>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
+            Every tier is the same platform. Paid tiers only raise the unit limit.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            {PAID_TIERS.map(t => (
+              <button key={t.value} onClick={() => upgrade(t.value)} disabled={!!busy}
+                className="text-left border border-slate-200 dark:border-white/10 hover:border-teal-400/50 rounded-lg p-3 transition disabled:opacity-50">
+                <p className="text-sm font-bold dark:text-white">{t.label}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{t.price} · {t.detail}</p>
+                <p className="text-xs text-teal-600 dark:text-teal-400 font-semibold mt-1">
+                  {busy === t.value ? 'Starting…' : 'Upgrade →'}
+                </p>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+      {error && <p className="text-red-600 dark:text-red-400 text-sm mt-3">{error}</p>}
     </div>
   );
 }
@@ -173,6 +260,7 @@ function ChangePasswordCard() {
 }
 
 export default function ProfilePage() {
+  const [profile, setProfile] = useState(null);
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 px-6 py-8">
       <div className="max-w-lg mx-auto">
@@ -185,7 +273,8 @@ export default function ProfilePage() {
           <h1 className="text-2xl font-bold">Profile</h1>
         </div>
         <div className="space-y-5">
-          <InfoCard />
+          <InfoCard onProfile={setProfile} />
+          <BillingCard profile={profile} />
           <TeamSection />
           <ChangeEmailCard />
           <ChangePasswordCard />

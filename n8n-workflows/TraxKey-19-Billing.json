@@ -23,9 +23,8 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT c.id AS company_id, c.name, c.stripe_customer_id\nFROM traxkey.sessions s JOIN traxkey.companies c ON c.id = s.company_id\nWHERE s.token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\").replace(/[^a-zA-Z0-9]/g, \"\") }}' AND s.expires_at > now();",
-        "options": {},
-        "alwaysOutputData": null
+        "query": "SELECT c.id AS company_id, c.name, c.stripe_customer_id, c.plan, c.plan_status\nFROM traxkey.sessions s JOIN traxkey.companies c ON c.id = s.company_id\nWHERE s.token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\").replace(/[^a-zA-Z0-9]/g, \"\") }}' AND s.expires_at > now();",
+        "options": {}
       },
       "id": "588587f8-3efd-4476-9b41-b83f689cc3d1",
       "name": "Validate Session (Checkout)",
@@ -176,7 +175,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Flat monthly tiers, no metering. Price IDs are the TraxKey AI Stripe\n// LIVE account's recurring prices for Starter/Growth/Pro (schema_v39\n// backs the stripe_customer_id/stripe_subscription_id columns this\n// workflow reads and writes). Switched from test-mode IDs 2026-08-19.\nconst priceMap = {\n  starter: 'price_1U6Fv0Qa0lhtJzX9cEw4xV7w',\n  growth: 'price_1U6Fw0Qa0lhtJzX9TcYOj89K',\n  pro: 'price_1U6FwYQa0lhtJzX9o4M4SGg1',\n};\n\nconst body = $('Create Checkout (Webhook)').first().json.body;\nconst plan = (body.plan || '').toLowerCase();\nconst priceId = priceMap[plan];\nif (!priceId) throw new Error(`Unknown plan: ${plan}`);\n\nconst session = $('Validate Session (Checkout)').first().json;\n\n// $('NodeName') throws when that node never ran in this execution (e.g.\n// 'Stripe: Create Customer' on the existing-customer branch, where it's\n// skipped). Each lookup is its own try/catch so a miss on one never\n// crashes the other, working branch. Mirrors the fix already shipped in\n// TraxSail's Billing workflow after the same bug reached production there.\nlet customerId;\ntry {\n  customerId = $('Has Stripe Customer?').first()?.json?.stripe_customer_id;\n} catch (e) {}\nif (!customerId) {\n  try {\n    customerId = $('Stripe: Create Customer').first()?.json?.id;\n  } catch (e) {}\n}\nif (!customerId) throw new Error('Could not determine Stripe customer id for checkout.');\n\nreturn [{ json: { customerId, priceId, companyId: session.company_id, plan } }];\n"
+        "jsCode": "// Flat monthly tiers, no metering. Price IDs are the TraxKey AI Stripe\n// LIVE account's recurring prices for Starter/Growth/Pro (schema_v39\n// backs the stripe_customer_id/stripe_subscription_id columns this\n// workflow reads and writes). Switched from test-mode IDs 2026-08-19.\nconst priceMap = {\n  starter: 'price_1U6Fv0Qa0lhtJzX9cEw4xV7w',\n  growth: 'price_1U6Fw0Qa0lhtJzX9TcYOj89K',\n  pro: 'price_1U6FwYQa0lhtJzX9o4M4SGg1',\n};\n\nconst body = $('Create Checkout (Webhook)').first().json.body;\nconst plan = (body.plan || '').toLowerCase();\nconst priceId = priceMap[plan];\nif (!priceId) throw new Error(`Unknown plan: ${plan}`);\n\nconst session = $('Validate Session (Checkout)').first().json;\n\n// A company already on an active paid plan must not hit checkout again:\n// Stripe Checkout in subscription mode always creates a NEW subscription,\n// it does not modify an existing one, so a second checkout here would\n// double-bill rather than change their tier. Changing or cancelling an\n// existing subscription goes through the Billing Portal instead (see\n// 'Billing Portal (Webhook)' below), which Stripe built for exactly this.\nif (session.plan_status === 'active' && session.plan !== 'free') {\n  throw new Error('This account already has an active paid plan. Use the Billing Portal to change or cancel it instead of starting a new checkout.');\n}\n\n// $('NodeName') throws when that node never ran in this execution (e.g.\n// 'Stripe: Create Customer' on the existing-customer branch, where it's\n// skipped). Each lookup is its own try/catch so a miss on one never\n// crashes the other, working branch. Mirrors the fix already shipped in\n// TraxSail's Billing workflow after the same bug reached production there.\nlet customerId;\ntry {\n  customerId = $('Has Stripe Customer?').first()?.json?.stripe_customer_id;\n} catch (e) {}\nif (!customerId) {\n  try {\n    customerId = $('Stripe: Create Customer').first()?.json?.id;\n  } catch (e) {}\n}\nif (!customerId) throw new Error('Could not determine Stripe customer id for checkout.');\n\nreturn [{ json: { customerId, priceId, companyId: session.company_id, plan } }];\n"
       },
       "id": "fb2a0ec6-2dbf-4fe4-b9fc-1372a5a22cdd",
       "name": "Build Checkout Params",
@@ -296,8 +295,7 @@
       "parameters": {
         "operation": "executeQuery",
         "query": "SELECT c.id AS company_id, c.name, c.stripe_customer_id\nFROM traxkey.sessions s JOIN traxkey.companies c ON c.id = s.company_id\nWHERE s.token = '{{ $json.headers.authorization.replace(\"Bearer \", \"\").replace(/[^a-zA-Z0-9]/g, \"\") }}' AND s.expires_at > now();",
-        "options": {},
-        "alwaysOutputData": null
+        "options": {}
       },
       "id": "de15836d-cfdc-4570-97d1-8c5b02b94383",
       "name": "Validate Session (Portal)",
@@ -326,7 +324,7 @@
                 "type": "string",
                 "operation": "notEquals"
               },
-              "leftValue": "={{ $json.stripe_customer_id }}",
+              "leftValue": "={{ $json.stripe_customer_id || '' }}",
               "rightValue": ""
             }
           ]
