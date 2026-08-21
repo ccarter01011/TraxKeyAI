@@ -66,15 +66,14 @@
         <div class="flex-1 min-w-0">
           <p class="text-[11px] font-bold text-teal-400 uppercase tracking-wide mb-1">TraxKey AI</p>
           <p id="tk-assist-text" class="text-sm text-slate-200 leading-relaxed"></p>
-          <div id="tk-assist-actions" class="hidden mt-3 flex flex-wrap gap-2">
-            <button type="button" onclick="tkAskHelp()" class="text-xs border border-white/15 hover:border-teal-400/50 rounded-full px-3 py-1.5 text-slate-300 hover:text-white transition">Help me describe it</button>
-            <button type="button" onclick="showHumanForm()" class="text-xs border border-white/15 hover:border-teal-400/50 rounded-full px-3 py-1.5 text-slate-300 hover:text-white transition">I'd rather talk to a person</button>
-          </div>
-          <div id="tk-assist-chat" class="hidden mt-3">
+          <div id="tk-assist-chat" class="mt-3">
             <div class="flex gap-2">
               <input id="tk-assist-input" maxlength="400" placeholder="Ask me anything about this…" class="flex-1 bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-teal-400" />
               <button type="button" onclick="tkAssistSend()" class="bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs px-3 rounded-lg transition">Ask</button>
             </div>
+          </div>
+          <div id="tk-assist-actions" class="hidden mt-2 flex flex-wrap gap-2">
+            <button type="button" onclick="showHumanForm()" class="text-xs border border-white/15 hover:border-teal-400/50 rounded-full px-3 py-1.5 text-slate-300 hover:text-white transition">I'd rather talk to a person</button>
           </div>
         </div>
       </div>
@@ -404,11 +403,6 @@ async function loadTenantContext() {
     "Hi, I'm the assistant for " + who + ". Tell me what's wrong in your own words and I'll make sure the right person gets sent out. If anything's unsafe, say so and I'll treat it as an emergency.",
     function () { document.getElementById('tk-assist-actions').classList.remove('hidden'); }
   );
-}
-
-function tkAskHelp() {
-  document.getElementById('tk-assist-chat').classList.remove('hidden');
-  document.getElementById('tk-assist-input').focus();
 }
 
 let tkAssistBusy = false;

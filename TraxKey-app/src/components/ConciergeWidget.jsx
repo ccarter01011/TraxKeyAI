@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import ConciergeOrb from './ConciergeOrb.jsx';
 import WaveText from './WaveText.jsx';
 import TaskModal from './TaskModal.jsx';
@@ -20,6 +21,40 @@ export default function ConciergeWidget() {
   const [failed, setFailed] = useState(false);
   const [openTaskId, setOpenTaskId] = useState(null);
   const orbRef = useRef(null);
+
+  // A short back-and-forth right here, not a full transcript: this widget
+  // is the first thing an operator sees, so it should answer "what do I do
+  // next" and "how do I..." without leaving the dashboard. Anything longer
+  // belongs on the full /ask page, which shares the same backend and history.
+  const [turns, setTurns] = useState([]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatBusy, setChatBusy] = useState(false);
+  const [chatErr, setChatErr] = useState('');
+
+  async function ask(question) {
+    const q = (question ?? chatInput).trim();
+    if (!q || chatBusy) return;
+    setChatErr(''); setChatInput(''); setChatBusy(true);
+    const history = turns.map(t => ({ role: t.role, content: t.content }));
+    setTurns(t => [...t, { role: 'user', content: q }]);
+    orbRef.current?.flare?.(1);
+
+    try {
+      const token = localStorage.getItem('tk_token');
+      const res = await fetch(`${AGENT_BASE}/portfolio-chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ question: q, history }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) { setChatErr(j.error || 'Could not answer that'); return; }
+      setTurns(t => [...t, { role: 'assistant', content: j.reply }]);
+    } catch {
+      setChatErr('Could not reach the assistant.');
+    } finally {
+      setChatBusy(false);
+    }
+  }
 
   // Re-fetch the briefing after an approve/complete, so the item that was
   // just handled stops being listed as needing attention.
@@ -103,6 +138,41 @@ export default function ConciergeWidget() {
                   </span>
                 </button>
               ))}
+            </div>
+          )}
+          {done && (
+            <div className="mt-3 pt-3 border-t border-teal-400/10">
+              {turns.length > 0 && (
+                <div className="space-y-2 mb-2 max-h-64 overflow-y-auto">
+                  {turns.map((t, i) => (
+                    <div key={i} className={t.role === 'user' ? 'flex justify-end' : ''}>
+                      <div className={`rounded-lg px-3 py-2 max-w-[90%] text-xs whitespace-pre-wrap ${t.role === 'user'
+                        ? 'bg-teal-500 text-slate-950 font-semibold'
+                        : 'bg-white/60 dark:bg-slate-950/60 text-slate-700 dark:text-slate-200'}`}>
+                        {t.content}
+                      </div>
+                    </div>
+                  ))}
+                  {chatBusy && <p className="text-xs text-slate-400 dark:text-slate-500">Thinking…</p>}
+                </div>
+              )}
+              {chatErr && <p className="text-xs text-red-500 mb-2">{chatErr}</p>}
+              <form onSubmit={e => { e.preventDefault(); ask(); }} className="flex gap-2">
+                <input
+                  value={chatInput} onChange={e => setChatInput(e.target.value)} disabled={chatBusy}
+                  placeholder="Ask about your portfolio, or how to set something up…"
+                  className="flex-1 bg-white/60 dark:bg-slate-950/60 border border-teal-400/20 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-teal-400 disabled:opacity-50"
+                />
+                <button type="submit" disabled={chatBusy || !chatInput.trim()}
+                  className="shrink-0 bg-teal-500 hover:bg-teal-400 disabled:opacity-40 text-slate-950 font-bold text-xs px-3 rounded-lg transition">
+                  Ask
+                </button>
+              </form>
+              {turns.length === 0 && (
+                <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1.5">
+                  New here? Ask "what do I do first?" · Longer conversation → <Link to="/ask" className="text-teal-600 dark:text-teal-400 hover:underline">full assistant</Link>
+                </p>
+              )}
             </div>
           )}
         </div>
