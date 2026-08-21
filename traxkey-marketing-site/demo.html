@@ -258,6 +258,17 @@ html.light .to-slate-900 { --tw-gradient-to: #ffffff !important; }
           <p class="text-xs font-bold text-teal-300 uppercase tracking-wide mb-2">TraxKey AI</p>
           <p id="brief-lead" class="text-sm md:text-base text-slate-100 leading-relaxed tk-caret"></p>
           <ul id="brief-todos" class="mt-3 space-y-1"></ul>
+
+          <div class="mt-4 pt-4 border-t border-teal-400/10">
+            <div id="ask-log" class="space-y-2 mb-2 max-h-64 overflow-y-auto"></div>
+            <div id="ask-suggestions" class="flex flex-wrap gap-1.5 mb-2"></div>
+            <form id="ask-form" class="flex gap-2" onsubmit="return submitAsk(event)">
+              <input id="ask-input" placeholder="Ask about this portfolio…" maxlength="200"
+                class="flex-1 bg-slate-950/60 border border-teal-400/20 rounded-lg px-3 py-1.5 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-teal-400" />
+              <button type="submit" class="shrink-0 bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs px-3 rounded-lg transition">Ask</button>
+            </form>
+            <p class="text-[11px] text-slate-500 mt-1.5">Scripted for the demo, try one of the questions above. Your own dashboard answers anything about your real data.</p>
+          </div>
         </div>
       </div>
     </div>
@@ -495,9 +506,14 @@ var DATA = {
   pm: {
     lead: "Two things need you this morning. Everything else is moving on its own.",
     todos: [
-      "Approve the $610 water heater replacement at Maple Street, it's over your $500 limit.",
-      "No locksmith on file, the Riverside deadbolt has been waiting two days.",
-      "Unit 12's lease ends in 34 days and the renewal offer hasn't gone out."
+      { text: "Approve the $610 water heater replacement at Maple Street, it's over your $500 limit.", tone: "amber" },
+      { text: "No locksmith on file, the Riverside deadbolt has been waiting two days.", tone: "red" },
+      { text: "Unit 12's lease ends in 34 days and the renewal offer hasn't gone out.", tone: "teal" }
+    ],
+    ask: [
+      { q: "What needs my approval right now?", a: "One thing: the $610 water heater replacement at Maple Street. It's over your $500 approval limit, so it's waiting on you instead of dispatching automatically. Everything else this morning is under your limit and already moving." },
+      { q: "Why is the Riverside deadbolt still open?", a: "There's no locksmith on file for that trade yet, so TraxKey can't auto-dispatch it, it's been flagged for you for two days. Once you add a locksmith on the Vendors page, this kind of request will route itself next time." },
+      { q: "What happens if I ignore the lease renewal?", a: "Unit 12's lease ends in 34 days and the renewal offer hasn't gone out. TraxKey flags it, it doesn't send offers on its own since that's a real negotiation, not a routine dispatch decision." }
     ],
     kpis: [
       { label: "Occupancy", value: "94%", sub: "32 of 34 units", tone: "teal" },
@@ -534,9 +550,14 @@ var DATA = {
   str: {
     lead: "Riverside D is a same-day turnaround and the cleaner hasn't confirmed. That's the one that matters.",
     todos: [
-      "Guest checks in at Riverside D in 6 hours, cleaning is still marked in progress.",
-      "Hillcrest had a maintenance issue during the stay that closed unresolved, worth a message before they review.",
-      "Two nights open at Riverside B next week, nothing booked."
+      { text: "Guest checks in at Riverside D in 6 hours, cleaning is still marked in progress.", tone: "red" },
+      { text: "Hillcrest had a maintenance issue during the stay that closed unresolved, worth a message before they review.", tone: "amber" },
+      { text: "Two nights open at Riverside B next week, nothing booked.", tone: "teal" }
+    ],
+    ask: [
+      { q: "Is Riverside D going to be ready in time?", a: "It's tight. Guest arrives in 6 hours and the cleaning turn is still marked in progress. TraxKey opened the job automatically off the checkout on the calendar, if it's not confirmed done within the hour, that's worth a direct check with the cleaner." },
+      { q: "What's the review risk at Hillcrest about?", a: "The prior stay closed with a maintenance issue that never got resolved before checkout. TraxKey flags that as review risk, guests who leave with an open issue are the ones most likely to leave a bad one. A short outreach message before the review window closes usually heads it off." },
+      { q: "Why are those Riverside B nights still open?", a: "Two nights next week have nothing booked yet. That's not urgent the way a same-day turn is, but it's worth a look at whether the nightly rate is priced right for that stretch." }
     ],
     kpis: [
       { label: "Occupancy", value: "87%", sub: "next 30 days", tone: "teal" },
@@ -787,7 +808,85 @@ function orbPulse(big) {
   if (big) briefOrb.flare(0.9); else briefOrb.pulse(0.3);
 }
 
+// Scripted, not live: every answer below is a fixed string keyed to one of
+// the suggested questions for whichever portfolio (pm/str) is showing. This
+// demo never calls the agents service, on purpose, no auth means no way to
+// rate-limit a real model call per visitor. The real dashboard's assistant
+// (agents/concierge_chat.py) answers anything, because it's reading a real,
+// authenticated account's own data.
+var askBusy = false;
+var askTyping = null;
+
+function renderAsk(key) {
+  var box = document.getElementById('ask-suggestions');
+  box.innerHTML = DATA[key].ask.map(function (item, i) {
+    return '<button type="button" onclick="askSuggested(' + i + ')" ' +
+      'class="text-xs border border-white/15 hover:border-teal-400/50 rounded-full px-2.5 py-1 text-slate-300 hover:text-white transition">' +
+      item.q + '</button>';
+  }).join('');
+  document.getElementById('ask-log').innerHTML = '';
+}
+
+function askBubble(role, text) {
+  var log = document.getElementById('ask-log');
+  var wrap = document.createElement('div');
+  wrap.className = role === 'user' ? 'flex justify-end' : '';
+  var bubble = document.createElement('div');
+  bubble.className = 'rounded-lg px-3 py-2 max-w-[85%] text-xs' + (role === 'user'
+    ? ' bg-teal-500 text-slate-950 font-semibold' : ' bg-slate-950/60 text-slate-200');
+  bubble.textContent = text || '';
+  wrap.appendChild(bubble);
+  log.appendChild(wrap);
+  log.scrollTop = log.scrollHeight;
+  return bubble;
+}
+
+function typeAskReply(bubble, text) {
+  if (askTyping) clearInterval(askTyping);
+  bubble.textContent = '';
+  var words = text.split(' ');
+  var i = 0;
+  askTyping = setInterval(function () {
+    var prevWord = words[i - 1];
+    var isStart = i === 0 || (prevWord && SENTENCE_ENDERS.indexOf(prevWord.slice(-1)) > -1);
+    orbPulse(isStart);
+    i++;
+    bubble.textContent = words.slice(0, i).join(' ');
+    document.getElementById('ask-log').scrollTop = 999;
+    if (i >= words.length) {
+      clearInterval(askTyping);
+      askBusy = false;
+    }
+  }, 55);
+}
+
+function askSuggested(i) {
+  if (askBusy) return;
+  var item = DATA[currentPortfolio].ask[i];
+  document.getElementById('ask-input').value = '';
+  askBusy = true;
+  askBubble('user', item.q);
+  typeAskReply(askBubble('assistant', ''), item.a);
+}
+
+function submitAsk(e) {
+  e.preventDefault();
+  if (askBusy) return false;
+  var input = document.getElementById('ask-input');
+  var q = input.value.trim();
+  if (!q) return false;
+  input.value = '';
+  askBusy = true;
+  askBubble('user', q);
+  typeAskReply(askBubble('assistant', ''),
+    "This demo only knows the questions listed above, pick one and I'll answer it live-style. " +
+    "Your own dashboard answers anything about your real portfolio, that part isn't scripted.");
+  return false;
+}
+
+var currentPortfolio = 'pm';
 function showView(key) {
+  currentPortfolio = key;
   var d = DATA[key];
 
   document.getElementById('tab-pm').className = 'px-5 py-2.5 rounded-lg text-sm font-bold transition ' +
@@ -809,7 +908,7 @@ function showView(key) {
   var tokens = [];
   d.lead.split(' ').filter(Boolean).forEach(function (w, wi) { tokens.push({ li: -1, w: w, first: wi === 0 }); });
   d.todos.forEach(function (t, ti) {
-    t.split(' ').filter(Boolean).forEach(function (w, wi) { tokens.push({ li: ti, w: w, first: wi === 0 }); });
+    t.text.split(' ').filter(Boolean).forEach(function (w, wi) { tokens.push({ li: ti, w: w, first: wi === 0 }); });
   });
 
   var todoEls = [];
@@ -826,7 +925,7 @@ function showView(key) {
       if (!todoEls[t.li]) {
         var li = document.createElement('li');
         li.className = 'flex items-start gap-2 text-sm text-slate-300';
-        li.innerHTML = '<span class="shrink-0 mt-1.5 w-1 h-1 rounded-full bg-teal-400"></span><span></span>';
+        li.innerHTML = '<span class="shrink-0 mt-1.5 w-1 h-1 rounded-full ' + (DOT[d.todos[t.li].tone] || 'bg-teal-400') + '"></span><span></span>';
         todos.appendChild(li);
         todoEls[t.li] = li.querySelector('span:last-child');
       }
@@ -840,6 +939,8 @@ function showView(key) {
       lead.classList.remove('tk-caret');
     }
   }, 90);
+
+  renderAsk(key);
 
   document.getElementById('kpis').innerHTML = d.kpis.map(function (k, i) {
     return '<div class="bg-slate-900 border border-white/5 rounded-2xl p-5">' +
