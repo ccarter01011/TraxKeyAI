@@ -21,6 +21,7 @@ from readiness import run_readiness_checks
 from review_risk import run_review_risk_checks
 from lease_agent import run_lease_agent
 from lead_followup import run_lead_followup
+from free_tier_followup import run_free_tier_followup
 from resident_notify import run_resident_notifications
 from sample_data import seed as seed_sample, remove as remove_sample, has_sample
 from calendar_view import get_calendar
@@ -995,6 +996,10 @@ if __name__ == "__main__":
                 traceback.print_exc()
             try:
                 run_lead_followup()
+            except Exception:
+                traceback.print_exc()
+            try:
+                run_free_tier_followup()
             except Exception:
                 traceback.print_exc()
             # Append-only daily snapshot. Idempotent per day, so running it

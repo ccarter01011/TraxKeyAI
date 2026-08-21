@@ -197,7 +197,7 @@ makes them a platform rather than a bundle of features.
 | **Readiness Agent** | Check a unit is actually ready before a guest arrives | Hourly |
 | **Review-Risk Agent** | Flag a stay that ended with an issue still open | Hourly |
 | **Insights Agent** | Vendor slowdowns, repeat-failure units, below-average rents, late parts blocking a turn | Daily |
-| **Follow-up Agent** | Keep residents and guests informed; chase leads who never converted | Every 15 min |
+| **Follow-up Agent** | Keep residents and guests informed; chase leads who never converted; nudge a signed-up account still on the Free tier 48 hours in (one email, added 2026-08-20) | Every 15 min (resident/guest); hourly (lead and Free-tier nudges) |
 | **Vendor Chase Agent** | Nudge a dispatched vendor who has gone silent, escalate to you after two tries | Every 15 min |
 | **Damage Assessor** | On a broken item, gathers cost, deductible, warranty, inventory match and who was in the unit, then recommends occupant charge, insurance claim, or owner cost. Names what is missing rather than guessing. Recommends; never decides. | On demand |
 | **Invoice Chase Agent** | Remind a customer an invoice is past due, and a supplier that a part is late; hand both to you after two tries | Hourly |
