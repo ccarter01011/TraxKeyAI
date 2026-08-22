@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import {
+  HomeModernIcon, CalendarIcon, BoltIcon, ArrowPathIcon, TruckIcon, BanknotesIcon,
+  ClipboardDocumentCheckIcon, ChartBarIcon, BuildingOffice2Icon, UsersIcon, KeyIcon,
+  DocumentTextIcon, ChartPieIcon, ChatBubbleLeftRightIcon, CurrencyDollarIcon,
+  WrenchScrewdriverIcon, ArchiveBoxIcon, LinkIcon, Cog6ToothIcon,
+} from '@heroicons/react/24/outline';
 import { useAuth } from '../lib/AuthContext.jsx';
 import { apiRequest } from '../lib/api.js';
 import ThemeToggle from './ThemeToggle.jsx';
@@ -22,41 +28,41 @@ import ThemeToggle from './ThemeToggle.jsx';
 const NAV = [
   {
     label: 'Start here', items: [
-      { to: '/onboarding', label: 'Onboard a property' },
+      { to: '/onboarding', label: 'Onboard a property', icon: HomeModernIcon },
     ]
   },
   {
     label: 'Daily operations', items: [
-      { to: '/calendar', label: 'Calendar' },
-      { to: '/activity', label: 'AI Activity', badgeKey: 'needsYou', tone: 'urgent' },
-      { to: '/turns', label: 'Turns', badgeKey: 'turns', tone: 'attention' },
-      { to: '/orders', label: 'Purchase Orders' },
-      { to: '/invoices', label: 'Invoices' },
-      { to: '/inspections', label: 'Inspections', badgeKey: 'openInspections', tone: 'attention' },
+      { to: '/calendar', label: 'Calendar', icon: CalendarIcon },
+      { to: '/activity', label: 'AI Activity', icon: BoltIcon, badgeKey: 'needsYou', tone: 'urgent' },
+      { to: '/turns', label: 'Turns', icon: ArrowPathIcon, badgeKey: 'turns', tone: 'attention' },
+      { to: '/orders', label: 'Purchase Orders', icon: TruckIcon },
+      { to: '/invoices', label: 'Invoices', icon: BanknotesIcon },
+      { to: '/inspections', label: 'Inspections', icon: ClipboardDocumentCheckIcon, badgeKey: 'openInspections', tone: 'attention' },
     ]
   },
   {
     label: 'Portfolio records', items: [
-      { to: '/insights', label: 'Insights' },
-      { to: '/properties', label: 'Properties & units' },
-      { to: '/residents', label: 'Residents & guests' },
-      { to: '/owners', label: 'Owners' },
-      { to: '/leases', label: 'Leases', badgeKey: 'expiring', tone: 'attention' },
+      { to: '/insights', label: 'Insights', icon: ChartBarIcon },
+      { to: '/properties', label: 'Properties & units', icon: BuildingOffice2Icon },
+      { to: '/residents', label: 'Residents & guests', icon: UsersIcon },
+      { to: '/owners', label: 'Owners', icon: KeyIcon },
+      { to: '/leases', label: 'Leases', icon: DocumentTextIcon, badgeKey: 'expiring', tone: 'attention' },
     ]
   },
   {
     label: 'Analytics & reporting', items: [
-      { to: '/analytics', label: 'Occupancy & financials' },
-      { to: '/ask', label: 'Ask about your portfolio' },
-      { to: '/pricing', label: 'Direct booking & pricing' },
+      { to: '/analytics', label: 'Occupancy & financials', icon: ChartPieIcon },
+      { to: '/ask', label: 'Ask about your portfolio', icon: ChatBubbleLeftRightIcon },
+      { to: '/pricing', label: 'Direct booking & pricing', icon: CurrencyDollarIcon },
     ]
   },
   {
     label: 'Setup', items: [
-      { to: '/vendors', label: 'Vendors' },
-      { to: '/str-ops', label: 'Supplies & damage' },
-      { to: '/calendars', label: 'Connect Airbnb & Vrbo' },
-      { to: '/business-memory', label: 'Business Memory' },
+      { to: '/vendors', label: 'Vendors', icon: WrenchScrewdriverIcon },
+      { to: '/str-ops', label: 'Supplies & damage', icon: ArchiveBoxIcon },
+      { to: '/calendars', label: 'Connect Airbnb & Vrbo', icon: LinkIcon },
+      { to: '/business-memory', label: 'Business Memory', icon: Cog6ToothIcon },
     ]
   },
 ];
@@ -76,7 +82,10 @@ function NavLink({ item, active, badgeText }) {
       )}
       <span className={`relative z-10 flex items-center justify-between gap-2 ${active
         ? 'text-teal-700 dark:text-teal-300 font-semibold' : 'text-slate-600 dark:text-slate-400'}`}>
-        {item.label}
+        <span className="flex items-center gap-2 min-w-0">
+          {item.icon && <item.icon className={`w-[18px] h-[18px] shrink-0 ${active ? 'text-teal-600 dark:text-teal-400' : 'text-slate-400 dark:text-slate-500'}`} strokeWidth={1.75} />}
+          <span className="truncate">{item.label}</span>
+        </span>
         {badgeText && (
           <span className={`shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
             item.tone === 'urgent' ? 'bg-red-500/15 text-red-600 dark:text-red-400'
