@@ -144,6 +144,25 @@ html.light .to-slate-900 { --tw-gradient-to: #ffffff !important; }
   @media (prefers-reduced-motion: reduce) {
     .tk-bar, .tk-chart-line, .tk-chart-dot { transition: none !important; }
   }
+  /* Sidebar nav-item info hovers, explaining what a page is/does to a
+     prospect who has never seen the real dashboard. Positioned fixed (not
+     absolute) and shown/hidden via JS rather than pure :hover + absolute,
+     because the sidebar scrolls (overflow-y-auto) and an absolutely
+     positioned tooltip would get clipped at that container's edge
+     regardless of z-index. Same fix as the real app's sidebar. */
+  .tk-hint-btn {
+    flex-shrink: 0; width: 14px; height: 14px; border-radius: 9999px;
+    border: 1px solid rgba(255,255,255,.2); color: #94a3b8; font-size: 9px; font-weight: 700;
+    display: inline-flex; align-items: center; justify-content: center; line-height: 1;
+    cursor: default; transition: border-color .15s, color .15s;
+  }
+  .tk-hint-btn:hover { border-color: #2dd4bf; color: #2dd4bf; }
+  #tk-hint-tip {
+    position: fixed; z-index: 100; width: 224px; background: #0f172a; border: 1px solid rgba(255,255,255,.1);
+    border-radius: 8px; padding: 10px 12px; font-size: 11px; line-height: 1.4; color: #cbd5e1;
+    box-shadow: 0 10px 30px -8px rgba(0,0,0,.5); pointer-events: none;
+  }
+  html.light #tk-hint-tip { background: #ffffff; color: #334155; border-color: #cbd5e1; box-shadow: 0 10px 30px -8px rgba(15,23,42,.15); }
 </style>
 <script>
   // Set before paint so no element starts animating and then stalls mid-way.
@@ -197,6 +216,9 @@ html.light .to-slate-900 { --tw-gradient-to: #ffffff !important; }
         <button data-tab-str onclick="showView('str')" class="px-5 py-2.5 rounded-lg text-sm font-bold transition text-slate-400 hover:text-white">
           Short-term rentals
         </button>
+        <button data-tab-micro onclick="showView('micro')" class="px-5 py-2.5 rounded-lg text-sm font-bold transition text-slate-400 hover:text-white">
+          Micro-resort
+        </button>
       </div>
     </div>
   </div>
@@ -230,55 +252,118 @@ html.light .to-slate-900 { --tw-gradient-to: #ffffff !important; }
     <div class="inline-flex items-center bg-slate-950 border border-white/10 rounded-lg p-0.5 gap-0.5 w-full">
       <button data-tab-pm onclick="showView('pm')" class="flex-1 px-2 py-1.5 rounded-md text-xs font-bold transition bg-teal-500 text-slate-950">LTR</button>
       <button data-tab-str onclick="showView('str')" class="flex-1 px-2 py-1.5 rounded-md text-xs font-bold transition text-slate-400 hover:text-white">STR</button>
+      <button data-tab-micro onclick="showView('micro')" class="flex-1 px-2 py-1.5 rounded-md text-xs font-bold transition text-slate-400 hover:text-white">Micro</button>
     </div>
   </div>
 
   <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Daily operations</p>
   <nav class="space-y-0.5 mb-5">
-    <button data-nav-btn="dashboard" onclick="showNav('dashboard')" class="block w-full text-left px-3 py-2 rounded-lg text-sm font-semibold transition bg-teal-500/15 text-teal-300 border border-teal-400/30">Dashboard</button>
-    <span class="block px-3 py-2 rounded-lg text-sm text-slate-600 cursor-default" title="Sign up to see this">Calendar</span>
-    <button data-nav-btn="activity" onclick="showNav('activity')" class="block w-full text-left px-3 py-2 rounded-lg text-sm transition text-slate-400 hover:text-white hover:bg-white/5">AI Activity</button>
-    <button data-nav-btn="turns" onclick="showNav('turns')" class="block w-full text-left px-3 py-2 rounded-lg text-sm transition text-slate-400 hover:text-white hover:bg-white/5">Turns</button>
-    <span class="block px-3 py-2 rounded-lg text-sm text-slate-600 cursor-default" title="Sign up to see this">Purchase orders</span>
-    <span class="block px-3 py-2 rounded-lg text-sm text-slate-600 cursor-default" title="Sign up to see this">Invoices</span>
-    <span class="block px-3 py-2 rounded-lg text-sm text-slate-600 cursor-default" title="Sign up to see this">Inspections</span>
+    <div class="flex items-center gap-1">
+      <button data-nav-btn="dashboard" onclick="showNav('dashboard')" class="flex-1 text-left px-3 py-2 rounded-lg text-sm font-semibold transition bg-teal-500/15 text-teal-300 border border-teal-400/30">Dashboard</button>
+      <span class="tk-hint-btn" onmouseenter="tkShowHint(this,'The AI\'s morning briefing plus live KPIs, calendar, and today\'s work queue, all on one screen.')" onmouseleave="tkHideHint()">?</span>
+    </div>
+    <div class="flex items-center gap-1">
+      <span class="flex-1 block px-3 py-2 rounded-lg text-sm text-slate-600 cursor-default" title="Sign up to see this">Calendar</span>
+      <span class="tk-hint-btn" onmouseenter="tkShowHint(this,'Every unit on one timeline: guest bookings, owner blocks, leases, and turn deadlines together.')" onmouseleave="tkHideHint()">?</span>
+    </div>
+    <div class="flex items-center gap-1">
+      <button data-nav-btn="activity" onclick="showNav('activity')" class="flex-1 text-left px-3 py-2 rounded-lg text-sm transition text-slate-400 hover:text-white hover:bg-white/5">AI Activity</button>
+      <span class="tk-hint-btn" onmouseenter="tkShowHint(this,'Every maintenance request and every step the AI took on it, in plain language.')" onmouseleave="tkHideHint()">?</span>
+    </div>
+    <div class="flex items-center gap-1">
+      <button data-nav-btn="turns" onclick="showNav('turns')" class="flex-1 text-left px-3 py-2 rounded-lg text-sm transition text-slate-400 hover:text-white hover:bg-white/5">Turns</button>
+      <span class="tk-hint-btn" onmouseenter="tkShowHint(this,'Vacant-to-ready tracking for move-out turnovers and cleaning turns.')" onmouseleave="tkHideHint()">?</span>
+    </div>
+    <div class="flex items-center gap-1">
+      <span class="flex-1 block px-3 py-2 rounded-lg text-sm text-slate-600 cursor-default" title="Sign up to see this">Purchase orders</span>
+      <span class="tk-hint-btn" onmouseenter="tkShowHint(this,'Parts and materials a job is waiting on, flagged when late and when late means a turn will slip.')" onmouseleave="tkHideHint()">?</span>
+    </div>
+    <div class="flex items-center gap-1">
+      <span class="flex-1 block px-3 py-2 rounded-lg text-sm text-slate-600 cursor-default" title="Sign up to see this">Invoices</span>
+      <span class="tk-hint-btn" onmouseenter="tkShowHint(this,'What you\'re owed, how overdue it is, and automatic reminders sent until someone answers.')" onmouseleave="tkHideHint()">?</span>
+    </div>
+    <div class="flex items-center gap-1">
+      <span class="flex-1 block px-3 py-2 rounded-lg text-sm text-slate-600 cursor-default" title="Sign up to see this">Inspections</span>
+      <span class="tk-hint-btn" onmouseenter="tkShowHint(this,'Move-in and move-out condition records, and what changed between them.')" onmouseleave="tkHideHint()">?</span>
+    </div>
   </nav>
 
   <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Portfolio records</p>
   <div class="space-y-0.5 mb-5">
-    <span class="block px-3 py-2 rounded-lg text-sm text-slate-600 cursor-default" title="Sign up to see this">Insights</span>
-    <span class="block px-3 py-2 rounded-lg text-sm text-slate-600 cursor-default" title="Sign up to see this">Properties &amp; units</span>
-    <span class="block px-3 py-2 rounded-lg text-sm text-slate-600 cursor-default" title="Sign up to see this">Residents &amp; guests</span>
-    <span class="block px-3 py-2 rounded-lg text-sm text-slate-600 cursor-default" title="Sign up to see this">Owners</span>
-    <span class="block px-3 py-2 rounded-lg text-sm text-slate-600 cursor-default" title="Sign up to see this">Leases</span>
+    <div class="flex items-center gap-1">
+      <span class="flex-1 block px-3 py-2 rounded-lg text-sm text-slate-600 cursor-default" title="Sign up to see this">Insights</span>
+      <span class="tk-hint-btn" onmouseenter="tkShowHint(this,'Patterns in your own data: vendors slowing down, units that keep breaking, rents below your average.')" onmouseleave="tkHideHint()">?</span>
+    </div>
+    <div class="flex items-center gap-1">
+      <span class="flex-1 block px-3 py-2 rounded-lg text-sm text-slate-600 cursor-default" title="Sign up to see this">Properties &amp; units</span>
+      <span class="tk-hint-btn" onmouseenter="tkShowHint(this,'Your properties and units, what TraxKey AI\'s agents monitor and act on.')" onmouseleave="tkHideHint()">?</span>
+    </div>
+    <div class="flex items-center gap-1">
+      <span class="flex-1 block px-3 py-2 rounded-lg text-sm text-slate-600 cursor-default" title="Sign up to see this">Residents &amp; guests</span>
+      <span class="tk-hint-btn" onmouseenter="tkShowHint(this,'Invite each resident or short-term guest with their own reporting link.')" onmouseleave="tkHideHint()">?</span>
+    </div>
+    <div class="flex items-center gap-1">
+      <span class="flex-1 block px-3 py-2 rounded-lg text-sm text-slate-600 cursor-default" title="Sign up to see this">Owners</span>
+      <span class="tk-hint-btn" onmouseenter="tkShowHint(this,'If you manage for other people, give them a read-only view of their own properties.')" onmouseleave="tkHideHint()">?</span>
+    </div>
+    <div class="flex items-center gap-1">
+      <span class="flex-1 block px-3 py-2 rounded-lg text-sm text-slate-600 cursor-default" title="Sign up to see this">Leases</span>
+      <span class="tk-hint-btn" onmouseenter="tkShowHint(this,'Terms, rent, and renewal dates. Flagged 90 days before they end.')" onmouseleave="tkHideHint()">?</span>
+    </div>
   </div>
 
   <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Analytics &amp; reporting</p>
   <div class="space-y-0.5 mb-5">
-    <button data-nav-btn="analytics" onclick="showNav('analytics')" class="block w-full text-left px-3 py-2 rounded-lg text-sm transition text-slate-400 hover:text-white hover:bg-white/5">Analytics</button>
-    <span class="block px-3 py-2 rounded-lg text-sm text-slate-600 cursor-default" title="Sign up to see this">Ask about your portfolio</span>
-    <span class="block px-3 py-2 rounded-lg text-sm text-slate-600 cursor-default" title="Sign up to see this">Direct booking &amp; pricing</span>
+    <div class="flex items-center gap-1">
+      <button data-nav-btn="analytics" onclick="showNav('analytics')" class="flex-1 text-left px-3 py-2 rounded-lg text-sm transition text-slate-400 hover:text-white hover:bg-white/5">Analytics</button>
+      <span class="tk-hint-btn" onmouseenter="tkShowHint(this,'Occupancy trend, spend by property and vendor, and owner statements.')" onmouseleave="tkHideHint()">?</span>
+    </div>
+    <div class="flex items-center gap-1">
+      <span class="flex-1 block px-3 py-2 rounded-lg text-sm text-slate-600 cursor-default" title="Sign up to see this">Ask about your portfolio</span>
+      <span class="tk-hint-btn" onmouseenter="tkShowHint(this,'Plain-language questions across long-term and short-term together: what earns least, what costs most, whether a lease is worth renewing.')" onmouseleave="tkHideHint()">?</span>
+    </div>
+    <div class="flex items-center gap-1">
+      <span class="flex-1 block px-3 py-2 rounded-lg text-sm text-slate-600 cursor-default" title="Sign up to see this">Direct booking &amp; pricing</span>
+      <span class="tk-hint-btn" onmouseenter="tkShowHint(this,'A reservation system outside Airbnb and Vrbo, with nightly rate suggestions.')" onmouseleave="tkHideHint()">?</span>
+    </div>
   </div>
 
   <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Setup</p>
   <div class="space-y-0.5">
-    <span class="block px-3 py-2 rounded-lg text-sm text-slate-600 cursor-default" title="Sign up to see this">Vendors</span>
-    <span class="block px-3 py-2 rounded-lg text-sm text-slate-600 cursor-default" title="Sign up to see this">Supplies &amp; damage</span>
-    <span class="block px-3 py-2 rounded-lg text-sm text-slate-600 cursor-default" title="Sign up to see this">Connect Airbnb &amp; Vrbo</span>
-    <span class="block px-3 py-2 rounded-lg text-sm text-slate-600 cursor-default" title="Sign up to see this">Business Memory</span>
+    <div class="flex items-center gap-1">
+      <span class="flex-1 block px-3 py-2 rounded-lg text-sm text-slate-600 cursor-default" title="Sign up to see this">Vendors</span>
+      <span class="tk-hint-btn" onmouseenter="tkShowHint(this,'The network the AI dispatches to, ranked by their real job history.')" onmouseleave="tkHideHint()">?</span>
+    </div>
+    <div class="flex items-center gap-1">
+      <span class="flex-1 block px-3 py-2 rounded-lg text-sm text-slate-600 cursor-default" title="Sign up to see this">Supplies &amp; damage</span>
+      <span class="tk-hint-btn" onmouseenter="tkShowHint(this,'Consumables per unit with reorder levels, and checkout damage tied to the stay it happened during.')" onmouseleave="tkHideHint()">?</span>
+    </div>
+    <div class="flex items-center gap-1">
+      <span class="flex-1 block px-3 py-2 rounded-lg text-sm text-slate-600 cursor-default" title="Sign up to see this">Connect Airbnb &amp; Vrbo</span>
+      <span class="tk-hint-btn" onmouseenter="tkShowHint(this,'Paste a calendar link once. This is setup, not the day-to-day calendar.')" onmouseleave="tkHideHint()">?</span>
+    </div>
+    <div class="flex items-center gap-1">
+      <span class="flex-1 block px-3 py-2 rounded-lg text-sm text-slate-600 cursor-default" title="Sign up to see this">Business Memory</span>
+      <span class="tk-hint-btn" onmouseenter="tkShowHint(this,'Rules the AI follows: approval limits, quiet hours, preferred vendors.')" onmouseleave="tkHideHint()">?</span>
+    </div>
   </div>
 
   <a href="https://app.traxkey.ai/signup" class="mt-auto pt-5 block text-center bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-sm px-4 py-2.5 rounded-lg transition">Start free</a>
 </aside>
 
+<div id="tk-hint-tip" class="hidden"></div>
+
 <section class="pb-16 px-6 lg:ml-60">
   <!-- Micro-resort callout: only relevant to STR, so it only shows up top
        when that portfolio is selected, rather than sitting permanently in
-       the sidebar next to a toggle most LTR visitors will never click. -->
+       the sidebar next to a toggle most LTR visitors will never click.
+       Switches the demo in place (showView('micro')) rather than linking
+       off to the marketing page, since Micro-resort is now a real third
+       portfolio option here, not just a page elsewhere describing it. -->
   <div id="micro-resort-banner" class="max-w-6xl mx-auto hidden mb-6">
     <div class="flex items-center justify-between gap-3 bg-teal-500/10 border border-teal-400/20 rounded-xl px-4 py-3 text-sm">
       <span class="text-slate-300">Running a compound or micro-resort instead of individual units?</span>
-      <a href="/short-term-rentals#micro-resort" class="shrink-0 text-teal-400 hover:text-teal-300 font-semibold underline underline-offset-4">See Experiential mode →</a>
+      <button type="button" onclick="showView('micro')" class="shrink-0 text-teal-400 hover:text-teal-300 font-semibold underline underline-offset-4">See Micro-resort mode →</button>
     </div>
   </div>
   <div class="max-w-6xl mx-auto">
@@ -381,6 +466,15 @@ html.light .to-slate-900 { --tw-gradient-to: #ffffff !important; }
 
       <!-- SIDE COLUMN -->
       <div class="space-y-6">
+        <!-- Micro-resort only: the one real feature difference from plain
+             STR, shared amenities the whole compound uses rather than a
+             single unit's own maintenance, mirroring the real app's
+             Experiential-mode AmenitiesTab. -->
+        <div id="amenities-panel" class="hidden bg-slate-900 border border-white/5 rounded-2xl p-6">
+          <h3 class="font-bold mb-1">Shared amenities</h3>
+          <p class="text-xs text-slate-500 mb-4">Whole-compound spaces every guest shares, tracked separately from any one unit's maintenance.</p>
+          <div id="amenities" class="space-y-3"></div>
+        </div>
         <div class="bg-slate-900 border border-white/5 rounded-2xl p-6">
           <h3 class="font-bold mb-1">Vendor reliability</h3>
           <p class="text-xs text-slate-500 mb-4">Ranked on real job history, not a guess.</p>
@@ -562,6 +656,23 @@ function tkOnVisible(el, cb) {
   setTimeout(sweep, 1500);
 }
 
+// Sidebar nav-item info hovers. Positioned from the "?" icon's own
+// bounding rect rather than pure CSS :hover + absolute, since the sidebar
+// scrolls (overflow-y-auto) and an absolutely-positioned child would be
+// clipped at that container's edge no matter its z-index.
+function tkShowHint(el, text) {
+  var r = el.getBoundingClientRect();
+  var tip = document.getElementById('tk-hint-tip');
+  tip.textContent = text;
+  tip.style.top = (r.top + r.height / 2) + 'px';
+  tip.style.left = (r.right + 8) + 'px';
+  tip.style.transform = 'translateY(-50%)';
+  tip.classList.remove('hidden');
+}
+function tkHideHint() {
+  document.getElementById('tk-hint-tip').classList.add('hidden');
+}
+
 // Two portfolios, deliberately different shapes. The long-term view is about
 // tenancy and cost control over months; the short-term view is about hours
 // and guest experience. Showing the same metrics twice would undercut the
@@ -654,6 +765,58 @@ var DATA = {
       { label: "Hillcrest, check-in tomorrow", value: "Ready", tone: "teal" },
       { label: "Riverside B, check-in Thu", value: "Turn scheduled", tone: "amber" }
     ]
+  },
+  // Same underlying engine as STR (a checkout is still a checkout), but the
+  // unit of booking is the whole compound, not one door, and there's a
+  // shared-amenities layer no per-unit STR portfolio has to think about.
+  micro: {
+    lead: "The whole property is bought out this weekend, 24 guests, and the pool heater needs confirming before they arrive.",
+    todos: [
+      { text: "Full-property buyout checks in Saturday, 24 guests, the pool heater status is still unconfirmed.", tone: "red" },
+      { text: "Dock ladder repair is marked in progress, needs to close out before the buyout arrives.", tone: "amber" },
+      { text: "Firepit lounge propane is running low, worth topping off before the weekend.", tone: "teal" }
+    ],
+    ask: [
+      { q: "Is the property ready for Saturday's buyout?", a: "Mostly. The dock ladder repair is in progress and should close out in time, but the pool heater hasn't been confirmed working yet, that's the one thing worth checking in person before 24 guests arrive expecting a heated pool." },
+      { q: "What happens if the pool heater is actually broken?", a: "TraxKey would flag it as a same-day amenity issue and suggest notifying the whole party in advance, that's a single message to every active guest at once rather than one-by-one, since a shared amenity affects everyone on the buyout, not just one unit." },
+      { q: "How is a buyout different from a normal short-term booking?", a: "One reservation covers every unit and every shared space at once, so occupancy and turn timing are compound-wide instead of per-door. Amenities also get tracked separately here, since a closed pool or dock affects the whole group, not one guest." }
+    ],
+    kpis: [
+      { label: "Occupancy", value: "91%", sub: "next 30 days", tone: "teal" },
+      { label: "Amenities open", value: "2/3", sub: "dock under repair", tone: "amber" },
+      { label: "Avg turn time", value: "6.2h", sub: "full-compound turn", tone: "green" },
+      { label: "Buyouts booked", value: "4", sub: "next 60 days", tone: "teal" }
+    ],
+    chartTitle: "Buyout occupancy and amenity uptime",
+    chartSub: "Whole-property bookings against how many of the shared amenities are open that week.",
+    chartNote: "6 weeks",
+    series: [
+      { label: "Occupancy %", color: "#2dd4bf", points: [68, 74, 80, 91, 85, 91] },
+      { label: "Amenities open %", color: "#f59e0b", points: [100, 100, 67, 67, 100, 67] }
+    ],
+    xLabels: ["W1","W2","W3","W4","W5","W6"],
+    queue: [
+      { tone: "amber", title: "Pool heater status check, ahead of Saturday's buyout", meta: "24-guest buyout arrives Saturday · confirmation requested from maintenance", time: "9:10am" },
+      { tone: "teal", title: "Dock ladder repair, in progress", meta: "Shared amenity · CoolBreeze HVAC not assigned, routed to Reliable Plumbing", time: "10:40am" },
+      { tone: "teal", title: "Firepit propane level low", meta: "Routine · refill scheduled before the weekend", time: "11:05am" },
+      { tone: "red", title: "Buyout guest count confirmed at 24", meta: "Whole-property reservation · amenities capacity checked against guest count", time: "1:15pm" }
+    ],
+    vendors: [
+      { name: "Fresh Start Cleaning", trade: "Cleaning", score: 96, jobs: 128 },
+      { name: "Reliable Plumbing", trade: "Plumbing", score: 93, jobs: 67 },
+      { name: "CoolBreeze HVAC", trade: "HVAC", score: 74, jobs: 22 }
+    ],
+    amenities: [
+      { name: "Main pool", category: "Pool", capacity: 40, status: "open" },
+      { name: "Firepit lounge", category: "Fire", capacity: 20, status: "open" },
+      { name: "Private dock", category: "Water", capacity: 12, status: "maintenance", note: "Ladder repair, back online Thursday" }
+    ],
+    sideTitle: "Upcoming buyouts",
+    side: [
+      { label: "This weekend, 24 guests", value: "Pool unconfirmed", tone: "amber" },
+      { label: "In 3 weeks, 18 guests", value: "Ready", tone: "teal" },
+      { label: "In 6 weeks, 30 guests", value: "Not started", tone: "slate" }
+    ]
   }
 };
 
@@ -682,6 +845,9 @@ var STAGE_COLOR = {
   repairs_in_progress: "bg-sky-500/15 text-sky-400", ready: "bg-teal-500/15 text-teal-400",
   relisted: "bg-teal-500/15 text-teal-400", occupied: "bg-green-500/15 text-green-400"
 };
+var AMENITY_STATUS_COLOR = {
+  open: "bg-green-500/15 text-green-400", maintenance: "bg-amber-500/15 text-amber-400", closed: "bg-red-500/15 text-red-400"
+};
 
 var ACTIVITY = {
   pm: [
@@ -703,6 +869,16 @@ var ACTIVITY = {
       trail: ["Cleaning turn opened from the calendar · 11:15am", "Fresh Start Cleaning Co assigned · 11:16am"] },
     { desc: "Review-risk follow-up, Hillcrest", status: "assigned", where: "Hillcrest Cottage", category: "guest outreach", urgency: "routine", vendor: null, cost: null,
       trail: ["Prior stay closed with an unresolved issue · flagged · 3:44pm", "Outreach message suggested before the review window closes"] }
+  ],
+  micro: [
+    { desc: "Pool heater status check, ahead of Saturday's buyout", status: "awaiting_approval", where: "Main pool (shared)", category: "amenity", urgency: "urgent", vendor: null, cost: null,
+      trail: ["Buyout confirmed for 24 guests, checks in Saturday · 8:50am", "AI flagged the pool heater's status as unconfirmed since last season · 9:02am", "Waiting on a maintenance check before the buyout arrives · 9:10am"] },
+    { desc: "Dock ladder repair, in progress", status: "in_progress", where: "Private dock (shared)", category: "amenity", urgency: "routine", vendor: "Reliable Plumbing", cost: 140,
+      trail: ["Logged during the last checkout inspection · 2 days ago", "AI diagnosed: shared amenity, routine · matched Reliable Plumbing", "Dispatched, targeting done before Thursday · 10:40am"] },
+    { desc: "Firepit propane level low", status: "scheduled", where: "Firepit lounge (shared)", category: "amenity", urgency: "routine", vendor: "BrightSpark Electric", cost: 45,
+      trail: ["Routine level check ahead of the weekend buyout · 11:00am", "Refill scheduled before Saturday · 11:05am"] },
+    { desc: "Buyout guest count confirmed at 24", status: "completed", where: "Whole property", category: "reservation", urgency: "routine", vendor: null, cost: null,
+      trail: ["Guest count finalized against the buyout reservation · 1:15pm", "Checked against amenity capacity, pool (40) and dock (12) both clear · 1:16pm"] }
   ]
 };
 
@@ -720,6 +896,11 @@ var TURNS = {
       deadline: { label: "Next guest arrives tomorrow", tone: "bg-amber-500/15 text-amber-400" }, repairs: [{ desc: "Turnover cleaning", status: "in_progress", cost: 95 }] },
     { where: "Riverside Fourplex — Unit B", turnType: "cleaning", stage: "ready", daysVacant: 2, cost: 95,
       deadline: { label: "Next guest arrives Thursday", tone: "bg-slate-500/15 text-slate-400" }, repairs: [{ desc: "Turnover cleaning", status: "completed", cost: 95 }] }
+  ],
+  micro: [
+    { where: "Whole property, compound turn", turnType: "cleaning", stage: "inspecting", daysVacant: 2, cost: 410,
+      deadline: { label: "Buyout guests arrive Saturday", tone: "bg-red-500/15 text-red-400" },
+      repairs: [{ desc: "Full-compound turnover cleaning", status: "in_progress", cost: 280 }, { desc: "Dock ladder repair", status: "in_progress", cost: 140 }, { desc: "Firepit propane refill", status: "scheduled", cost: 45 }] }
   ]
 };
 
@@ -783,6 +964,25 @@ var ANALYTICS = {
     ],
     spendLabel: "Spend by vendor",
     note: "Occupancy here is booked nights out of the next 30, read straight off the connected Airbnb and Vrbo calendars."
+  },
+  micro: {
+    tiles: [
+      { label: "Occupancy", value: "91%", sub: "next 30 days", tone: "teal" },
+      { label: "Amenity uptime", value: "89%", sub: "last 90 days", tone: "amber" },
+      { label: "Total spend", value: "$6,240", sub: "last 90 days", tone: "slate" },
+      { label: "Buyouts booked", value: "4", sub: "next 60 days", tone: "teal" }
+    ],
+    occupancy: [
+      { name: "Whole-property buyouts", occupied: 11, units: 12 }
+    ],
+    spend: [
+      { name: "Reliable Plumbing", value: "$2,480" },
+      { name: "BrightSpark Electric", value: "$1,760" },
+      { name: "Fresh Start Cleaning", value: "$1,540" },
+      { name: "CoolBreeze HVAC", value: "$460" }
+    ],
+    spendLabel: "Spend by vendor",
+    note: "Occupancy here is buyout-nights booked out of the next 30. Spend includes shared-amenity upkeep (pool, dock, firepit), not just per-unit maintenance."
   }
 };
 
@@ -965,21 +1165,21 @@ function showView(key) {
   currentPortfolio = key;
   var d = DATA[key];
 
+  // The banner is STR's pitch for switching to Micro-resort, so it only
+  // makes sense while looking at STR, not while already on Micro or on LTR.
   document.getElementById('micro-resort-banner').classList.toggle('hidden', key !== 'str');
+  document.getElementById('amenities-panel').classList.toggle('hidden', key !== 'micro');
 
   // Same two-chrome-instance split as showNav: the mobile hero toggle is a
-  // big pill pair, the sidebar's is a compact LTR/STR segmented control.
-  document.querySelectorAll('[data-tab-pm]').forEach(function (btn) {
-    var isSidebar = btn.closest('aside') !== null;
-    btn.className = isSidebar
-      ? 'flex-1 px-2 py-1.5 rounded-md text-xs font-bold transition ' + (key === 'pm' ? 'bg-teal-500 text-slate-950' : 'text-slate-400 hover:text-white')
-      : 'px-5 py-2.5 rounded-lg text-sm font-bold transition ' + (key === 'pm' ? 'bg-teal-500 text-slate-950' : 'text-slate-400 hover:text-white');
-  });
-  document.querySelectorAll('[data-tab-str]').forEach(function (btn) {
-    var isSidebar = btn.closest('aside') !== null;
-    btn.className = isSidebar
-      ? 'flex-1 px-2 py-1.5 rounded-md text-xs font-bold transition ' + (key === 'str' ? 'bg-teal-500 text-slate-950' : 'text-slate-400 hover:text-white')
-      : 'px-5 py-2.5 rounded-lg text-sm font-bold transition ' + (key === 'str' ? 'bg-teal-500 text-slate-950' : 'text-slate-400 hover:text-white');
+  // row of big pills, the sidebar's is a compact 3-way segmented control.
+  ['pm', 'str', 'micro'].forEach(function (k) {
+    document.querySelectorAll('[data-tab-' + k + ']').forEach(function (btn) {
+      var isSidebar = btn.closest('aside') !== null;
+      var active = key === k;
+      btn.className = isSidebar
+        ? 'flex-1 px-2 py-1.5 rounded-md text-xs font-bold transition ' + (active ? 'bg-teal-500 text-slate-950' : 'text-slate-400 hover:text-white')
+        : 'px-5 py-2.5 rounded-lg text-sm font-bold transition ' + (active ? 'bg-teal-500 text-slate-950' : 'text-slate-400 hover:text-white');
+    });
   });
 
   // Briefing types word by word, at the same 90ms cadence as the dashboard
@@ -1078,6 +1278,19 @@ function showView(key) {
         '<span class="text-sm text-slate-300">' + s.label + '</span>' +
         '<span class="text-xs font-bold ' + TONE[s.tone] + '">' + s.value + '</span></div>';
     }).join('');
+
+  if (d.amenities) {
+    document.getElementById('amenities').innerHTML = d.amenities.map(function (a) {
+      return '<div class="bg-slate-950/40 rounded-xl p-3">' +
+        '<div class="flex items-start justify-between gap-3">' +
+        '<div><p class="text-sm font-medium">' + a.name + '</p>' +
+        '<p class="text-xs text-slate-500 mt-0.5">' + a.category + ' · up to ' + a.capacity + '</p></div>' +
+        '<span class="shrink-0 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ' + AMENITY_STATUS_COLOR[a.status] + '">' + a.status + '</span>' +
+        '</div>' +
+        (a.note ? '<p class="text-xs text-slate-500 mt-2 italic">' + a.note + '</p>' : '') +
+        '</div>';
+    }).join('');
+  }
 
   renderActivity(key);
   renderTurns(key);
