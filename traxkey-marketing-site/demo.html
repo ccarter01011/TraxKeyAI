@@ -185,25 +185,31 @@ html.light .to-slate-900 { --tw-gradient-to: #ffffff !important; }
       you end up with two systems that can't see each other. This is what it looks like when they can.
     </p>
 
-    <div class="inline-flex items-center bg-slate-900 border border-white/10 rounded-xl p-1 gap-1">
-      <button id="tab-pm" onclick="showView('pm')" class="px-5 py-2.5 rounded-lg text-sm font-bold transition bg-teal-500 text-slate-950">
-        Long-term rentals
-      </button>
-      <button id="tab-str" onclick="showView('str')" class="px-5 py-2.5 rounded-lg text-sm font-bold transition text-slate-400 hover:text-white">
-        Short-term rentals
-      </button>
+    <!-- Mobile/tablet only: below lg the sidebar (added further down) is
+         hidden, so this page needs its own compact controls here, same
+         split the real app dashboard uses (sidebar on desktop, in-page
+         chrome on mobile). -->
+    <div class="lg:hidden">
+      <div class="inline-flex items-center bg-slate-900 border border-white/10 rounded-xl p-1 gap-1">
+        <button data-tab-pm onclick="showView('pm')" class="px-5 py-2.5 rounded-lg text-sm font-bold transition bg-teal-500 text-slate-950">
+          Long-term rentals
+        </button>
+        <button data-tab-str onclick="showView('str')" class="px-5 py-2.5 rounded-lg text-sm font-bold transition text-slate-400 hover:text-white">
+          Short-term rentals
+        </button>
+      </div>
+      <p class="text-xs text-slate-500 mt-4">Running a compound or micro-resort instead? <a href="/short-term-rentals#micro-resort" class="text-teal-400 hover:text-teal-300 underline underline-offset-4">See how Experiential mode handles shared amenities and buyouts →</a></p>
     </div>
-    <p class="text-xs text-slate-500 mt-4">Running a compound or micro-resort instead? <a href="/short-term-rentals#micro-resort" class="text-teal-400 hover:text-teal-300 underline underline-offset-4">See how Experiential mode handles shared amenities and buyouts →</a></p>
   </div>
 </section>
 
-<section class="px-6">
+<section class="px-6 lg:hidden">
   <div class="max-w-6xl mx-auto">
     <div class="flex flex-wrap items-center justify-center gap-2 mb-8">
-      <button id="nav-dashboard" onclick="showNav('dashboard')" class="px-4 py-2 rounded-lg text-sm font-bold transition bg-teal-500 text-slate-950">Dashboard</button>
-      <button id="nav-activity" onclick="showNav('activity')" class="px-4 py-2 rounded-lg text-sm font-bold transition text-slate-400 hover:text-white border border-white/10">AI Activity</button>
-      <button id="nav-turns" onclick="showNav('turns')" class="px-4 py-2 rounded-lg text-sm font-bold transition text-slate-400 hover:text-white border border-white/10">Turns</button>
-      <button id="nav-analytics" onclick="showNav('analytics')" class="px-4 py-2 rounded-lg text-sm font-bold transition text-slate-400 hover:text-white border border-white/10">Analytics</button>
+      <button data-nav-btn="dashboard" onclick="showNav('dashboard')" class="px-4 py-2 rounded-lg text-sm font-bold transition bg-teal-500 text-slate-950">Dashboard</button>
+      <button data-nav-btn="activity" onclick="showNav('activity')" class="px-4 py-2 rounded-lg text-sm font-bold transition text-slate-400 hover:text-white border border-white/10">AI Activity</button>
+      <button data-nav-btn="turns" onclick="showNav('turns')" class="px-4 py-2 rounded-lg text-sm font-bold transition text-slate-400 hover:text-white border border-white/10">Turns</button>
+      <button data-nav-btn="analytics" onclick="showNav('analytics')" class="px-4 py-2 rounded-lg text-sm font-bold transition text-slate-400 hover:text-white border border-white/10">Analytics</button>
       <span class="w-px h-5 bg-white/10 mx-1"></span>
       <span class="px-3 py-2 rounded-lg text-xs text-slate-600 border border-white/5 cursor-default" title="Sign up to see this">Properties</span>
       <span class="px-3 py-2 rounded-lg text-xs text-slate-600 border border-white/5 cursor-default" title="Sign up to see this">Vendors</span>
@@ -216,7 +222,42 @@ html.light .to-slate-900 { --tw-gradient-to: #ffffff !important; }
   </div>
 </section>
 
-<section class="pb-16 px-6">
+<!-- Desktop sidebar: mirrors the real app's DashboardShell (persistent left
+     nav, content on the right). Below lg this renders nothing, the section
+     above covers mobile with the original pill row instead. -->
+<aside class="hidden lg:flex lg:flex-col lg:fixed lg:top-16 lg:bottom-0 lg:left-0 lg:w-60 border-r border-white/5 bg-slate-900/40 overflow-y-auto px-4 py-6">
+  <div class="mb-5">
+    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-2">Portfolio</p>
+    <div class="inline-flex items-center bg-slate-950 border border-white/10 rounded-lg p-0.5 gap-0.5 w-full">
+      <button data-tab-pm onclick="showView('pm')" class="flex-1 px-2 py-1.5 rounded-md text-xs font-bold transition bg-teal-500 text-slate-950">LTR</button>
+      <button data-tab-str onclick="showView('str')" class="flex-1 px-2 py-1.5 rounded-md text-xs font-bold transition text-slate-400 hover:text-white">STR</button>
+    </div>
+    <p class="text-[11px] text-slate-500 mt-2">Compound or micro-resort? <a href="/short-term-rentals#micro-resort" class="text-teal-400 hover:text-teal-300 underline underline-offset-4">See Experiential mode →</a></p>
+  </div>
+
+  <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Dashboard</p>
+  <nav class="space-y-0.5 mb-5">
+    <button data-nav-btn="dashboard" onclick="showNav('dashboard')" class="block w-full text-left px-3 py-2 rounded-lg text-sm font-semibold transition bg-teal-500/15 text-teal-300 border border-teal-400/30">Dashboard</button>
+    <button data-nav-btn="activity" onclick="showNav('activity')" class="block w-full text-left px-3 py-2 rounded-lg text-sm transition text-slate-400 hover:text-white hover:bg-white/5">AI Activity</button>
+    <button data-nav-btn="turns" onclick="showNav('turns')" class="block w-full text-left px-3 py-2 rounded-lg text-sm transition text-slate-400 hover:text-white hover:bg-white/5">Turns</button>
+    <button data-nav-btn="analytics" onclick="showNav('analytics')" class="block w-full text-left px-3 py-2 rounded-lg text-sm transition text-slate-400 hover:text-white hover:bg-white/5">Analytics</button>
+  </nav>
+
+  <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Setup</p>
+  <div class="space-y-0.5">
+    <span class="block px-3 py-2 rounded-lg text-sm text-slate-600 cursor-default" title="Sign up to see this">Properties</span>
+    <span class="block px-3 py-2 rounded-lg text-sm text-slate-600 cursor-default" title="Sign up to see this">Vendors</span>
+    <span class="block px-3 py-2 rounded-lg text-sm text-slate-600 cursor-default" title="Sign up to see this">Leases</span>
+    <span class="block px-3 py-2 rounded-lg text-sm text-slate-600 cursor-default" title="Sign up to see this">Orders</span>
+    <span class="block px-3 py-2 rounded-lg text-sm text-slate-600 cursor-default" title="Sign up to see this">Invoicing</span>
+    <span class="block px-3 py-2 rounded-lg text-sm text-slate-600 cursor-default" title="Sign up to see this">Insights</span>
+    <span class="block px-3 py-2 rounded-lg text-sm text-slate-600 cursor-default" title="Sign up to see this">Owners</span>
+  </div>
+
+  <a href="https://app.traxkey.ai/signup" class="mt-auto pt-5 block text-center bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-sm px-4 py-2.5 rounded-lg transition">Start free</a>
+</aside>
+
+<section class="pb-16 px-6 lg:ml-60">
   <div class="max-w-6xl mx-auto">
 
     <!-- ACTIVITY VIEW -->
@@ -786,8 +827,20 @@ function showNav(tab) {
   currentNav = tab;
   ['dashboard', 'activity', 'turns', 'analytics'].forEach(function (t) {
     document.getElementById('view-' + t).classList.toggle('hidden', t !== tab);
-    document.getElementById('nav-' + t).className = 'px-4 py-2 rounded-lg text-sm font-bold transition ' +
-      (t === tab ? 'bg-teal-500 text-slate-950' : 'text-slate-400 hover:text-white border border-white/10');
+    // Two chrome instances share this tab's state now: the mobile pill row
+    // and the desktop sidebar. Each button carries its own base classes
+    // (pill vs sidebar row), so only the active/inactive colour classes are
+    // swapped rather than replacing className wholesale.
+    document.querySelectorAll('[data-nav-btn="' + t + '"]').forEach(function (btn) {
+      var isSidebar = btn.closest('aside') !== null;
+      if (isSidebar) {
+        btn.className = 'block w-full text-left px-3 py-2 rounded-lg text-sm transition ' +
+          (t === tab ? 'font-semibold bg-teal-500/15 text-teal-300 border border-teal-400/30' : 'text-slate-400 hover:text-white hover:bg-white/5');
+      } else {
+        btn.className = 'px-4 py-2 rounded-lg text-sm font-bold transition ' +
+          (t === tab ? 'bg-teal-500 text-slate-950' : 'text-slate-400 hover:text-white border border-white/10');
+      }
+    });
   });
 }
 
@@ -889,10 +942,20 @@ function showView(key) {
   currentPortfolio = key;
   var d = DATA[key];
 
-  document.getElementById('tab-pm').className = 'px-5 py-2.5 rounded-lg text-sm font-bold transition ' +
-    (key === 'pm' ? 'bg-teal-500 text-slate-950' : 'text-slate-400 hover:text-white');
-  document.getElementById('tab-str').className = 'px-5 py-2.5 rounded-lg text-sm font-bold transition ' +
-    (key === 'str' ? 'bg-teal-500 text-slate-950' : 'text-slate-400 hover:text-white');
+  // Same two-chrome-instance split as showNav: the mobile hero toggle is a
+  // big pill pair, the sidebar's is a compact LTR/STR segmented control.
+  document.querySelectorAll('[data-tab-pm]').forEach(function (btn) {
+    var isSidebar = btn.closest('aside') !== null;
+    btn.className = isSidebar
+      ? 'flex-1 px-2 py-1.5 rounded-md text-xs font-bold transition ' + (key === 'pm' ? 'bg-teal-500 text-slate-950' : 'text-slate-400 hover:text-white')
+      : 'px-5 py-2.5 rounded-lg text-sm font-bold transition ' + (key === 'pm' ? 'bg-teal-500 text-slate-950' : 'text-slate-400 hover:text-white');
+  });
+  document.querySelectorAll('[data-tab-str]').forEach(function (btn) {
+    var isSidebar = btn.closest('aside') !== null;
+    btn.className = isSidebar
+      ? 'flex-1 px-2 py-1.5 rounded-md text-xs font-bold transition ' + (key === 'str' ? 'bg-teal-500 text-slate-950' : 'text-slate-400 hover:text-white')
+      : 'px-5 py-2.5 rounded-lg text-sm font-bold transition ' + (key === 'str' ? 'bg-teal-500 text-slate-950' : 'text-slate-400 hover:text-white');
+  });
 
   // Briefing types word by word, at the same 90ms cadence as the dashboard
   // concierge, so it reads as written live rather than pasted. Bullets are
