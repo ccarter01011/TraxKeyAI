@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -71,23 +71,39 @@ const NAV = [
 // separate from FlowHelp (which documents a page's internal logic once
 // you're already on it) since this needs to sit inline in a cramped sidebar
 // row and only ever shows one line of prose, not a numbered flow.
+//
+// The tooltip is positioned fixed, computed from the icon's own bounding
+// rect, rather than absolute relative to this span. The sidebar scrolls
+// (overflow-y-auto) to fit every nav group, and an absolutely-positioned
+// tooltip is clipped by that ancestor regardless of z-index, an
+// overflow: auto container clips its contents at the box edge no matter
+// what's stacked on top. Fixed positioning escapes that clip entirely.
 function NavHint({ text }) {
-  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState(null);
+  const ref = useRef(null);
+
+  function show() {
+    const r = ref.current?.getBoundingClientRect();
+    if (r) setPos({ top: r.top + r.height / 2, left: r.right + 8 });
+  }
+
   return (
     <span className="relative inline-block shrink-0" onClick={e => e.preventDefault()}>
       <span
+        ref={ref}
         role="button"
         tabIndex={-1}
-        onMouseEnter={() => setOpen(true)}
-        onMouseLeave={() => setOpen(false)}
+        onMouseEnter={show}
+        onMouseLeave={() => setPos(null)}
         className="w-3.5 h-3.5 rounded-full border border-slate-300 dark:border-white/20 text-slate-400 dark:text-slate-500 hover:border-teal-400 hover:text-teal-500 dark:hover:text-teal-400 text-[9px] font-bold transition inline-flex items-center justify-center leading-none"
       >
         ?
       </span>
-      {open && (
+      {pos && (
         <span
           role="tooltip"
-          className="absolute left-6 top-1/2 -translate-y-1/2 z-50 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-lg p-3 shadow-xl text-left block text-[11px] leading-snug font-normal text-slate-600 dark:text-slate-300 normal-case tracking-normal"
+          style={{ position: 'fixed', top: pos.top, left: pos.left, transform: 'translateY(-50%)' }}
+          className="z-[100] w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-lg p-3 shadow-xl text-left block text-[11px] leading-snug font-normal text-slate-600 dark:text-slate-300 normal-case tracking-normal"
         >
           {text}
         </span>
