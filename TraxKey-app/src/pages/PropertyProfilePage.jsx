@@ -405,6 +405,9 @@ export default function PropertyProfilePage() {
           <select value={propertyId} onChange={e => setParams({ propertyId: e.target.value })} className={`${fld} max-w-xs`}>
             {properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
+          <Link to="/properties" className="shrink-0 text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline">
+            + Add property
+          </Link>
           {profile && (
             <div className="flex items-center gap-2">
               <div className="w-28 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">

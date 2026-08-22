@@ -28,44 +28,73 @@ import ThemeToggle from './ThemeToggle.jsx';
 const NAV = [
   {
     label: 'Start here', items: [
-      { to: '/onboarding', label: 'Onboard a property', icon: HomeModernIcon },
+      { to: '/onboarding', label: 'Onboard a property', icon: HomeModernIcon, hint: 'Capture a property’s details and inventory so the AI can answer residents directly.' },
     ]
   },
   {
     label: 'Daily operations', items: [
-      { to: '/calendar', label: 'Calendar', icon: CalendarIcon },
-      { to: '/activity', label: 'AI Activity', icon: BoltIcon, badgeKey: 'needsYou', tone: 'urgent' },
-      { to: '/turns', label: 'Turns', icon: ArrowPathIcon, badgeKey: 'turns', tone: 'attention' },
-      { to: '/orders', label: 'Purchase Orders', icon: TruckIcon },
-      { to: '/invoices', label: 'Invoices', icon: BanknotesIcon },
-      { to: '/inspections', label: 'Inspections', icon: ClipboardDocumentCheckIcon, badgeKey: 'openInspections', tone: 'attention' },
+      { to: '/calendar', label: 'Calendar', icon: CalendarIcon, hint: 'Every unit on one timeline: guest bookings, owner blocks, leases, and turn deadlines together.' },
+      { to: '/activity', label: 'AI Activity', icon: BoltIcon, badgeKey: 'needsYou', tone: 'urgent', hint: 'Every request and every step the AI Coordinator took on it. Flagged items need your decision.' },
+      { to: '/turns', label: 'Turns', icon: ArrowPathIcon, badgeKey: 'turns', tone: 'attention', hint: 'Vacant-to-ready tracking for move-out turnovers and cleaning turns.' },
+      { to: '/orders', label: 'Purchase Orders', icon: TruckIcon, hint: 'Parts and materials a job is waiting on. Flagged when late, and when late means a turn will slip.' },
+      { to: '/invoices', label: 'Invoices', icon: BanknotesIcon, hint: 'What you’re owed, how overdue it is, and reminders sent for you until someone answers.' },
+      { to: '/inspections', label: 'Inspections', icon: ClipboardDocumentCheckIcon, badgeKey: 'openInspections', tone: 'attention', hint: 'Move-in and move-out condition records, and what changed between them.' },
     ]
   },
   {
     label: 'Portfolio records', items: [
-      { to: '/insights', label: 'Insights', icon: ChartBarIcon },
-      { to: '/properties', label: 'Properties & units', icon: BuildingOffice2Icon },
-      { to: '/residents', label: 'Residents & guests', icon: UsersIcon },
-      { to: '/owners', label: 'Owners', icon: KeyIcon },
-      { to: '/leases', label: 'Leases', icon: DocumentTextIcon, badgeKey: 'expiring', tone: 'attention' },
+      { to: '/insights', label: 'Insights', icon: ChartBarIcon, hint: 'Patterns in your own data: vendors slowing down, units that keep breaking, rents below your average.' },
+      { to: '/properties', label: 'Properties & units', icon: BuildingOffice2Icon, hint: 'Your properties and units, what TraxKey AI’s agents monitor and act on.' },
+      { to: '/residents', label: 'Residents & guests', icon: UsersIcon, hint: 'Invite each resident or short-term guest with their own reporting link.' },
+      { to: '/owners', label: 'Owners', icon: KeyIcon, hint: 'If you manage for other people, give them a read-only view of their own properties.' },
+      { to: '/leases', label: 'Leases', icon: DocumentTextIcon, badgeKey: 'expiring', tone: 'attention', hint: 'Terms, rent, and renewal dates. Flagged 90 days before they end.' },
     ]
   },
   {
     label: 'Analytics & reporting', items: [
-      { to: '/analytics', label: 'Occupancy & financials', icon: ChartPieIcon },
-      { to: '/ask', label: 'Ask about your portfolio', icon: ChatBubbleLeftRightIcon },
-      { to: '/pricing', label: 'Direct booking & pricing', icon: CurrencyDollarIcon },
+      { to: '/analytics', label: 'Occupancy & financials', icon: ChartPieIcon, hint: 'Occupancy trend, rental activity rollups, spend by property and vendor, and owner statements.' },
+      { to: '/ask', label: 'Ask about your portfolio', icon: ChatBubbleLeftRightIcon, hint: 'Plain-language questions across long-term and short-term together: what earns least, what costs most, whether a lease is worth renewing.' },
+      { to: '/pricing', label: 'Direct booking & pricing', icon: CurrencyDollarIcon, hint: 'A reservation system outside Airbnb and Vrbo, with nightly rate suggestions. Prototype: no revenue-management vendor is connected yet.' },
     ]
   },
   {
     label: 'Setup', items: [
-      { to: '/vendors', label: 'Vendors', icon: WrenchScrewdriverIcon },
-      { to: '/str-ops', label: 'Supplies & damage', icon: ArchiveBoxIcon },
-      { to: '/calendars', label: 'Connect Airbnb & Vrbo', icon: LinkIcon },
-      { to: '/business-memory', label: 'Business Memory', icon: Cog6ToothIcon },
+      { to: '/vendors', label: 'Vendors', icon: WrenchScrewdriverIcon, hint: 'The network the AI dispatches to, ranked by their real job history.' },
+      { to: '/str-ops', label: 'Supplies & damage', icon: ArchiveBoxIcon, hint: 'Consumables per unit with reorder levels, and checkout damage tied to the stay it happened during.' },
+      { to: '/calendars', label: 'Connect Airbnb & Vrbo', icon: LinkIcon, hint: 'Paste a calendar link once. This is setup, not the day-to-day calendar.' },
+      { to: '/business-memory', label: 'Business Memory', icon: Cog6ToothIcon, hint: 'Rules the AI follows: approval limits, quiet hours, preferred vendors.' },
     ]
   },
 ];
+
+// A tiny hover affordance next to a nav label explaining what the page is,
+// separate from FlowHelp (which documents a page's internal logic once
+// you're already on it) since this needs to sit inline in a cramped sidebar
+// row and only ever shows one line of prose, not a numbered flow.
+function NavHint({ text }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span className="relative inline-block shrink-0" onClick={e => e.preventDefault()}>
+      <span
+        role="button"
+        tabIndex={-1}
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
+        className="w-3.5 h-3.5 rounded-full border border-slate-300 dark:border-white/20 text-slate-400 dark:text-slate-500 hover:border-teal-400 hover:text-teal-500 dark:hover:text-teal-400 text-[9px] font-bold transition inline-flex items-center justify-center leading-none"
+      >
+        ?
+      </span>
+      {open && (
+        <span
+          role="tooltip"
+          className="absolute left-6 top-1/2 -translate-y-1/2 z-50 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-lg p-3 shadow-xl text-left block text-[11px] leading-snug font-normal text-slate-600 dark:text-slate-300 normal-case tracking-normal"
+        >
+          {text}
+        </span>
+      )}
+    </span>
+  );
+}
 
 function NavLink({ item, active, badgeText }) {
   return (
@@ -85,6 +114,7 @@ function NavLink({ item, active, badgeText }) {
         <span className="flex items-center gap-2 min-w-0">
           {item.icon && <item.icon className={`w-[18px] h-[18px] shrink-0 ${active ? 'text-teal-600 dark:text-teal-400' : 'text-slate-400 dark:text-slate-500'}`} strokeWidth={1.75} />}
           <span className="truncate">{item.label}</span>
+          {item.hint && <NavHint text={item.hint} />}
         </span>
         {badgeText && (
           <span className={`shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
@@ -143,12 +173,12 @@ export default function DashboardShell() {
     <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100">
       {/* Sidebar: desktop only. Mobile keeps each page's own header/back-link. */}
       <aside className="hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:left-0 lg:w-64 border-r border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-slate-900/40 overflow-y-auto">
-        <div className="p-5 border-b border-slate-200 dark:border-white/5">
+        <Link to="/" className="block p-5 border-b border-slate-200 dark:border-white/5 hover:bg-slate-100 dark:hover:bg-white/5 transition">
           <p className="text-xs text-teal-600 dark:text-teal-400 font-semibold uppercase tracking-wide mb-1 truncate">
             {companyName || 'TraxKey AI'}
           </p>
           <p className="text-sm font-bold truncate">Welcome, {user?.name || 'there'}</p>
-        </div>
+        </Link>
 
         <nav className="flex-1 px-3 py-4 space-y-5">
           {NAV.map(group => (

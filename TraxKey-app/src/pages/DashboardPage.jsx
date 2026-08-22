@@ -322,6 +322,11 @@ export default function DashboardPage() {
 
         <ConciergeWidget />
 
+        {/* On desktop the sidebar (DashboardShell) already carries every one
+            of these links, so repeating them here would just be a second,
+            redundant nav floating next to the chat. Mobile has no sidebar,
+            so it keeps the full tile grid. */}
+        <div className="lg:hidden">
         <SampleData isEmpty={c.isEmpty} hasSample={c.hasSample} onChanged={load} />
         <GettingStarted isEmpty={c.isEmpty} />
 
@@ -429,6 +434,7 @@ export default function DashboardPage() {
           />
           <TenantPortalLink />
         </Section>
+        </div>
       </div>
 
       <button
