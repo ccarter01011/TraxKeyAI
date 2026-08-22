@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './lib/AuthContext.jsx';
 import { ThemeProvider } from './lib/ThemeContext.jsx';
+import DashboardShell from './components/DashboardShell.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import SignupPage from './pages/SignupPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
@@ -49,30 +50,33 @@ function App() {
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
-          <Route path="/" element={<RequireAuth><DashboardPage /></RequireAuth>} />
-          <Route path="/properties" element={<RequireAuth><PropertiesPage /></RequireAuth>} />
-          <Route path="/residents" element={<RequireAuth><ResidentsPage /></RequireAuth>} />
-          <Route path="/vendors" element={<RequireAuth><VendorsPage /></RequireAuth>} />
-          <Route path="/calendars" element={<RequireAuth><CalendarsPage /></RequireAuth>} />
-          <Route path="/turns" element={<RequireAuth><TurnsPage /></RequireAuth>} />
-          <Route path="/leases" element={<RequireAuth><LeasesPage /></RequireAuth>} />
-          <Route path="/business-memory" element={<RequireAuth><BusinessMemoryPage /></RequireAuth>} />
-          <Route path="/inspections" element={<RequireAuth><InspectionsPage /></RequireAuth>} />
-          <Route path="/calendar" element={<RequireAuth><CalendarPage /></RequireAuth>} />
-          <Route path="/insights" element={<RequireAuth><InsightsPage /></RequireAuth>} />
-          <Route path="/orders" element={<RequireAuth><OrderedItemsPage /></RequireAuth>} />
-          <Route path="/str-ops" element={<RequireAuth><StrOpsPage /></RequireAuth>} />
-          <Route path="/owners" element={<RequireAuth><OwnersPage /></RequireAuth>} />
-          <Route path="/invoices" element={<RequireAuth><InvoicesPage /></RequireAuth>} />
-          <Route path="/analytics" element={<RequireAuth><AnalyticsPage /></RequireAuth>} />
-          <Route path="/ask" element={<RequireAuth><PortfolioChatPage /></RequireAuth>} />
-          <Route path="/onboarding" element={<RequireAuth><PropertyProfilePage /></RequireAuth>} />
-          <Route path="/pricing" element={<RequireAuth><PricingPage /></RequireAuth>} />
-          <Route path="/profile" element={<RequireAuth><ProfilePage /></RequireAuth>} />
           <Route path="/admin/login" element={<AdminLoginPage />} />
           <Route path="/admin" element={<AdminDashboardPage />} />
           <Route path="/admin/suggestions" element={<AdminSuggestionsPage />} />
-          <Route path="/activity" element={<RequireAuth><ActivityPage /></RequireAuth>} />
+
+          <Route element={<RequireAuth><DashboardShell /></RequireAuth>}>
+            <Route path="/" element={<DashboardPage />} />
+            <Route path="/properties" element={<PropertiesPage />} />
+            <Route path="/residents" element={<ResidentsPage />} />
+            <Route path="/vendors" element={<VendorsPage />} />
+            <Route path="/calendars" element={<CalendarsPage />} />
+            <Route path="/turns" element={<TurnsPage />} />
+            <Route path="/leases" element={<LeasesPage />} />
+            <Route path="/business-memory" element={<BusinessMemoryPage />} />
+            <Route path="/inspections" element={<InspectionsPage />} />
+            <Route path="/calendar" element={<CalendarPage />} />
+            <Route path="/insights" element={<InsightsPage />} />
+            <Route path="/orders" element={<OrderedItemsPage />} />
+            <Route path="/str-ops" element={<StrOpsPage />} />
+            <Route path="/owners" element={<OwnersPage />} />
+            <Route path="/invoices" element={<InvoicesPage />} />
+            <Route path="/analytics" element={<AnalyticsPage />} />
+            <Route path="/ask" element={<PortfolioChatPage />} />
+            <Route path="/onboarding" element={<PropertyProfilePage />} />
+            <Route path="/pricing" element={<PricingPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/activity" element={<ActivityPage />} />
+          </Route>
         </Routes>
       </BrowserRouter>
     </AuthProvider>

@@ -185,7 +185,7 @@ export default function PropertiesPage() {
             <h1 className="text-2xl font-bold">Your portfolio</h1>
           </div>
           <div className="flex items-center gap-3">
-            <ThemeToggle />
+            <span className="lg:hidden"><ThemeToggle /></span>
             <AddPropertyForm onCreated={load} />
           </div>
         </div>

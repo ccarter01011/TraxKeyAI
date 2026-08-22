@@ -65,7 +65,7 @@ function SampleData({ isEmpty, hasSample, onChanged }) {
         It's a mix of long-term and short-term, and you can remove it in one click.
       </p>
       <div className="flex items-center justify-center gap-3">
-        <Link to="/properties" target="_blank" rel="noopener noreferrer" className="bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-sm px-4 py-2.5 rounded-lg transition">
+        <Link to="/properties" className="bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-sm px-4 py-2.5 rounded-lg transition">
           Add a property
         </Link>
         <button onClick={() => call('seed')} disabled={busy}
@@ -138,7 +138,7 @@ function TenantPortalLink() {
         <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
           Prefer inviting residents individually, each gets their own link and TraxKey already
           knows their unit. This shared code is only a fallback for before residents are set up.{' '}
-          <Link to="/residents" target="_blank" rel="noopener noreferrer" className="underline text-teal-600 dark:text-teal-300">Invite residents →</Link>
+          <Link to="/residents" className="underline text-teal-600 dark:text-teal-300">Invite residents →</Link>
         </p>
         <div className="flex items-center gap-2">
           <code className="flex-1 bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-xs text-teal-700 dark:text-teal-300 overflow-x-auto whitespace-nowrap">{link}</code>
@@ -165,8 +165,6 @@ function Tile({ to, title, blurb, badge, tone = 'neutral' }) {
   return (
     <Link
       to={to}
-      target="_blank"
-      rel="noopener noreferrer"
       className="block bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl p-5 hover:border-teal-400/50 dark:hover:border-teal-400/30 transition"
     >
       <div className="flex items-start justify-between gap-3 mb-1">
@@ -307,7 +305,7 @@ export default function DashboardPage() {
       )}
 
       <div className="max-w-3xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 lg:hidden">
           <div>
             <p className="text-xs text-teal-600 dark:text-teal-400 font-semibold uppercase tracking-wide mb-1">
               Operator Dashboard{companyName ? ` · ${companyName}` : ''}
@@ -320,6 +318,7 @@ export default function DashboardPage() {
             <button onClick={logout} className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">Log out</button>
           </div>
         </div>
+        <h1 className="hidden lg:block text-2xl font-bold mb-6">Welcome, {user?.name || 'there'}</h1>
 
         <ConciergeWidget />
 

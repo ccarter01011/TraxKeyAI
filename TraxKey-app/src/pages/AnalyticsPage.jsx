@@ -216,7 +216,7 @@ export default function AnalyticsPage() {
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 px-6 py-8">
       <div className="max-w-3xl mx-auto">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between lg:hidden">
           <Link to="/" className="text-xs text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white">← Operator Dashboard</Link>
           <ThemeToggle />
         </div>
